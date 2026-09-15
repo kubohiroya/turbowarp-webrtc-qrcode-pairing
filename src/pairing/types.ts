@@ -88,5 +88,9 @@ export interface PairingSessionState {
   errorCode: PairingErrorCode | '';
   errorMessage: string;
   tickTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Sprites this session swapped a skin on, so only its own displays are restored. */
+  displayTargets: Set<TurboWarpTarget>;
+  /** Aborts an in-flight camera scan when the session ends. */
+  scanAbort: AbortController | undefined;
   waiters: {resolve: () => void; reject: (error: unknown) => void}[];
 }

@@ -50,3 +50,5 @@ interface ScratchApi {
 }
 
 declare const Scratch: ScratchApi;
+
+declare module '@kubohiroya/turbowarp-jsqr/jsqr.js';
