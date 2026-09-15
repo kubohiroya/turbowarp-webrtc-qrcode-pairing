@@ -118,7 +118,7 @@
 | 0 | `turbowarp-webrtc` 側 `feat/runtime-capability/v3` | capability v3の追加 | なし | 当該リポジトリのcheck |
 | 1 | `feat/pairing/contracts` | 本設計文書一式、`src/pairing/types.ts`、`src/config/feature-flags.ts`、`src/config/qr-config.ts`、`globals.d.ts`の拡張 | なし | typecheck / lint |
 | 2 | `refactor/pairing/qr-courier` | `src/qr/**`（limits・envelope・courier・svg）と移設テスト、依存パッケージ追加 | #1 | `pnpm run check`、jsQR実デコード、部分・重複・欠落 |
-| 3 | `feat/pairing/offer-answer` | `src/ports/webrtc.ts`、`src/pairing/session.ts`、`src/pairing/controller.ts`、往復・取消・期限・複数peerのテスト | #1,#2（実機は#0） | フェイクWebRTCでの往復テスト |
+| 3 | `feat/pairing/offer-answer` | `src/ports/webrtc.ts`、`src/clock.ts`、`src/pairing/{limits,types,controller}.ts`、往復・取消・期限・複数peerのテスト | #1,#2（実機は#0） | フェイクWebRTCでの往復テスト |
 | 4 | `feat/pairing/optical-workflow` | `src/ports/display.ts`、`src/ports/qr-scan.ts`、ブロック定義とextension.ts、実機検証 | #3、#0、jsqr／camera-source | 実機での投影→読取り→搬送→接続 |
 | 5 | `docs/pairing/integration` | README（日英）、docs/index.html、利用ガイド、移行・切戻し手順 | #4 | `pnpm run docs:check`、DoD一覧の確認 |
 
