@@ -34,10 +34,14 @@ The smartphone carries signaling information optically. Camera data is sent over
 | `turbowarp-jsqr` | Decode QR codes from camera frames |
 | `turbowarp-camera-source` | Camera acquisition and frame access |
 | `turbowarp-time-space-sync` | Optical time correspondence and camera placement calibration |
-| `turbowarp-time-space-sync-app` | Combined connection and calibration workflow |
-| proposed `turbowarp-webrtc-qrcode-pairing-app` | Standalone pairing example and connection verification |
+| `turbowarp-time-space-sync-app` | Verification app for the time-space-sync extension |
+| `turbowarp-camera-calibration-app` | Lens calibration; produces intrinsic profiles as files |
+| `turbowarp-webrtc-qrcode-pairing-app` | Standalone pairing example and connection verification |
+| `turbowarp-realtime-motion-capture-app`, `turbowarp-photogrammetry-app` | Production venue workflow; embed this extension directly |
 
 These are intended runtime relationships, not dependencies already installed in this scaffold. Pairing remains usable independently of time/space calibration and motion capture.
+
+A pairing session cannot be handed from one app to another. Opening a different SB3 re-evaluates its bundle, so the WebRTC extension instance is rebuilt and the existing `RTCPeerConnection` becomes unreachable from blocks; a saved SDP cannot restore it either. Consumer apps therefore embed this extension and pair inside their own flow, and `turbowarp-webrtc-qrcode-pairing-app` exists for verification rather than as a stage of the production workflow.
 
 ## Extraction plan
 

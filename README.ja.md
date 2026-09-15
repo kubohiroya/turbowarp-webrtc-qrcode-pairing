@@ -34,10 +34,14 @@ QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です
 | `turbowarp-jsqr` | カメラ画像からのQR読取り |
 | `turbowarp-camera-source` | カメラ取得とフレームへのアクセス |
 | `turbowarp-time-space-sync` | 光学的な時刻対応の推定、カメラ配置の校正 |
-| `turbowarp-time-space-sync-app` | 接続と時刻・空間校正を組み合わせた操作画面 |
-| 新設案 `turbowarp-webrtc-qrcode-pairing-app` | ペアリング単独の操作例と接続確認 |
+| `turbowarp-time-space-sync-app` | time-space-sync拡張の検証用アプリ |
+| `turbowarp-camera-calibration-app` | レンズ校正。内部校正プロファイルをファイルとして作る |
+| `turbowarp-webrtc-qrcode-pairing-app` | ペアリング単独の操作例と接続確認 |
+| `turbowarp-realtime-motion-capture-app`、`turbowarp-photogrammetry-app` | 本番の会場運用。本拡張を直接埋め込む |
 
 この表は今後の連携方針です。初期版にはこれらの実行時依存をまだ導入していません。接続用QRの搬送は、時刻・空間校正やモーションキャプチャから独立して利用できるようにします。
+
+ペアリング済みの接続をアプリ間で引き継ぐことはできません。別のSB3を開くとそのbundleが評価されてWebRTC拡張のインスタンスが作り直され、既存の`RTCPeerConnection`はblockから到達できなくなります。保存したSDPからの復元もできません。したがって本番では消費側アプリが本拡張を埋め込んで自分のフローの中でペアリングし、`turbowarp-webrtc-qrcode-pairing-app`は本番フローの一段階ではなく検証用として位置づけます。
 
 ## 既存コードからの移設方針
 
