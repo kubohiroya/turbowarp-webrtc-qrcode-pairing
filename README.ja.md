@@ -19,6 +19,15 @@ QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です
 > ペアリング用ブロックは起動時固定のフィーチャーフラグの内側にあり、既定は無効です。
 > [フィーチャーフラグと切戻し](#フィーチャーフラグと切戻し)を参照してください。
 
+## ドキュメント
+
+| 文書 | 内容 |
+|---|---|
+| [利用ガイド](docs/integration-guide.ja.md) ([English](docs/integration-guide.md)) | 準備、両端末のブロック手順、partの表示と読取り、カメラ側複数台、エラーコード、実機記録 |
+| [移行と切戻し](docs/migration.ja.md) ([English](docs/migration.md)) | `turbowarp-realtime-motion-capture`からの移行、manual pairingへの切戻し、回帰確認 |
+| [アーキテクチャ](docs/architecture.ja.md) ([English](docs/architecture.md)) | 実行時の構造、ビルド出力、拡張機能API manifest |
+| [設計文書](docs/design/qr-pairing/README.md) | 要求仕様、データフロー、型契約、ブロック契約、移設計画、検証計画 |
+
 ## 想定する操作
 
 1. 統合側端末でOfferのQRコードをプロジェクタに表示する。

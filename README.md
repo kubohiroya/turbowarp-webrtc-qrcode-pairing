@@ -19,6 +19,15 @@ Version 0.1.0 is local package metadata; it does not imply an npm release.
 > The pairing blocks are behind a startup feature flag that is off by default. See
 > [Feature flag and rollback](#feature-flag-and-rollback).
 
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [Integration guide](docs/integration-guide.md) ([日本語](docs/integration-guide.ja.md)) | Setup, block sequences for both machines, showing and scanning parts, several camera machines, error codes, hardware test record |
+| [Migration and rollback](docs/migration.md) ([日本語](docs/migration.ja.md)) | Coming from `turbowarp-realtime-motion-capture`, returning to manual pairing, regression checks |
+| [Architecture](docs/architecture.md) ([日本語](docs/architecture.ja.md)) | Runtime structure, build outputs, extension API manifest |
+| [Design records](docs/design/qr-pairing/README.md) | Requirements, data flow, type contracts, block contract, extraction plan, verification plan |
+
 ## Intended workflow
 
 1. The integration machine creates an Offer and displays its QR codes through a projector.
