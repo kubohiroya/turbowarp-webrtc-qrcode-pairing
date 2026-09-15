@@ -1,0 +1,17 @@
+{
+  "formatVersion": 1,
+  "id": "kubohiroyawebrtcqrcodepairing",
+  "blocks": [
+    {
+      "opcode": "hello",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "NAME",
+          "type": "STRING"
+        }
+      ]
+    }
+  ],
+  "menus": []
+}

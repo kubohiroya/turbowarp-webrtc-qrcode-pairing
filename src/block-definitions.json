@@ -1,0 +1,14 @@
+{
+  "extensionName": "TurboWarp-WebRTC-QRCode-Pairing",
+  "blocks": [
+    {
+      "opcode": "hello",
+      "blockType": "REPORTER",
+      "text": "hello [NAME]",
+      "description": "Returns a localized greeting for the supplied name.",
+      "arguments": {
+        "NAME": {"type": "STRING", "defaultValue": "world"}
+      }
+    }
+  ]
+}
