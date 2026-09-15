@@ -44,6 +44,7 @@ src/
   extension.ts                 ブロックのファサード。引数のCast・翻訳・委譲のみ
   globals.d.ts                 Scratch/runtime/renderer型（motion-captureから統合）
   errors.ts                    PairingErrorCode と QrPairingError（依存なしの葉モジュール）
+  clock.ts                     単調時計（performance.now系）
 
   config/
     feature-flags.ts           起動時固定フラグ qrCodePairing（既定OFF）
@@ -57,15 +58,14 @@ src/
     svg.ts                     QRのSVG生成（表示層が使う純粋関数）
 
   pairing/                     ── ドメイン層 ──
-    types.ts                   PairingRole / PairingPhase / ポート型（errors.ts を再輸出）
-    session.ts                 1 exchangeの状態機械（epoch・期限・進捗）
-    controller.ts              session集合の管理、往復手順の進行、資源解放
+    limits.ts                  session上限・期限既定値・tick間隔
+    types.ts                   PairingRole / PairingPhase / PairingProgress / session状態の形
+    controller.ts              session集合の管理、状態遷移、往復手順の進行、資源解放
 
   ports/                       ── アダプタ層 ──
     webrtc.ts                  runtime capability v3 の取得と適合検査
     qr-scan.ts                 jsqr(scanFrame) + camera-source(lease) の取得と走査ループ
     display.ts                 TemporarySpriteSkinManager（skin退避・復元）
-    clock.ts                   単調時計（performance.now系）
 ```
 
 依存方向は `extension.ts → pairing/ → qr/` と `pairing/ → ports/`（interfaceのみ）。
