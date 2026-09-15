@@ -105,7 +105,7 @@ pnpm run dev
 
 - Node.js >=22.18.0、pnpm 11.11.0。
 - 併用する拡張: 接続は`turbowarp-webrtc`、QRのデコードは`turbowarp-jsqr`、カメラフレームは`turbowarp-camera-source`。本拡張より先に読み込んでください。
-- `turbowarp-webrtc`はruntime capability v3（`acceptOffer`、`getAnswer`、`acceptAnswer`、`connectionState`、`closePeer`）を公開している必要があります。0.3.0はv2までで往復を完結できません。[turbowarp-webrtc#18](https://github.com/kubohiroya/turbowarp-webrtc/issues/18)を参照してください。このため現時点ではpeerDependencyに記載していません。
+- `turbowarp-webrtc`はruntime capability v3（`acceptOffer`、`getAnswer`、`acceptAnswer`、`connectionState`、`hasPeer`、`closePeer`）を公開している必要があります。0.4.0以降が該当します。0.3.0以前はv2までで、Offerは作れても受理できないため往復を完結できません。
 - QRで接続情報を運べたことは、接続が到達可能であることを意味しません。ネットワーク条件、ICE、STUN／TURNは`turbowarp-webrtc`の責務です。
 
 > [!IMPORTANT]

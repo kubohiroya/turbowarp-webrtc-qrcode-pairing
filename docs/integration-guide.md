@@ -15,10 +15,10 @@ Load these extensions **before** this one, and run all of them unsandboxed:
 | `turbowarp-jsqr` | Decodes QR codes from camera frames |
 | `turbowarp-camera-source` | Acquires the camera and exposes frames |
 
-`turbowarp-webrtc` must publish runtime capability **v3**. Version 0.3.0 publishes v2, which has
-`createOffer` and `getOffer` but not `acceptOffer`, `getAnswer`, `acceptAnswer` or
-`connectionState`, so a round trip cannot complete. See
-[turbowarp-webrtc#18](https://github.com/kubohiroya/turbowarp-webrtc/issues/18).
+`turbowarp-webrtc` must publish runtime capability **v3**, which version 0.4.0 and later do. Version
+0.3.0 and earlier publish v2, which has `createOffer` and `getOffer` but not `acceptOffer`,
+`getAnswer`, `acceptAnswer` or `connectionState`, so a round trip cannot complete. A version that is
+too old reports `webrtc-capability-missing`.
 
 Turn the pairing blocks on at startup, before the extension loads:
 
