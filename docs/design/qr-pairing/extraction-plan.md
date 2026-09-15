@@ -22,7 +22,9 @@
 | `src/qr-svg.ts` | 39 | `src/qr/svg.ts` | A | `import type {QrErrorCorrectionLevel} from "./qr-courier.js"` → `"./envelope.js"`。それ以外は同一 |
 | `src/sprite-skin.ts` | 112 | `src/ports/display.ts` | A | クラス名は`TemporarySpriteSkinManager`のまま。エラー文言の`Offer QR`→`Pairing QR`。`DisplayPort`をimplementsする宣言を追加 |
 | `src/qr-courier.ts` の定数群 | （冒頭6行） | `src/qr/limits.ts` | B | `MAX_MESSAGE_LENGTH` / `MAX_PART_COUNT` / `MAX_CHUNK_LENGTH`をそのまま移し、`MAX_PART_TEXT_LENGTH` / `MAX_ACTIVE_SESSIONS` / 期限定数を追加。単位と境界条件をコメントで明記（FR-2.7） |
-| `src/qr-courier.ts` の`QrCourierPartV1` / `validatePart` / `serializeQrCourierPart` / `parseQrCourierPart` / `partIdentity` / `requireIdentifier` / `requireTimestamp` / `requirePairingCode` / `sha256Base64Url` | ~150 | `src/qr/envelope.ts` | B | ①`protocol`を`twqr/1`へ ②`peerId`→`senderPeerId`＋`targetPeerId` ③`replyTo`追加（offerは空文字、answerは非空を要求） ④`QrCourierKind`→`QrMessageKind` ⑤エラーを`QrPairingError(code, message)`へ置換 ⑥`Offer pairing code is empty.`のようなOffer前提の文言を種別非依存に ⑦`createdAt`が期限判定に使われないことをコメントで明記 |
+| `src/qr-courier.ts` の`QrCourierPartV1` / `validatePart` / `serializeQrCourierPart` / `parseQrCourierPart` / `partIdentity` / `requireIdentifier` / `requireTimestamp` / `requirePairingCode` | ~140 | `src/qr/envelope.ts` | B | ①`protocol`を`twqr/1`へ ②`peerId`→`senderPeerId`＋`targetPeerId` ③`replyTo`追加（offerは空文字、answerは非空を要求） ④`QrCourierKind`→`QrMessageKind` ⑤エラーを`QrPairingError(code, message)`へ置換 ⑥`Offer pairing code is empty.`のようなOffer前提の文言を種別非依存に ⑦`createdAt`が期限判定に使われないことをコメントで明記 ⑧payloadの印字可能ASCII検査をparse時にも行う |
+| `src/qr-courier.ts` の`sha256Base64Url` | ~8 | `src/qr/hash.ts` | A | envelopeとcourierの双方が使うため単独モジュールへ |
+| — | — | `src/errors.ts` | D | `PairingErrorCode`と`QrPairingError`。`qr/`と`pairing/`の双方が参照するので、依存を持たない葉モジュールとして`src/`直下に置く |
 | `src/qr-courier.ts` の`createQrCourierParts` / `maximumPayloadLength` | ~75 | `src/qr/courier.ts` | B | 二分探索とpart数収束ループはそのまま。`options`を`CreatePartsOptions`（sender/target/replyTo/sessionId）へ。戻り値に`sessionId`／`messageId`を追加 |
 | `src/qr-courier.ts` の`QrCourierAssembler` | ~45 | `src/qr/courier.ts`（`PartAssembler`） | B | ①入力を`string`から`QrEnvelopeV1`へ（parseは呼び出し側＝controllerが行い、session照合をparse直後に挟めるようにする） ②`missingParts()` / `receivedCount()` / `requiredCount()` / `isComplete()` / `clear()`を追加（FR-2.3） ③エラーを`QrPairingError`へ |
 | `src/webrtc-capability.ts` | 38 | `src/ports/webrtc.ts` | B | `WebRtcOfferCapabilityV2`→`WebRtcPairingPort`。要求versionを3へ。`acceptOffer` / `getAnswer` / `acceptAnswer` / `connectionState` / `closePeer`の存在検査を追加。エラーコード`webrtc-capability-missing` |
@@ -46,7 +48,7 @@
 | 移設元 | 行数 | 移設先 | 区分 | 作業 |
 |---|---|---|---|---|
 | `tests/qr-courier.test.ts` | 116 | `tests/qr-courier.test.ts` | B | 4件のitを維持。`peerId`→`senderPeerId`/`targetPeerId`、protocol名、`QrCourierAssembler`→`PartAssembler`（入力がenvelope）に合わせて更新。「順不同・重複・混在identity・欠落part・範囲外index・過大入力」の観点はそのまま使える（DoD 3/4に直結） |
-| `tests/turbowarp-jsqr-integration.test.ts` | 80 | `tests/qr-jsqr-integration.test.ts` | A | `createQrCourierParts`→`createParts`の呼び替えのみ。jsqrで実際にデコードできることの検証は本拡張でこそ必要 |
+| `tests/turbowarp-jsqr-integration.test.ts` | 80 | `tests/qr-jsqr-integration.test.ts` | A | `createQrCourierParts`→`createParts`の呼び替えのみ。**`feat/pairing/optical-workflow`へ延期**: このテストは`@kubohiroya/turbowarp-jsqr`拡張の`scanFrame`経路を検証するもので、走査ポートを実装するPRで一緒に入れるほうが依存の追加が1回で済む。生成QRの実デコード検証自体は`qr-courier.test.ts`が`jsqr`パッケージ直接利用で担保する |
 | `tests/extension.test.ts` L85-130, L485-693（offer QRブロック関連） | ~250 | `tests/pairing-hub.test.ts` ほか | C | 流用する観点: フラグOFFでブロックが出ない／`disabled`を返す、peer名のtrim、単一part／複数part、次part巡回、表示終了で復元、webrtc未ロード時のエラー、進行中の二重起動拒否、スプライト削除時の復元。往復・camera側・取消・期限・複数peerは新規 |
 | — | — | `tests/pairing-camera.test.ts` | D | Offer受理→Answer生成→表示 |
 | — | — | `tests/pairing-roundtrip.test.ts` | D | hub↔cameraを同一プロセス内で結線した往復（DoD 1/3/6） |
@@ -79,8 +81,10 @@
 - 本リポジトリは`vitest ^5.0.0`、移設元は`vitest ^4.1.10`。移設テストがvitest 5で動くことを最初のPRで確認する
   （`vi.stubGlobal`／`vi.unstubAllGlobals`は5系でも同APIだが、タイマ系APIの差異は要確認）。
 - 本リポジトリは`@kubohiroya/vite-plugin-turbowarp-extension` 0.3.0、移設元は0.4.0。
-  `qrcode`をバンドルできること（単一出力検証を通ること）を`pnpm run check:dist`で確認する。
-  通らない場合はプラグインを0.4.0へ上げる判断を、移設の最初のPRで行う。
+  `qrcode`をバンドルできることは`refactor/pairing/qr-courier`で確認済み（`src/qr/courier.ts`を入口に
+  vite単体ビルドすると、外部importなし・node組込みなしの単一チャンク約88 KBになる）。
+  `src/extension.ts`が`qr/`を参照するのは`feat/pairing/optical-workflow`以降なので、
+  `pnpm run check:dist`での最終確認はそのPRで行う。
 - 移設元はprettierを使うが本リポジトリは使わない。移設したコードは本リポジトリのeslint設定に合わせる
   （移設元はダブルクォート、本リポジトリのscaffoldはシングルクォート。`eslint.config.mjs`の実際の規則に従う）。
 
