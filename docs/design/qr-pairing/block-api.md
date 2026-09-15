@@ -87,7 +87,7 @@ Offer全part受信後の`acceptOffer`とAnswer分割は内部で自動実行し�
 | `retryPairing` | COMMAND | `retry pairing [SESSION]` | 取消後に新しい`exchangeId`で同ロールの交換を再開 |
 | `setPairingTimeout` | COMMAND | `set pairing timeout of [SESSION] to [SECONDS] seconds` | 1〜3600。範囲外は`invalid-argument` |
 
-合計 26 opcode（COMMAND 12 / REPORTER 13 / BOOLEAN 1）。
+合計 28 opcode（COMMAND 11 / REPORTER 16 / BOOLEAN 1）。実装時に `pairingQrPartDataUri` と `pairingRemainingSeconds` を加え、表示選択と表示適用を分けた結果。
 
 ## 8. エラーの返し方
 

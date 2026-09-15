@@ -24,6 +24,8 @@ import {
   type PairingRole,
   type PairingSessionState
 } from './types.js';
+import {TemporarySpriteSkinManager, type DisplayPort} from '../ports/display.js';
+import {CameraQrScanner, type QrScanPort} from '../ports/qr-scan.js';
 import {requireWebRtcPairingPort, type WebRtcPairingPort} from '../ports/webrtc.js';
 
 export interface PairingControllerOptions {
@@ -32,10 +34,34 @@ export interface PairingControllerOptions {
   readonly errorCorrectionLevel?: QrErrorCorrectionLevel;
   /** Injected in tests. Production resolves the runtime capability lazily. */
   readonly webrtc?: WebRtcPairingPort;
+  readonly display?: DisplayPort;
+  readonly scan?: QrScanPort;
   readonly clock?: MonotonicClock;
   /** Wall clock used only for the diagnostic `createdAt` field. */
   readonly now?: () => number;
 }
+
+/**
+ * Errors that only mean "that was not our QR code".
+ *
+ * A camera pointed at a projection also sees posters, other sessions, and the
+ * previous exchange's codes, so scanning skips these and keeps looking. Damage
+ * to a code that does belong to this exchange is not in this set: that is
+ * reported, because silently retrying would hide a real problem.
+ */
+const skippableWhileScanning = new Set<PairingErrorCode>([
+  'invalid-json',
+  'unsupported-protocol',
+  'invalid-envelope',
+  'part-too-large',
+  'index-out-of-range',
+  'message-too-large',
+  'unexpected-kind',
+  'stale-exchange',
+  'peer-mismatch',
+  'reply-mismatch',
+  'message-mismatch'
+]);
 
 const idlePhase: PairingPhase = 'idle';
 
@@ -51,15 +77,22 @@ export class PairingController {
   private readonly enabled: boolean;
   private readonly errorCorrectionLevel: QrErrorCorrectionLevel;
   private readonly injectedWebRtc: WebRtcPairingPort | undefined;
+  private readonly injectedDisplay: DisplayPort | undefined;
+  private readonly injectedScan: QrScanPort | undefined;
   private readonly clock: MonotonicClock;
   private readonly now: () => number;
   private readonly sessions = new Map<string, PairingSessionState>();
+  private lazyDisplay: DisplayPort | undefined;
+  private lazyScan: QrScanPort | undefined;
+  private activeScans = 0;
 
   public constructor(options: PairingControllerOptions = {}) {
     this.runtime = options.runtime ?? Scratch.vm?.runtime ?? {};
     this.enabled = options.enabled ?? featureFlags.qrCodePairing;
     this.errorCorrectionLevel = options.errorCorrectionLevel ?? qrConfig.errorCorrectionLevel;
     this.injectedWebRtc = options.webrtc;
+    this.injectedDisplay = options.display;
+    this.injectedScan = options.scan;
     this.clock = options.clock ?? systemMonotonicClock;
     this.now = options.now ?? (() => Date.now());
   }
@@ -211,6 +244,85 @@ export class PairingController {
     return session.outgoing?.texts[oneBasedIndex - 1] ?? '';
   }
 
+  // --- Display -------------------------------------------------------------
+
+  /** Shows the one-based part on the supplied sprite, keeping its original skin. */
+  public showPart(
+    sessionKey: string,
+    oneBasedIndex: number,
+    target: TurboWarpTarget | undefined
+  ): void {
+    const session = this.requireSession(sessionKey);
+    const svg = this.selectPart(sessionKey, oneBasedIndex);
+    session.displayTargets.add(this.display().show(target, svg));
+  }
+
+  public showNextPart(sessionKey: string, target: TurboWarpTarget | undefined): void {
+    const session = this.requireSession(sessionKey);
+    const svg = this.selectNextPart(sessionKey);
+    session.displayTargets.add(this.display().show(target, svg));
+  }
+
+  /** Restores the sprites this session changed. The session itself stays open. */
+  public endDisplay(sessionKey: string): void {
+    this.releaseDisplay(this.requireSession(sessionKey));
+  }
+
+  /** Called when the runtime removes a sprite, so its skin is not restored onto nothing. */
+  public handleTargetRemoved(target: TurboWarpTarget): void {
+    for (const session of this.sessions.values()) {
+      if (!session.displayTargets.delete(target)) continue;
+      this.display().releaseTarget(target);
+    }
+  }
+
+  // --- Scanning ------------------------------------------------------------
+
+  /**
+   * Reads parts from a camera until the exchange has everything it needs.
+   *
+   * Codes that belong to something else are skipped rather than reported: a
+   * camera aimed at a projection also sees whatever else is in frame.
+   */
+  public async scanFromCamera(sessionKey: string, cameraId: string): Promise<void> {
+    this.requireEnabled();
+    const session = this.requireSession(sessionKey);
+    const camera = cameraId.trim() || 'default';
+    if (session.scanAbort) {
+      throw new QrPairingError(
+        'invalid-argument',
+        `Pairing session ${session.sessionKey} is already scanning.`
+      );
+    }
+    const epoch = session.epoch;
+    const abort = new AbortController();
+    session.scanAbort = abort;
+    this.activeScans += 1;
+    const scan = this.scanner();
+    try {
+      while (!this.isStale(session, epoch) && !isTerminalPhase(session.phase)) {
+        if (session.delivered) return;
+        const text = await scan.scanOnce({cameraId: camera, signal: abort.signal});
+        if (this.isStale(session, epoch)) return;
+        try {
+          await this.ingestQrText(sessionKey, text);
+        } catch (error) {
+          if (!(error instanceof QrPairingError) || !skippableWhileScanning.has(error.code)) {
+            throw error;
+          }
+        }
+      }
+    } catch (error) {
+      // Cancelling or expiring the session aborts the scan; that is not a failure.
+      if (error instanceof QrPairingError && error.code === 'cancelled') return;
+      throw error;
+    } finally {
+      if (session.scanAbort === abort) session.scanAbort = undefined;
+      this.activeScans -= 1;
+      if (this.activeScans === 0) await scan.release();
+    }
+  }
+
   // --- Control -------------------------------------------------------------
 
   public cancelPairing(sessionKey: string): void {
@@ -317,10 +429,13 @@ export class PairingController {
     for (const session of [...this.sessions.values()]) {
       if (session.phase === 'connected') {
         this.clearTimer(session);
+        session.scanAbort?.abort();
+        this.releaseDisplay(session);
         continue;
       }
       this.finish(session, 'cancelled', '', '');
     }
+    void this.releaseScanner();
   }
 
   /** Runtime disposal. Drops every session and its retained state. */
@@ -329,6 +444,8 @@ export class PairingController {
       this.finish(session, 'cancelled', '', '');
     }
     this.sessions.clear();
+    this.lazyDisplay?.releaseAll();
+    void this.releaseScanner();
   }
 
   // --- Internals -----------------------------------------------------------
@@ -517,6 +634,8 @@ export class PairingController {
       errorCode: '',
       errorMessage: '',
       tickTimer: undefined,
+      displayTargets: new Set(),
+      scanAbort: undefined,
       waiters: []
     };
   }
@@ -537,6 +656,7 @@ export class PairingController {
     session.startedAtMonotonic = this.clock.nowMilliseconds();
     session.errorCode = '';
     session.errorMessage = '';
+    session.scanAbort = undefined;
     if (session.role === 'camera') {
       session.localPeerId = session.expectedLocalPeerId;
       session.remotePeerId = '';
@@ -597,6 +717,8 @@ export class PairingController {
     session.errorCode = errorCode;
     session.errorMessage = errorMessage;
     this.clearTimer(session);
+    session.scanAbort?.abort();
+    this.releaseDisplay(session);
     if (!connected) {
       session.assembler.clear();
       if (session.peerCreated) {
@@ -649,8 +771,31 @@ export class PairingController {
     }
   }
 
+  private async releaseScanner(): Promise<void> {
+    if (this.activeScans > 0) return;
+    await this.lazyScan?.release();
+  }
+
+  private releaseDisplay(session: PairingSessionState): void {
+    if (session.displayTargets.size === 0) return;
+    const display = this.display();
+    for (const target of [...session.displayTargets]) display.releaseTarget(target);
+    session.displayTargets.clear();
+  }
+
   private webrtc(): WebRtcPairingPort {
     return this.injectedWebRtc ?? requireWebRtcPairingPort(this.runtime);
+  }
+
+  private display(): DisplayPort {
+    this.lazyDisplay ??= this.injectedDisplay ?? new TemporarySpriteSkinManager(this.runtime);
+    return this.lazyDisplay;
+  }
+
+  private scanner(): QrScanPort {
+    this.lazyScan ??=
+      this.injectedScan ?? new CameraQrScanner(this.runtime, 'webrtc-qrcode-pairing');
+    return this.lazyScan;
   }
 
   private requireEnabled(): void {

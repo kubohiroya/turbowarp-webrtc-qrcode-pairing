@@ -3,11 +3,312 @@
   "id": "kubohiroyawebrtcqrcodepairing",
   "blocks": [
     {
-      "opcode": "hello",
+      "opcode": "cancelPairing",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "endPairingQrDisplay",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "ingestPairingQrText",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        },
+        {
+          "id": "TEXT",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "isPairingConnected",
+      "blockType": "BOOLEAN",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingConnectionState",
       "blockType": "REPORTER",
       "arguments": [
         {
-          "id": "NAME",
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingError",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingErrorMessage",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingExchangeId",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingLocalPeer",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingMissingParts",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingPhase",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingQrCurrentPart",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingQrPartCount",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingQrPartDataUri",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "INDEX",
+          "type": "NUMBER"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingQrPartSvg",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "INDEX",
+          "type": "NUMBER"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingReceivedParts",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingRemainingSeconds",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingRemotePeer",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingRequiredParts",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingSessions",
+      "blockType": "REPORTER",
+      "arguments": []
+    },
+    {
+      "opcode": "retryPairing",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "scanPairingQrFromCamera",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "CAMERA_ID",
+          "type": "STRING"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "setPairingTimeout",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SECONDS",
+          "type": "NUMBER"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "showNextPairingQrPart",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "showPairingQrPart",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "INDEX",
+          "type": "NUMBER"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "startAnswerPairing",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "LOCAL_PEER",
+          "type": "STRING"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "startOfferPairing",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "LOCAL_PEER",
+          "type": "STRING"
+        },
+        {
+          "id": "REMOTE_PEER",
+          "type": "STRING"
+        },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "waitUntilPairingConnected",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "SESSION",
           "type": "STRING"
         }
       ]

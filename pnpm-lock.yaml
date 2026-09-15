@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@kubohiroya/turbowarp-camera-source':
+        specifier: 0.5.0
+        version: 0.5.0
       qrcode:
         specifier: 1.5.4
         version: 1.5.4
@@ -15,6 +18,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
+      '@kubohiroya/turbowarp-jsqr':
+        specifier: 0.3.0
+        version: 0.3.0(@kubohiroya/turbowarp-camera-source@0.5.0)
       '@kubohiroya/vite-plugin-turbowarp-extension':
         specifier: 0.3.0
         version: 0.3.0(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.1))
@@ -268,6 +274,19 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@kubohiroya/turbowarp-camera-source@0.5.0':
+    resolution: {integrity: sha512-0Ji1iL/HSl2PijGjcuPMOTN3cnc73oxGdmiiT9UIHL3BIUUPjaLDf3HCyoHyFaawdSIXQ8sspQt8gezlkv57uw==}
+    engines: {node: '>=22.18.0'}
+
+  '@kubohiroya/turbowarp-jsqr@0.3.0':
+    resolution: {integrity: sha512-3MLrNmscP35Yj1Mlx9gNijMdbI5NYVPTq89CFzufmspOKYRVX9HtxYn/b6PE/h83gRMxBCKs/OCiAxnVf2RC0w==}
+    engines: {node: '>=22.18.0'}
+    peerDependencies:
+      '@kubohiroya/turbowarp-camera-source': '>=0.1.0 <1'
+    peerDependenciesMeta:
+      '@kubohiroya/turbowarp-camera-source':
+        optional: true
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.3.0':
     resolution: {integrity: sha512-8JsF0BSMU9Q7MDQJtCzYmL9+4ZV8Q0EuAUdZUhGuAHjnTky8ss3zI+me2Tn1i2Ke24pzv311Tx4wGYkb2DaqhA==}
@@ -1296,6 +1315,14 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@kubohiroya/turbowarp-camera-source@0.5.0': {}
+
+  '@kubohiroya/turbowarp-jsqr@0.3.0(@kubohiroya/turbowarp-camera-source@0.5.0)':
+    dependencies:
+      jsqr: 1.4.0
+    optionalDependencies:
+      '@kubohiroya/turbowarp-camera-source': 0.5.0
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.3.0(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.1))':
     dependencies:
