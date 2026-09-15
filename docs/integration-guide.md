@@ -50,10 +50,15 @@ which catches an operator scanning the wrong projection.
 
 ```
 when green flag clicked
-  set pairing timeout of [pairing-1] to (600) seconds
   start offer pairing [pairing-1] as [studio] to [cam-A]
+  set pairing timeout of [pairing-1] to (600) seconds
   show pairing QR part (1) of [pairing-1] on this sprite
 ```
+
+The timeout is set after the session exists: every block but the two `start`
+blocks needs an open session and reports `no-session` otherwise. The deadline is
+measured from the moment the session started, so setting it right afterwards
+loses nothing.
 
 `start offer pairing` returns once the offer exists and its QR parts are prepared; the phase becomes
 `offer-ready`. Creating the offer waits for ICE gathering to finish, so it can take a moment.
@@ -75,8 +80,8 @@ WebRTC reports the connection, and fails if the session is cancelled, times out,
 
 ```
 when green flag clicked
-  set pairing timeout of [pairing-1] to (600) seconds
   start answer pairing [pairing-1] as []
+  set pairing timeout of [pairing-1] to (600) seconds
   scan pairing QR for [pairing-1] from camera [default]
   show pairing QR part (1) of [pairing-1] on this sprite
   wait until pairing [pairing-1] is connected

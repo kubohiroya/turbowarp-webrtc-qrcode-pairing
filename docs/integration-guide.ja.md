@@ -49,10 +49,14 @@ globalThis.__TWQP_FEATURE_FLAGS__ = {qrCodePairing: true};
 
 ```
 緑の旗が押されたとき
-  set pairing timeout of [pairing-1] to (600) seconds
   start offer pairing [pairing-1] as [studio] to [cam-A]
+  set pairing timeout of [pairing-1] to (600) seconds
   show pairing QR part (1) of [pairing-1] on this sprite
 ```
+
+期限の設定はsessionを開いた後に置きます。2つの`start`ブロック以外はすべて
+開いているsessionを必要とし、無い場合は`no-session`になります。期限はsessionを
+開いた時点からの経過で測るため、直後に設定しても失うものはありません。
 
 `start offer pairing`はOfferが生成されQR partの準備が終わると戻り、phaseは`offer-ready`になります。
 Offer生成はICE収集の完了を待つため、少し時間がかかります。
@@ -73,8 +77,8 @@ end pairing QR display of [pairing-1]
 
 ```
 緑の旗が押されたとき
-  set pairing timeout of [pairing-1] to (600) seconds
   start answer pairing [pairing-1] as []
+  set pairing timeout of [pairing-1] to (600) seconds
   scan pairing QR for [pairing-1] from camera [default]
   show pairing QR part (1) of [pairing-1] on this sprite
   wait until pairing [pairing-1] is connected
