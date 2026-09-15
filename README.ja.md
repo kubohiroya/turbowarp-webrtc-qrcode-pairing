@@ -4,6 +4,8 @@
 
 QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です。`turbowarp-extension-template` 0.4.0を雛形として初期化しています。
 
+**利用ガイド:** [English](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/) / [日本語](docs/integration-guide.ja.md)
+
 ## できること
 
 - WebRTCのOfferとAnswerをQR搬送用の形式に符号化し、大きい場合は複数のQRに分割します。
