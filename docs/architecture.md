@@ -2,6 +2,27 @@
 
 [日本語](architecture.ja.md)
 
+Using the extension: [Integration guide](integration-guide.md) ·
+[Migration and rollback](migration.md). Design records: [docs/design/qr-pairing](design/qr-pairing/README.md).
+
+## Runtime structure
+
+```text
+extension.ts        block facade: casts arguments, delegates, owns runtime listeners
+  pairing/          session state machine: phases, epochs, deadlines, resource release
+    qr/             pure transport: envelope, splitting, reassembly, verification, SVG
+    ports/          adapters: WebRTC capability, camera scanning, sprite skins
+  errors.ts         error codes shared by the transport and the domain
+```
+
+`qr/` depends on nothing but `qrcode` and `errors.ts`: it has no DOM, Scratch, or WebRTC
+dependency, so the transport can be tested without a runtime and independently of the feature flag.
+`pairing/` reaches the outside world only through the port interfaces, which is what lets the round
+trip be tested with a fake WebRTC capability while `turbowarp-webrtc` capability v3 is unpublished.
+
+Companion extensions are resolved at call time, never at load time: a missing one becomes a specific
+error code on the block that needed it, rather than a failure to load.
+
 ## Build outputs
 
 The project keeps runtime behavior and compatibility metadata separate while generating both from

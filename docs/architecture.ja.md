@@ -2,6 +2,27 @@
 
 [English](architecture.md)
 
+使い方: [利用ガイド](integration-guide.ja.md) · [移行と切戻し](migration.ja.md)。
+設計の記録: [docs/design/qr-pairing](design/qr-pairing/README.md)。
+
+## 実行時の構造
+
+```text
+extension.ts        ブロックのファサード。引数のCastと委譲、runtimeリスナの保持
+  pairing/          sessionの状態機械。phase、epoch、期限、資源解放
+    qr/             純粋な搬送処理。envelope、分割、再構成、検証、SVG生成
+    ports/          アダプタ。WebRTC能力、カメラ走査、スプライトのskin
+  errors.ts         搬送層とドメイン層が共有するエラーコード
+```
+
+`qr/`は`qrcode`と`errors.ts`以外に依存しません。DOM、Scratch、WebRTCへの依存が無いため、
+搬送処理はruntimeなしで、かつフィーチャーフラグと独立して検証できます。`pairing/`は外部へ
+portのinterface経由でのみ到達します。`turbowarp-webrtc`のcapability v3が未公開の間も、
+フェイクを注入して往復をテストできるのはこのためです。
+
+併用拡張は読込み時ではなく呼び出し時に解決します。不在の場合は、読込みの失敗ではなく、それを
+必要としたブロックのエラーコードとして現れます。
+
 ## ビルド出力
 
 このプロジェクトは実行時の動作と互換性メタデータを分離し、リポジトリに保存された同じソース定義から両方を生成します。
