@@ -15,10 +15,10 @@ TurboWarpのプロジェクトから本拡張で2台の端末をペアリング�
 | `turbowarp-jsqr` | カメラフレームからのQRデコード |
 | `turbowarp-camera-source` | カメラの取得とフレームの提供 |
 
-`turbowarp-webrtc`はruntime capability **v3**を公開している必要があります。0.3.0はv2までで、
-`createOffer`と`getOffer`はありますが`acceptOffer`、`getAnswer`、`acceptAnswer`、
-`connectionState`が無いため往復を完結できません。
-[turbowarp-webrtc#18](https://github.com/kubohiroya/turbowarp-webrtc/issues/18)を参照してください。
+`turbowarp-webrtc`はruntime capability **v3**を公開している必要があります。0.4.0以降が該当します。
+0.3.0以前はv2までで、`createOffer`と`getOffer`はありますが`acceptOffer`、`getAnswer`、
+`acceptAnswer`、`connectionState`が無いため往復を完結できません。古い版では
+`webrtc-capability-missing`になります。
 
 ペアリング用ブロックは、拡張の読込み前に起動時フラグで有効にします。
 

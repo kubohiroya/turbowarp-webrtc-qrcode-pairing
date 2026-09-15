@@ -89,7 +89,7 @@ globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q'};
 
 - Node.js >=22.18.0 and pnpm 11.11.0.
 - Companion extensions: `turbowarp-webrtc` for the connection, `turbowarp-jsqr` for decoding and `turbowarp-camera-source` for camera frames. Load them before this one.
-- `turbowarp-webrtc` must publish runtime capability v3, which adds `acceptOffer`, `getAnswer`, `acceptAnswer`, `connectionState` and `closePeer`. Version 0.3.0 publishes v2 and cannot complete a round trip; see [turbowarp-webrtc#18](https://github.com/kubohiroya/turbowarp-webrtc/issues/18). That is why the package lists no peer dependency on it yet.
+- `turbowarp-webrtc` must publish runtime capability v3, which adds `acceptOffer`, `getAnswer`, `acceptAnswer`, `connectionState`, `hasPeer` and `closePeer`. Version 0.4.0 publishes it; 0.3.0 and earlier publish v2, which can produce an offer but not accept one, so a round trip cannot complete.
 - Carrying a code by QR does not make a connection reachable. Network conditions, ICE and STUN/TURN belong to `turbowarp-webrtc`.
 
 > [!IMPORTANT]

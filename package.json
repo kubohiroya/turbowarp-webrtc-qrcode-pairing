@@ -71,10 +71,14 @@
     "qrcode": "1.5.4"
   },
   "peerDependencies": {
+    "@kubohiroya/turbowarp-webrtc": ">=0.4.0",
     "@kubohiroya/turbowarp-jsqr": "0.3.0",
     "@kubohiroya/turbowarp-camera-source": "0.5.0"
   },
   "peerDependenciesMeta": {
+    "@kubohiroya/turbowarp-webrtc": {
+      "optional": true
+    },
     "@kubohiroya/turbowarp-jsqr": {
       "optional": true
     },
