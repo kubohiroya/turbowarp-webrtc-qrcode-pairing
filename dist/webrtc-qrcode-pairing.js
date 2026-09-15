@@ -3902,7 +3902,8 @@
   */
   var WebRtcQrCodePairingExtension = class {
   	constructor(options = {}) {
-  		this.runStopListener = () => this.pairing.stopTransient();
+  		this.stopListener = () => this.pairing.stopTransient();
+  		this.resetListener = () => this.pairing.dispose();
   		this.disposeListener = () => this.dispose();
   		this.targetRemovedListener = (target) => {
   			if (isTarget(target)) this.pairing.handleTargetRemoved(target);
@@ -3913,9 +3914,9 @@
   			...options,
   			runtime: this.runtime
   		});
-  		this.runtime.on?.("PROJECT_RUN_STOP", this.runStopListener);
-  		this.runtime.on?.("PROJECT_STOP_ALL", this.runStopListener);
-  		this.runtime.on?.("PROJECT_LOADED", this.disposeListener);
+  		this.runtime.on?.("PROJECT_RUN_STOP", this.stopListener);
+  		this.runtime.on?.("PROJECT_STOP_ALL", this.stopListener);
+  		this.runtime.on?.("PROJECT_LOADED", this.resetListener);
   		this.runtime.on?.("RUNTIME_DISPOSED", this.disposeListener);
   		this.runtime.on?.("targetWasRemoved", this.targetRemovedListener);
   	}
@@ -4022,9 +4023,9 @@
   	}
   	dispose() {
   		this.pairing.dispose();
-  		this.runtime.off?.("PROJECT_RUN_STOP", this.runStopListener);
-  		this.runtime.off?.("PROJECT_STOP_ALL", this.runStopListener);
-  		this.runtime.off?.("PROJECT_LOADED", this.disposeListener);
+  		this.runtime.off?.("PROJECT_RUN_STOP", this.stopListener);
+  		this.runtime.off?.("PROJECT_STOP_ALL", this.stopListener);
+  		this.runtime.off?.("PROJECT_LOADED", this.resetListener);
   		this.runtime.off?.("RUNTIME_DISPOSED", this.disposeListener);
   		this.runtime.off?.("targetWasRemoved", this.targetRemovedListener);
   	}

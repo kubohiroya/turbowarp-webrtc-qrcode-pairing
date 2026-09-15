@@ -134,7 +134,8 @@ Answerが別peerへ適用されない（DoD 6）。
 | `cancelPairing` | epoch++、表示復元、lease解放、タイマ停止、受信バッファ破棄、未成立ならclosePeer、phase=`cancelled` |
 | `retryPairing` | cancel相当の後、新`sessionId`で同じロールの交換を開始 |
 | `PROJECT_RUN_STOP` | 表示復元とlease解放（進行中sessionは`cancelled`）。成立済み接続は維持 |
-| `PROJECT_STOP_ALL` / `PROJECT_LOADED` | 上記に加え全sessionを破棄 |
+| `PROJECT_STOP_ALL` | 同上。停止ボタンでは成立済み接続を切断しない。FR-4.8の「切断は所有関係と明示操作に従う」に従い、sessionも保持する |
+| `PROJECT_LOADED` | 全sessionを破棄し、未成立・成立済みを問わずpeerを閉じる。旧プロジェクトのsessionは新しいプロジェクトから到達できないため。**runtimeリスナは維持する**（拡張インスタンスは読込みをまたいで生き残り、以降の停止やスプライト削除に反応し続ける必要がある） |
 | `targetWasRemoved` | そのスプライトへの表示のみ終了 |
 | `RUNTIME_DISPOSED` | 全解放＋runtimeリスナ解除 |
 

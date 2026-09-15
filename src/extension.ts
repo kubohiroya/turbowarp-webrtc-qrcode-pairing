@@ -37,7 +37,20 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
   private readonly runtime: TurboWarpRuntime;
   private readonly pairing: PairingController;
 
-  private readonly runStopListener = (): void => this.pairing.stopTransient();
+  /**
+   * Stop button and end of a run. Releases displays, cameras and buffers, and
+   * cancels exchanges in progress. An established connection stays up: closing
+   * one follows ownership and an explicit request, not a stop.
+   */
+  private readonly stopListener = (): void => this.pairing.stopTransient();
+  /**
+   * A different project is loading, so the sessions of the old one are gone.
+   * This drops them and closes their peer connections, but keeps the runtime
+   * listeners: the extension instance survives the load and still has to react
+   * to later stops and sprite removals.
+   */
+  private readonly resetListener = (): void => this.pairing.dispose();
+  /** The runtime itself is going away, so the listeners go with it. */
   private readonly disposeListener = (): void => this.dispose();
   private readonly targetRemovedListener = (target: unknown): void => {
     if (isTarget(target)) this.pairing.handleTargetRemoved(target);
@@ -47,9 +60,9 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
     this.enabled = options.enabled ?? featureFlags.qrCodePairing;
     this.runtime = options.runtime ?? Scratch.vm?.runtime ?? {};
     this.pairing = new PairingController({...options, runtime: this.runtime});
-    this.runtime.on?.('PROJECT_RUN_STOP', this.runStopListener);
-    this.runtime.on?.('PROJECT_STOP_ALL', this.runStopListener);
-    this.runtime.on?.('PROJECT_LOADED', this.disposeListener);
+    this.runtime.on?.('PROJECT_RUN_STOP', this.stopListener);
+    this.runtime.on?.('PROJECT_STOP_ALL', this.stopListener);
+    this.runtime.on?.('PROJECT_LOADED', this.resetListener);
     this.runtime.on?.('RUNTIME_DISPOSED', this.disposeListener);
     this.runtime.on?.('targetWasRemoved', this.targetRemovedListener);
   }
@@ -222,9 +235,9 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
 
   public dispose(): void {
     this.pairing.dispose();
-    this.runtime.off?.('PROJECT_RUN_STOP', this.runStopListener);
-    this.runtime.off?.('PROJECT_STOP_ALL', this.runStopListener);
-    this.runtime.off?.('PROJECT_LOADED', this.disposeListener);
+    this.runtime.off?.('PROJECT_RUN_STOP', this.stopListener);
+    this.runtime.off?.('PROJECT_STOP_ALL', this.stopListener);
+    this.runtime.off?.('PROJECT_LOADED', this.resetListener);
     this.runtime.off?.('RUNTIME_DISPOSED', this.disposeListener);
     this.runtime.off?.('targetWasRemoved', this.targetRemovedListener);
   }

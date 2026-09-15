@@ -49,8 +49,3 @@ export class QrPairingError extends Error {
     this.code = code;
   }
 }
-
-/** Narrows an unknown catch binding so callers can preserve the original code. */
-export function isPairingError(value: unknown): value is QrPairingError {
-  return value instanceof QrPairingError;
-}

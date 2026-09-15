@@ -144,6 +144,74 @@ describe('WebRtcQrCodePairingExtension', () => {
     expect(off.mock.calls.map((call) => call[0])).toEqual(on.mock.calls.map((call) => call[0]));
   });
 
+  it('keeps listening after a project load, and drops the old project\'s sessions', async () => {
+    const listeners = new Map<string, (...args: unknown[]) => void>();
+    const runtime: TurboWarpRuntime = {
+      on: (event: string, listener: (...args: unknown[]) => void) => {
+        listeners.set(event, listener);
+      },
+      off: (event: string) => {
+        listeners.delete(event);
+      }
+    };
+    const {extension} = createExtension(true, runtime);
+    await extension.startOfferPairing({
+      SESSION: 'pairing-1',
+      LOCAL_PEER: 'hub',
+      REMOTE_PEER: 'camera-1'
+    });
+
+    listeners.get('PROJECT_LOADED')?.();
+
+    // The sessions belong to the project that just went away.
+    expect(extension.pairingSessions()).toBe('');
+    // The extension instance survives the load, so it must still react to
+    // later stops and sprite removals.
+    expect([...listeners.keys()]).toEqual([
+      'PROJECT_RUN_STOP',
+      'PROJECT_STOP_ALL',
+      'PROJECT_LOADED',
+      'RUNTIME_DISPOSED',
+      'targetWasRemoved'
+    ]);
+
+    extension.dispose();
+    expect([...listeners.keys()]).toEqual([]);
+  });
+
+  it('keeps an established connection when the stop button is pressed', async () => {
+    const listeners = new Map<string, (...args: unknown[]) => void>();
+    const runtime: TurboWarpRuntime = {
+      on: (event: string, listener: (...args: unknown[]) => void) => {
+        listeners.set(event, listener);
+      }
+    };
+    const rtc = new FakeWebRtc('hub');
+    const extension = new WebRtcQrCodePairingExtension({
+      enabled: true,
+      runtime,
+      webrtc: rtc,
+      clock: harness.clock,
+      now: () => 1000
+    });
+    await extension.startOfferPairing({
+      SESSION: 'pairing-1',
+      LOCAL_PEER: 'hub',
+      REMOTE_PEER: 'camera-1'
+    });
+    rtc.connect('camera-1');
+    await harness.advance(300);
+    expect(extension.pairingPhase({SESSION: 'pairing-1'})).toBe('connected');
+
+    listeners.get('PROJECT_STOP_ALL')?.();
+
+    // Disconnecting follows ownership and an explicit request, not a stop.
+    expect(extension.pairingPhase({SESSION: 'pairing-1'})).toBe('connected');
+    expect(rtc.closed).toEqual([]);
+
+    extension.dispose();
+  });
+
   it('cancels an exchange when the project run stops', async () => {
     const listeners = new Map<string, (...args: unknown[]) => void>();
     const runtime: TurboWarpRuntime = {
