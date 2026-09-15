@@ -43,6 +43,7 @@ src/
   block-definitions.json       ブロック定義（置換）
   extension.ts                 ブロックのファサード。引数のCast・翻訳・委譲のみ
   globals.d.ts                 Scratch/runtime/renderer型（motion-captureから統合）
+  errors.ts                    PairingErrorCode と QrPairingError（依存なしの葉モジュール）
 
   config/
     feature-flags.ts           起動時固定フラグ qrCodePairing（既定OFF）
@@ -50,12 +51,13 @@ src/
 
   qr/                          ── 純粋層（DOM・Scratch非依存） ──
     limits.ts                  上限定数と単位・境界条件
+    hash.ts                    SHA-256 base64url（破損検出用）
     envelope.ts                envelope v1 (twqr/1) の型・serialize・parse・検証
     courier.ts                 分割（createParts）と再構成（PartAssembler）
     svg.ts                     QRのSVG生成（表示層が使う純粋関数）
 
   pairing/                     ── ドメイン層 ──
-    types.ts                   PairingRole / PairingPhase / PairingErrorCode / ポート型
+    types.ts                   PairingRole / PairingPhase / ポート型（errors.ts を再輸出）
     session.ts                 1 exchangeの状態機械（epoch・期限・進捗）
     controller.ts              session集合の管理、往復手順の進行、資源解放
 
@@ -67,7 +69,8 @@ src/
 ```
 
 依存方向は `extension.ts → pairing/ → qr/` と `pairing/ → ports/`（interfaceのみ）。
-`qr/`は`pairing/`・`ports/`を参照しない。
+`qr/`は`pairing/`・`ports/`を参照しない。エラー型は両層が使うため、依存を持たない葉モジュール
+`src/errors.ts`に置き、`qr/`と`pairing/`の双方がそこだけを参照する。
 
 ## 4. 外部依存と契約
 
