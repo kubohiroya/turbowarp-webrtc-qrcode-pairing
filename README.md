@@ -4,6 +4,8 @@
 
 A TurboWarp extension for exchanging WebRTC connection information through QR codes, including a smartphone carrying an image between machines. Initialized from `turbowarp-extension-template` 0.4.0.
 
+**User guide:** [English](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/)
+
 ## What it does
 
 - Encodes a WebRTC Offer or Answer into QR envelopes, splitting large ones across several codes.

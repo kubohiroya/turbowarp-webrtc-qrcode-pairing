@@ -53,7 +53,7 @@ describe('WebRtcQrCodePairingExtension', () => {
     };
 
     expect(info.name).toBe('TurboWarp-WebRTC-QRCode-Pairing');
-    expect(info.docsURI).toBe('https://github.com/kubohiroya/turbowarp-webrtc-qrcode-pairing#readme');
+    expect(info.docsURI).toBe('https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/');
     expect(info.blockIconURI).toMatch(/^data:image\/svg\+xml;base64,/);
     expect(info.blocks).toHaveLength(definitions.blocks.length);
     expect(info.blocks.map((block) => block.opcode)).toContain('startOfferPairing');
