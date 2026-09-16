@@ -28,6 +28,17 @@ globalThis.__TWQP_FEATURE_FLAGS__ = {qrCodePairing: true};
 
 無効の間はブロックが現れず、`pairing phase of [SESSION]`は`disabled`を返します。
 
+フラグはバンドルの評価時に一度だけ読まれるため、後から設定しても効きません。設定済みの
+1ファイルを得るには、リポジトリの補助スクリプトを使います。
+
+```bash
+pnpm run build:flagged      # 例: pnpm run build:flagged Q
+```
+
+`local/webrtc-qrcode-pairing.flagged.js`を書き出し、カスタム拡張として読み込む`file://`のURLを
+表示します。引数で誤り訂正レベルを固定できます。このファイルは作業コピー内のみで公開されません。
+既定でブロックが出ないことの確認は、代わりに`dist/webrtc-qrcode-pairing.js`を読み込んで行います。
+
 ## 2. 役割と名前
 
 一方が**統合側（hub）**で、Offerを作って投影し、Answerを読み取ります。もう一方が

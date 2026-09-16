@@ -44,6 +44,7 @@
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
+    "build:flagged": "node scripts/build-flagged.ts",
     "lint": "eslint src tests scripts vite.config.ts",
     "test": "vitest run",
     "docs": "node scripts/generate-readme.ts",
