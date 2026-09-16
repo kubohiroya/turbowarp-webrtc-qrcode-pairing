@@ -3,6 +3,10 @@ coverage/
 *.log
 .DS_Store
 
+# Local verification aids written by scripts/build-flagged.ts. Not release
+# artifacts and never published.
+local/
+
 # Tool artifacts. These exist because of what a machine runs, not because of this
 # project. Listed here as well as globally, so the repository does not depend on
 # each developer having configured the same global ignores.

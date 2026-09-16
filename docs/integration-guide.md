@@ -28,6 +28,18 @@ globalThis.__TWQP_FEATURE_FLAGS__ = {qrCodePairing: true};
 
 While the flag is off, no pairing blocks appear and `pairing phase of [SESSION]` reports `disabled`.
 
+The flag is read once while the bundle evaluates, so setting it afterwards has no effect. To get a
+single file that already has it set, run the repository's helper:
+
+```bash
+pnpm run build:flagged      # optionally: pnpm run build:flagged Q
+```
+
+It writes `local/webrtc-qrcode-pairing.flagged.js` and prints a `file://` URL to load as a custom
+extension. The optional argument fixes the error correction level. The file is local to the working
+copy and is not published; loading `dist/webrtc-qrcode-pairing.js` instead is how you check the
+blocks really are off by default.
+
 ## 2. Roles and names
 
 One machine is the **hub**: it creates the offer, projects it, and reads the answer back. The other
