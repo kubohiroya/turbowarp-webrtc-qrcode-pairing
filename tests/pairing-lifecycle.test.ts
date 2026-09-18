@@ -177,6 +177,49 @@ describe('pairing lifecycle', () => {
     camera.dispose();
   });
 
+  it('forgets the QR codes, which carry the pairing codes, once the exchange connects', async () => {
+    const hubRtc = new FakeWebRtc('hub', 1100);
+    const cameraRtc = new FakeWebRtc('camera', 1100);
+    const hub = createHub(hubRtc);
+    const camera = createCamera(cameraRtc);
+
+    camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
+    await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    await carry(hub, 's', outgoingReads(camera, 's'));
+    expect(hub.progress('s').outgoingPartCount).toBeGreaterThan(1);
+
+    hubRtc.connect('cam-A');
+    cameraRtc.connect('studio');
+    await harness.advance(300);
+
+    for (const side of [hub, camera]) {
+      expect(side.progress('s')).toMatchObject({
+        phase: 'connected',
+        outgoingPartCount: 0,
+        outgoingCurrentPart: 0,
+        receivedParts: 0,
+        requiredParts: 0
+      });
+      expect(side.outgoingSymbols('s')).toEqual([]);
+      expect(side.messageText('s')).toBe('');
+      expect(side.partSvg('s', 1)).toBe('');
+    }
+    expect(hubRtc.closed).toEqual([]);
+
+    hub.dispose();
+    camera.dispose();
+  });
+
+  it('forgets the QR codes when the exchange is cancelled', async () => {
+    const hub = createHub(new FakeWebRtc('hub', 1100));
+    await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
+    hub.cancelPairing('s');
+    expect(hub.progress('s').outgoingPartCount).toBe(0);
+    expect(hub.messageText('s')).toBe('');
+    hub.dispose();
+  });
+
   it('cancels exchanges in progress on project run stop but keeps the session list', async () => {
     const rtc = new FakeWebRtc('hub');
     const hub = createHub(rtc);

@@ -235,6 +235,10 @@ start offer pairing [pairing-B] as [studio] to [cam-B]
 
 停止ボタンは表示とカメラを解放し、進行中の交換を取り消します。成立済みの接続は切断しません。
 
+QRには接続情報そのものが入っています。交換が終わると（接続、失敗、取消、期限切れのいずれでも）、作ったQRと
+受け取ったQRのデータを捨てます。そのため、その後は`pairing QR part count`と`received parts`が0になり、
+QRのSVGとdata URIを返すブロックは空の文字列を返します。
+
 ## 10. うまくいかないとき
 
 `pairing error code of [SESSION]`が安定したコードを、`pairing error message of [SESSION]`が

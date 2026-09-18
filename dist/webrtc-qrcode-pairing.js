@@ -3989,7 +3989,7 @@
   	* Moves a session to a terminal phase and releases what it owns.
   	*
   	* Everything but an established RTCPeerConnection is released: timers, the
-  	* receive buffer, and the peer connection when it never connected.
+  	* QR codes sent and received, and the peer connection when it never connected.
   	*/
   	finish(session, phase, errorCode, errorMessage) {
   		if (isTerminalPhase(session.phase) && session.phase !== "connected") return;
@@ -4001,9 +4001,8 @@
   		this.clearTimer(session);
   		session.scanAbort?.abort();
   		this.releaseDisplay(session);
+  		this.dropCodes(session);
   		if (!connected) {
-  			session.assembler.clear();
-  			session.candidate.clear();
   			if (session.peerCreated) {
   				try {
   					this.webrtc().closePeer(session.remotePeerId);
@@ -4014,6 +4013,14 @@
   		const waiters = session.waiters.splice(0, session.waiters.length);
   		for (const waiter of waiters) if (connected) waiter.resolve();
   		else waiter.reject(this.terminalError(session));
+  	}
+  	/** Forgets the codes this session made and the codes it received. */
+  	dropCodes(session) {
+  		session.outgoing = void 0;
+  		session.outgoingSvgs = [];
+  		session.outgoingCurrentIndex = -1;
+  		session.assembler.clear();
+  		session.candidate.clear();
   	}
   	failFrom(session, error) {
   		const code = error instanceof QrPairingError ? error.code : "webrtc-rejected";
