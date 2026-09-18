@@ -466,8 +466,12 @@ export declare const featureFlags: QrPairingFeatureFlags;
 interface QrConfigGlobal {
   readonly __TWQP_QR_CONFIG__?: {
     readonly errorCorrectionLevel?: QrErrorCorrectionLevel;
+    readonly maxVersion?: number;
   };
 }
 
-/** 起動時固定。既定 'M'。*/
-export declare const qrConfig: { readonly errorCorrectionLevel: QrErrorCorrectionLevel };
+/** 起動時固定。既定 'M'、1枚のQRはversion 20まで。*/
+export declare const qrConfig: {
+  readonly errorCorrectionLevel: QrErrorCorrectionLevel;
+  readonly maxVersion: number;
+};

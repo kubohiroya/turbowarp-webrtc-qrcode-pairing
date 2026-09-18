@@ -15,7 +15,7 @@ QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です
 - Answerがどの Offer への応答かを追跡し、2台のカメラ側端末の接続情報が入れ替わらないようにします。
 - 搬送の進捗と接続状態を別々の状態として報告します。エラー、取消、再試行、期限にも対応します。
 
-`0.1.0`はローカルのパッケージ情報であり、npmへの公開済みバージョンを示すものではありません。
+`0.2.0`では、1枚のQRを既定でversion 20までに抑え、読んだペアリング用のQRをすべて報告します。npmに公開済みなのは`0.1.0`です。
 
 > [!NOTE]
 > ペアリング用ブロックは起動時固定のフィーチャーフラグの内側にあり、既定は無効です。
@@ -79,11 +79,13 @@ globalThis.__TWQP_FEATURE_FLAGS__ = {qrCodePairing: true};
 
 切り戻すときはフラグの設定をやめ、`turbowarp-webrtc`のブロック（`create offer code`、`accept offer code`、`answer code`、`accept answer code`）で直接ペアリングします。フラグの無効化は経路の選択であり、成立済みの接続を切断することはありません。
 
-誤り訂正レベルも同じ方法で起動時に固定できます。
+誤り訂正レベルと、1枚のQRが使えるversionの上限も、同じ方法で起動時に固定できます。
 
 ```js
-globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q'};
+globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q', maxVersion: 20};
 ```
+
+`maxVersion`（1〜40、既定20）は、1枚のQRをどこまで細かくしてよいかの上限です。約1,100文字のWebRTC Offerは、これまで1枚のversion 31〜32のQRになり、投影をカメラで読むには画面の大半を占める必要がありました。既定の上限では、version 20のQR約4枚になります。40にすると、以前と同じ1枚のQRに戻ります。
 
 ## 開発と確認
 

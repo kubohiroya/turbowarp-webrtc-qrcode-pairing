@@ -21,6 +21,7 @@ import {
   isTerminalPhase,
   type PairingPhase,
   type PairingProgress,
+  type PairingReadResult,
   type PairingRole,
   type PairingSessionState
 } from './types.js';
@@ -32,6 +33,8 @@ export interface PairingControllerOptions {
   readonly runtime?: TurboWarpRuntime;
   readonly enabled?: boolean;
   readonly errorCorrectionLevel?: QrErrorCorrectionLevel;
+  /** Largest QR version a part may use. Defaults to the startup QR config. */
+  readonly maxVersion?: number;
   /** Injected in tests. Production resolves the runtime capability lazily. */
   readonly webrtc?: WebRtcPairingPort;
   readonly display?: DisplayPort;
@@ -76,6 +79,7 @@ export class PairingController {
   private readonly runtime: TurboWarpRuntime;
   private readonly enabled: boolean;
   private readonly errorCorrectionLevel: QrErrorCorrectionLevel;
+  private readonly maxVersion: number;
   private readonly injectedWebRtc: WebRtcPairingPort | undefined;
   private readonly injectedDisplay: DisplayPort | undefined;
   private readonly injectedScan: QrScanPort | undefined;
@@ -90,6 +94,7 @@ export class PairingController {
     this.runtime = options.runtime ?? Scratch.vm?.runtime ?? {};
     this.enabled = options.enabled ?? featureFlags.qrCodePairing;
     this.errorCorrectionLevel = options.errorCorrectionLevel ?? qrConfig.errorCorrectionLevel;
+    this.maxVersion = options.maxVersion ?? qrConfig.maxVersion;
     this.injectedWebRtc = options.webrtc;
     this.injectedDisplay = options.display;
     this.injectedScan = options.scan;
@@ -169,9 +174,17 @@ export class PairingController {
         `Pairing session ${session.sessionKey} is no longer receiving parts.`
       );
     }
+    // A code that is not a pairing code at all throws here and is not reported.
     const envelope = parseEnvelope(text);
-    this.verifyEnvelope(session, envelope);
+    const part = `${envelope.partIndex + 1} / ${envelope.partCount}`;
+    try {
+      this.verifyEnvelope(session, envelope);
+    } catch (error) {
+      this.noteRead(session, 'foreign', codeOf(error));
+      throw error;
+    }
     if (session.delivered) {
+      this.noteRead(session, 'duplicate', part);
       throw new QrPairingError(
         'already-accepted',
         'The pairing code for this exchange has already been accepted.'
@@ -179,7 +192,16 @@ export class PairingController {
     }
     if (session.role === 'camera' && session.exchangeId === '') this.adoptOffer(session, envelope);
 
-    session.assembler.add(envelope);
+    let accepted: ReturnType<PartAssembler['add']>;
+    try {
+      accepted = session.assembler.add(envelope);
+    } catch (error) {
+      // A part of another split of the message is ignored. A part that contradicts
+      // one already held is damage to this exchange, and fails it below.
+      if (codeOf(error) === 'message-mismatch') this.noteRead(session, 'foreign', 'message-mismatch');
+      throw error;
+    }
+    this.noteRead(session, accepted.duplicate ? 'duplicate' : 'accepted', part);
     if (!isTerminalPhase(session.phase)) {
       session.phase = session.role === 'hub' ? 'awaiting-answer' : 'receiving';
     }
@@ -203,6 +225,17 @@ export class PairingController {
     } else {
       await this.acceptOfferAndPrepareAnswer(session, message, epoch);
     }
+  }
+
+  /** Records what a pairing code turned out to be, for the application to show. */
+  private noteRead(
+    session: PairingSessionState,
+    result: Exclude<PairingReadResult, ''>,
+    detail: string
+  ): void {
+    session.readCount += 1;
+    session.lastRead = result;
+    session.lastReadDetail = detail;
   }
 
   // --- Outgoing parts ------------------------------------------------------
@@ -376,7 +409,10 @@ export class PairingController {
         connectionState: '',
         errorCode: '',
         errorMessage: '',
-        remainingSeconds: 0
+        remainingSeconds: 0,
+        readCount: 0,
+        lastRead: '',
+        lastReadDetail: ''
       };
     }
     const elapsed = this.clock.nowMilliseconds() - session.startedAtMonotonic;
@@ -396,7 +432,10 @@ export class PairingController {
       connectionState: session.peerCreated ? this.readConnectionState(session) : '',
       errorCode: session.errorCode,
       errorMessage: session.errorMessage,
-      remainingSeconds: isTerminalPhase(session.phase) ? 0 : Math.ceil(remaining / 1000)
+      remainingSeconds: isTerminalPhase(session.phase) ? 0 : Math.ceil(remaining / 1000),
+      readCount: session.readCount,
+      lastRead: session.lastRead,
+      lastReadDetail: session.lastReadDetail
     };
   }
 
@@ -530,6 +569,7 @@ export class PairingController {
       senderPeerId: session.localPeerId,
       targetPeerId: session.remotePeerId,
       errorCorrectionLevel: this.errorCorrectionLevel,
+      maxVersion: this.maxVersion,
       createdAt: this.now()
     };
     return kind === 'offer'
@@ -636,7 +676,10 @@ export class PairingController {
       tickTimer: undefined,
       displayTargets: new Set(),
       scanAbort: undefined,
-      waiters: []
+      waiters: [],
+      readCount: 0,
+      lastRead: '',
+      lastReadDetail: ''
     };
   }
 
@@ -657,6 +700,9 @@ export class PairingController {
     session.errorCode = '';
     session.errorMessage = '';
     session.scanAbort = undefined;
+    session.readCount = 0;
+    session.lastRead = '';
+    session.lastReadDetail = '';
     if (session.role === 'camera') {
       session.localPeerId = session.expectedLocalPeerId;
       session.remotePeerId = '';
@@ -833,4 +879,9 @@ function requireSessionKey(value: string): string {
     throw new QrPairingError('invalid-argument', 'Pairing session name must not be empty.');
   }
   return key;
+}
+
+/** The error code a failure carries, for reporting why a code was ignored. */
+function codeOf(error: unknown): string {
+  return error instanceof QrPairingError ? error.code : 'invalid-envelope';
 }

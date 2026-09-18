@@ -122,6 +122,13 @@ say (join (join (current pairing QR part of [pairing-1]) " / ") (pairing QR part
 - 誤り訂正レベルを上げると光学条件に強くなりますが、1枚あたりの文字数が減るためpart数が増え、
   運ぶ手間も増えます。既定は`M`です。読取りが不安定なら起動時に`Q`や`H`を指定します。
   `globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q'};`
+- 1枚のQRは、既定でversion 20までです。投影をカメラで読むときは、モジュールが粗いほど確実に
+  読めます。1枚のversion 31〜32のOfferは、720pの画面の大半を占める必要があり、斜めからは読めません
+  でしたが、同じOfferをversion 20の4枚にすると、読める条件がおよそ2倍になりました。上限は起動時に
+  `maxVersion`（1〜40）で変えられ、40にすると1つのOfferが1枚に戻ります。上限が20以下のときに`Q`や
+  `H`を選ぶと、envelopeのヘッダの横に残る余地が小さく、part数が大きく増えます。
+- 投影したOfferは読み続けるカメラが読むので、partを自動で送ってかまいません。人が撮るAnswerは、
+  その人を待つべきです。どちらも`show next pairing QR part`で送れ、いつ送るかはアプリが決めます。
 - スプライトのskinではなく自前で描画する場合は、
   `pairing QR part [INDEX] of [SESSION] as data URI`または`... as SVG`を読みます。この経路は
   rendererが無くても動きます。
@@ -129,8 +136,23 @@ say (join (join (current pairing QR part of [pairing-1]) " / ") (pairing QR part
 ## 6. partの読取り
 
 `scan pairing QR for [SESSION] from camera [CAMERA_ID]`はsessionの間1つのcamera leaseを保持し、
-全partが揃うまで読み続けます。同じpartを何度も読むのは正常で、害はありません。ポスターや別の
-session、前回の試行など、自分のものではないQRは黙って読み飛ばします。
+全partが揃うまで読み続けます。partはどの順で読んでも揃います。同じpartを何度も読むのは正常で、
+害はありません。この交換で使えないペアリング用のQR（別の交換、別の相手、逆向き、別の分割）は、
+交換を終わらせずに無視します。ポスターなど、ペアリング用ではないQRは何も言わずに読み飛ばします。
+
+読んだペアリング用のQRはすべて報告されるので、アプリは今何が起きたかを担当者に伝えられます。
+
+| `last pairing QR read of [SESSION]` | 意味                                   | `last pairing QR read detail of [SESSION]`          |
+| ----------------------------------- | -------------------------------------- | --------------------------------------------------- |
+| `accepted`                          | まだ届いていなかったpart               | part、`2 / 4`                                        |
+| `duplicate`                         | 読み取り済みのpart。何も変わらない     | part、`2 / 4`                                        |
+| `foreign`                           | この交換では使わず無視したペアリング用のQR | 理由：`stale-exchange`、`peer-mismatch`、`reply-mismatch`、`unexpected-kind`、`message-mismatch` |
+
+`pairing QR reads of [SESSION]`は読むたびに1増えるので、スクリプトは前に見た値と比べて新しい結果に
+気づけます。カメラは目の前のQRを1秒に何度も読むので、結果は読むたびのメッセージではなく、書き換わる
+状態の1行として出してください。カメラ側では、最初に読んだpartでどの交換を受けるかが決まります。
+それが違う交換だった場合、正しい交換のpartは`foreign`（`stale-exchange`）になるので、取り消して
+やり直します。
 
 実行中は進捗を表示できます。
 

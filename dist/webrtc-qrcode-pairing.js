@@ -144,6 +144,36 @@
   			} }
   		},
   		{
+  			"opcode": "pairingReadCount",
+  			"blockType": "REPORTER",
+  			"text": "pairing QR reads of [SESSION]",
+  			"description": "Returns how many pairing QR codes this session has read, of any result. It rises by one per read, so a change means there is a new result to show.",
+  			"arguments": { "SESSION": {
+  				"type": "STRING",
+  				"defaultValue": "pairing-1"
+  			} }
+  		},
+  		{
+  			"opcode": "pairingLastRead",
+  			"blockType": "REPORTER",
+  			"text": "last pairing QR read of [SESSION]",
+  			"description": "Returns what the latest pairing QR code was: accepted (a new part), duplicate (a part already read), foreign (a pairing code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.",
+  			"arguments": { "SESSION": {
+  				"type": "STRING",
+  				"defaultValue": "pairing-1"
+  			} }
+  		},
+  		{
+  			"opcode": "pairingLastReadDetail",
+  			"blockType": "REPORTER",
+  			"text": "last pairing QR read detail of [SESSION]",
+  			"description": "Returns the part as \"2 / 4\" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as stale-exchange, peer-mismatch or message-mismatch.",
+  			"arguments": { "SESSION": {
+  				"type": "STRING",
+  				"defaultValue": "pairing-1"
+  			} }
+  		},
+  		{
   			"opcode": "showPairingQrPart",
   			"blockType": "COMMAND",
   			"text": "show pairing QR part [INDEX] of [SESSION] on this sprite",
@@ -389,16 +419,62 @@
   //#region src/clock.ts
   var systemMonotonicClock = { nowMilliseconds: () => typeof performance === "object" && typeof performance.now === "function" ? performance.now() : Date.now() };
   //#endregion
+  //#region src/qr/limits.ts
+  /**
+  * Transport limits with their units and boundary conditions.
+  *
+  * Every length here counts characters. Payloads are restricted to printable
+  * ASCII, so one character is one UTF-16 code unit and one byte; character
+  * counts and byte counts agree.
+  */
+  /**
+  * Largest carried message. Boundary: 1 <= messageLength <= MAX_MESSAGE_LENGTH;
+  * zero is rejected.
+  *
+  * The effective ceiling is lower than this value, because MAX_PART_COUNT parts
+  * of (QR capacity at the version cap - envelope header) characters run out
+  * first. At the version 40 ceiling:
+  *
+  *   L: 2953 - 362 = 2591 chars/part -> 165,824 for 64 parts (this value binds)
+  *   M: 2331 - 362 = 1969 chars/part -> 126,016 for 64 parts (part count binds)
+  *   Q: 1663 - 362 = 1301 chars/part ->  83,264 for 64 parts (part count binds)
+  *   H: 1273 - 362 =  911 chars/part ->  58,304 for 64 parts (part count binds)
+  *
+  * At the default cap, version 20, level M carries 666 - 362 = 304 chars/part,
+  * 19,456 for 64 parts: still more than ten times a pairing code.
+  *
+  * Exceeding either ceiling fails while splitting, with `message-too-large` or
+  * `too-many-parts`.
+  */
+  var MAX_MESSAGE_LENGTH = 131072;
+  /**
+  * Payload characters per part. Always larger than the capacity a QR symbol can
+  * actually carry, so this is a guard against hostile input rather than the
+  * value that drives splitting.
+  */
+  var MAX_CHUNK_LENGTH = 4096;
+  /** Largest accepted QR text. Covers the envelope header plus its payload. */
+  var MAX_PART_TEXT_LENGTH = 8192;
+  //#endregion
   //#region src/config/qr-config.ts
-  var configuredLevel = globalThis.__TWQP_QR_CONFIG__?.errorCorrectionLevel;
+  var configured = globalThis.__TWQP_QR_CONFIG__;
   /**
   * Startup-fixed QR settings. M is the software-validated default; higher levels
   * survive worse optical conditions but carry fewer characters per symbol, which
-  * raises the part count the operator has to carry.
+  * raises the part count the operator has to carry. The version cap trades the
+  * other way: a lower cap makes each code coarser and easier for a camera to
+  * read, in more parts. A value that is not a level, or not a version from 1 to
+  * 40, falls back to the default rather than failing the extension at load.
   */
-  var qrConfig = Object.freeze({ errorCorrectionLevel: isLevel(configuredLevel) ? configuredLevel : "M" });
+  var qrConfig = Object.freeze({
+  	errorCorrectionLevel: isLevel(configured?.errorCorrectionLevel) ? configured.errorCorrectionLevel : "M",
+  	maxVersion: isVersion(configured?.maxVersion) ? configured.maxVersion : 20
+  });
   function isLevel(value) {
   	return value === "L" || value === "M" || value === "Q" || value === "H";
+  }
+  function isVersion(value) {
+  	return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 40;
   }
   //#endregion
   //#region src/errors.ts
@@ -2752,7 +2828,7 @@
   	};
   }));
   //#endregion
-  //#region src/qr/limits.ts
+  //#region src/qr/envelope.ts
   var import_browser = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports) => {
   	var canPromise = require_can_promise();
   	var QRCode = require_qrcode();
@@ -2812,40 +2888,6 @@
   		return SvgRenderer.render(data, opts);
   	});
   })))(), 1);
-  /**
-  * Transport limits with their units and boundary conditions.
-  *
-  * Every length here counts characters. Payloads are restricted to printable
-  * ASCII, so one character is one UTF-16 code unit and one byte; character
-  * counts and byte counts agree.
-  */
-  /**
-  * Largest carried message. Boundary: 1 <= messageLength <= MAX_MESSAGE_LENGTH;
-  * zero is rejected.
-  *
-  * The effective ceiling is lower than this value for most error correction
-  * levels, because MAX_PART_COUNT parts of (QR version 40 capacity - envelope
-  * header) characters run out first:
-  *
-  *   L: 2953 - 362 = 2591 chars/part -> 165,824 for 64 parts (this value binds)
-  *   M: 2331 - 362 = 1969 chars/part -> 126,016 for 64 parts (part count binds)
-  *   Q: 1663 - 362 = 1301 chars/part ->  83,264 for 64 parts (part count binds)
-  *   H: 1273 - 362 =  911 chars/part ->  58,304 for 64 parts (part count binds)
-  *
-  * Exceeding either ceiling fails while splitting, with `message-too-large` or
-  * `too-many-parts`.
-  */
-  var MAX_MESSAGE_LENGTH = 131072;
-  /**
-  * Payload characters per part. Always larger than the capacity a QR symbol can
-  * actually carry, so this is a guard against hostile input rather than the
-  * value that drives splitting.
-  */
-  var MAX_CHUNK_LENGTH = 4096;
-  /** Largest accepted QR text. Covers the envelope header plus its payload. */
-  var MAX_PART_TEXT_LENGTH = 8192;
-  //#endregion
-  //#region src/qr/envelope.ts
   /**
   * Transport format identifier.
   *
@@ -2940,7 +2982,8 @@
   //#region src/qr/courier.ts
   var printableAscii = /^[ -~]+$/u;
   /**
-  * Splits a pairing code into parts that each fit one QR symbol.
+  * Splits a pairing code into parts that each fit one QR symbol of at most the
+  * given version.
   *
   * The chunk length depends on the envelope header, which in turn depends on the
   * part count, so the loop repeats until the two agree.
@@ -2956,6 +2999,7 @@
   	const createdAt = options.createdAt ?? Date.now();
   	if (!Number.isSafeInteger(createdAt) || createdAt < 0) throw new QrPairingError("invalid-argument", "QR creation timestamp is invalid.");
   	const errorCorrectionLevel = options.errorCorrectionLevel ?? "M";
+  	const maxVersion = requireVersion(options.maxVersion ?? 20);
   	const messageHash = await sha256Base64Url(message);
   	const messageId = `${sessionId}.${messageHash.slice(0, 12)}`;
   	let partCount = 1;
@@ -2975,8 +3019,8 @@
   			messageLength: message.length,
   			messageHash,
   			payload: ""
-  		}, errorCorrectionLevel);
-  		if (chunkLength < 1) throw new QrPairingError("invalid-envelope", "QR encoder capacity is too small for the part envelope.");
+  		}, errorCorrectionLevel, maxVersion);
+  		if (chunkLength < 1) throw new QrPairingError("invalid-envelope", `QR version ${maxVersion} at level ${errorCorrectionLevel} is too small for the part envelope.`);
   		const required = Math.ceil(message.length / chunkLength);
   		if (required > 64) throw new QrPairingError("too-many-parts", `Splitting needs ${required} parts, which exceeds the limit of 64.`);
   		if (required === partCount) break;
@@ -2998,7 +3042,10 @@
   		payload: message.slice(partIndex * chunkLength, (partIndex + 1) * chunkLength)
   	}));
   	const texts = parts.map(serializeEnvelope);
-  	for (const text of texts) import_browser.create(text, { errorCorrectionLevel });
+  	for (const text of texts) import_browser.create(text, {
+  		errorCorrectionLevel,
+  		version: maxVersion
+  	});
   	return {
   		parts,
   		texts,
@@ -3065,10 +3112,10 @@
   	}
   };
   /**
-  * Largest payload that still lets the whole envelope fit a version 40 symbol at
-  * the given error correction level.
+  * Largest payload that still lets the whole envelope fit a symbol of the given
+  * version at the given error correction level.
   */
-  function maximumPayloadLength(base, errorCorrectionLevel) {
+  function maximumPayloadLength(base, errorCorrectionLevel, version) {
   	let low = 0;
   	let high = MAX_CHUNK_LENGTH;
   	while (low < high) {
@@ -3082,7 +3129,7 @@
   				data: new TextEncoder().encode(text),
   				mode: "byte"
   			}], {
-  				version: 40,
+  				version,
   				errorCorrectionLevel
   			});
   			low = middle;
@@ -3091,6 +3138,11 @@
   		}
   	}
   	return low;
+  }
+  /** A QR version is a whole number from 1 to 40. */
+  function requireVersion(value) {
+  	if (!Number.isInteger(value) || value < 1 || value > 40) throw new QrPairingError("invalid-argument", `QR version cap must be a whole number from 1 to 40, not ${String(value)}.`);
+  	return value;
   }
   function requireMessage(value) {
   	if (typeof value !== "string" || value.length < 1) throw new QrPairingError("invalid-argument", "Pairing code is empty.");
@@ -3353,6 +3405,7 @@
   		this.runtime = options.runtime ?? Scratch.vm?.runtime ?? {};
   		this.enabled = options.enabled ?? featureFlags.qrCodePairing;
   		this.errorCorrectionLevel = options.errorCorrectionLevel ?? qrConfig.errorCorrectionLevel;
+  		this.maxVersion = options.maxVersion ?? qrConfig.maxVersion;
   		this.injectedWebRtc = options.webrtc;
   		this.injectedDisplay = options.display;
   		this.injectedScan = options.scan;
@@ -3411,10 +3464,26 @@
   		const session = this.requireSession(sessionKey);
   		if (isTerminalPhase(session.phase)) throw new QrPairingError(session.phase === "connected" ? "already-accepted" : "stale-exchange", `Pairing session ${session.sessionKey} is no longer receiving parts.`);
   		const envelope = parseEnvelope(text);
-  		this.verifyEnvelope(session, envelope);
-  		if (session.delivered) throw new QrPairingError("already-accepted", "The pairing code for this exchange has already been accepted.");
+  		const part = `${envelope.partIndex + 1} / ${envelope.partCount}`;
+  		try {
+  			this.verifyEnvelope(session, envelope);
+  		} catch (error) {
+  			this.noteRead(session, "foreign", codeOf(error));
+  			throw error;
+  		}
+  		if (session.delivered) {
+  			this.noteRead(session, "duplicate", part);
+  			throw new QrPairingError("already-accepted", "The pairing code for this exchange has already been accepted.");
+  		}
   		if (session.role === "camera" && session.exchangeId === "") this.adoptOffer(session, envelope);
-  		session.assembler.add(envelope);
+  		let accepted;
+  		try {
+  			accepted = session.assembler.add(envelope);
+  		} catch (error) {
+  			if (codeOf(error) === "message-mismatch") this.noteRead(session, "foreign", "message-mismatch");
+  			throw error;
+  		}
+  		this.noteRead(session, accepted.duplicate ? "duplicate" : "accepted", part);
   		if (!isTerminalPhase(session.phase)) session.phase = session.role === "hub" ? "awaiting-answer" : "receiving";
   		if (!session.assembler.isComplete()) return;
   		const epoch = session.epoch;
@@ -3431,6 +3500,12 @@
   		session.delivered = true;
   		if (session.role === "hub") await this.acceptAnswer(session, message, epoch);
   		else await this.acceptOfferAndPrepareAnswer(session, message, epoch);
+  	}
+  	/** Records what a pairing code turned out to be, for the application to show. */
+  	noteRead(session, result, detail) {
+  		session.readCount += 1;
+  		session.lastRead = result;
+  		session.lastReadDetail = detail;
   	}
   	/** Selects the one-based part to display and returns its SVG. */
   	selectPart(sessionKey, oneBasedIndex) {
@@ -3554,7 +3629,10 @@
   			connectionState: "",
   			errorCode: "",
   			errorMessage: "",
-  			remainingSeconds: 0
+  			remainingSeconds: 0,
+  			readCount: 0,
+  			lastRead: "",
+  			lastReadDetail: ""
   		};
   		const elapsed = this.clock.nowMilliseconds() - session.startedAtMonotonic;
   		const remaining = Math.max(0, session.timeoutMilliseconds - elapsed);
@@ -3573,7 +3651,10 @@
   			connectionState: session.peerCreated ? this.readConnectionState(session) : "",
   			errorCode: session.errorCode,
   			errorMessage: session.errorMessage,
-  			remainingSeconds: isTerminalPhase(session.phase) ? 0 : Math.ceil(remaining / 1e3)
+  			remainingSeconds: isTerminalPhase(session.phase) ? 0 : Math.ceil(remaining / 1e3),
+  			readCount: session.readCount,
+  			lastRead: session.lastRead,
+  			lastReadDetail: session.lastReadDetail
   		};
   	}
   	sessionKeys() {
@@ -3673,6 +3754,7 @@
   			senderPeerId: session.localPeerId,
   			targetPeerId: session.remotePeerId,
   			errorCorrectionLevel: this.errorCorrectionLevel,
+  			maxVersion: this.maxVersion,
   			createdAt: this.now()
   		};
   		return kind === "offer" ? {
@@ -3744,7 +3826,10 @@
   			tickTimer: void 0,
   			displayTargets: /* @__PURE__ */ new Set(),
   			scanAbort: void 0,
-  			waiters: []
+  			waiters: [],
+  			readCount: 0,
+  			lastRead: "",
+  			lastReadDetail: ""
   		};
   	}
   	/** Prepares an existing session entry for a new exchange after a retry. */
@@ -3764,6 +3849,9 @@
   		session.errorCode = "";
   		session.errorMessage = "";
   		session.scanAbort = void 0;
+  		session.readCount = 0;
+  		session.lastRead = "";
+  		session.lastReadDetail = "";
   		if (session.role === "camera") {
   			session.localPeerId = session.expectedLocalPeerId;
   			session.remotePeerId = "";
@@ -3890,6 +3978,10 @@
   	if (key === "") throw new QrPairingError("invalid-argument", "Pairing session name must not be empty.");
   	return key;
   }
+  /** The error code a failure carries, for reporting why a code was ignored. */
+  function codeOf(error) {
+  	return error instanceof QrPairingError ? error.code : "invalid-envelope";
+  }
   //#endregion
   //#region src/extension.ts
   var blockDefinitions = block_definitions_default.blocks;
@@ -3956,6 +4048,15 @@
   	}
   	pairingMissingParts(args) {
   		return this.progress(args).missingParts.join(",");
+  	}
+  	pairingReadCount(args) {
+  		return this.progress(args).readCount;
+  	}
+  	pairingLastRead(args) {
+  		return this.progress(args).lastRead;
+  	}
+  	pairingLastReadDetail(args) {
+  		return this.progress(args).lastReadDetail;
   	}
   	showPairingQrPart(args, util) {
   		this.pairing.showPart(Scratch.Cast.toString(args.SESSION), Scratch.Cast.toNumber(args.INDEX), util?.target);

@@ -4,7 +4,7 @@ import {describe, expect, it} from 'vitest';
 import {QrPairingError} from '../src/errors.js';
 import {createParts, PartAssembler} from '../src/qr/courier.js';
 import {parseEnvelope} from '../src/qr/envelope.js';
-import {MAX_MESSAGE_LENGTH, MAX_PART_COUNT} from '../src/qr/limits.js';
+import {DEFAULT_MAX_QR_VERSION, MAX_MESSAGE_LENGTH, MAX_PART_COUNT} from '../src/qr/limits.js';
 import {createQrSvg, qrVersion} from '../src/qr/svg.js';
 
 const offerOptions = {
@@ -75,16 +75,69 @@ describe('QR courier', () => {
     await expect(assembler.assemble()).rejects.toMatchObject({code: 'missing-parts'});
   }, 20_000);
 
-  it('uses QR version 40 when a part reaches maximum M-level capacity', async () => {
+  it('uses QR version 40 when asked to and a part reaches maximum M-level capacity', async () => {
     const result = await createParts('B'.repeat(6000), {
       ...offerOptions,
       sessionId: 'session-4',
-      createdAt: 789
+      createdAt: 789,
+      maxVersion: 40
     });
 
     expect(result.texts.some((text) => qrVersion(text, 'M') === 40)).toBe(true);
     expect(createQrSvg(result.texts[0] ?? '')).toContain('<svg');
   }, 20_000);
+
+  it('keeps every part at or below the default version cap', async () => {
+    const result = await createParts('B'.repeat(6000), {
+      ...offerOptions,
+      sessionId: 'session-cap',
+      createdAt: 789
+    });
+
+    const versions = result.texts.map((text) => qrVersion(text, 'M'));
+    expect(Math.max(...versions)).toBeLessThanOrEqual(DEFAULT_MAX_QR_VERSION);
+    expect(versions).toContain(DEFAULT_MAX_QR_VERSION);
+  }, 20_000);
+
+  it('splits an offer-sized code into coarse parts a camera can read, where version 40 made one fine code', async () => {
+    // A LAN-only WebRTC offer, base64url-encoded, is about 1,100 characters.
+    const message = 'x'.repeat(1094);
+    const capped = await createParts(message, {
+      ...offerOptions,
+      sessionId: '17cb88e8-18eb-4389-9050-c6b40d5690f5',
+      targetPeerId: 'camera-1',
+      createdAt: 1_789_699_516_683
+    });
+    const uncapped = await createParts(message, {
+      ...offerOptions,
+      sessionId: '17cb88e8-18eb-4389-9050-c6b40d5690f5',
+      targetPeerId: 'camera-1',
+      createdAt: 1_789_699_516_683,
+      maxVersion: 40
+    });
+
+    expect(uncapped.parts).toHaveLength(1);
+    expect(qrVersion(uncapped.texts[0] ?? '', 'M')).toBeGreaterThan(30);
+    expect(capped.parts).toHaveLength(4);
+    for (const text of capped.texts) {
+      expect(qrVersion(text, 'M')).toBeLessThanOrEqual(DEFAULT_MAX_QR_VERSION);
+    }
+
+    const assembler = new PartAssembler();
+    for (const text of capped.texts.map(decodeWithJsQr)) assembler.add(parseEnvelope(text));
+    await expect(assembler.assemble()).resolves.toBe(message);
+  }, 20_000);
+
+  it('refuses a version cap that is not a QR version, and one too small for the envelope', async () => {
+    for (const maxVersion of [0, 41, 2.5, Number.NaN]) {
+      await expect(createParts('code', {...offerOptions, maxVersion})).rejects.toMatchObject({
+        code: 'invalid-argument'
+      });
+    }
+    await expect(createParts('code', {...offerOptions, maxVersion: 5})).rejects.toMatchObject({
+      code: 'invalid-envelope'
+    });
+  });
 
   it('carries the answer back with the offer session and reply-to message ID', async () => {
     const offer = await createParts('offer-code', {

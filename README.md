@@ -15,7 +15,7 @@ A TurboWarp extension for exchanging WebRTC connection information through QR co
 - Tracks which offer an answer replies to, so two camera machines never receive each other's connection.
 - Reports transport progress and connection state as separate states, plus errors, cancellation, retry and deadlines.
 
-Version 0.1.0 is local package metadata; it does not imply an npm release.
+Version 0.2.0 caps each part at QR version 20 by default and reports every pairing code read; 0.1.0 is the version published on npm.
 
 > [!NOTE]
 > The pairing blocks are behind a startup feature flag that is off by default. See
@@ -79,11 +79,13 @@ Set it before the extension loads. While the flag is off, `getInfo` publishes no
 
 To roll back, stop setting the flag and pair with the `turbowarp-webrtc` blocks directly: `create offer code`, `accept offer code`, `answer code` and `accept answer code`. Turning the flag off selects the other route; it never disconnects an established connection.
 
-Error correction level can be fixed at startup the same way:
+Error correction level and the largest QR version a part may use can be fixed at startup the same way:
 
 ```js
-globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q'};
+globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q', maxVersion: 20};
 ```
+
+`maxVersion` (1 to 40, default 20) caps how fine each code gets. A WebRTC offer of about 1,100 characters used to fill a single version 31-32 code, which a camera reads off a projection only when it fills most of the frame; at the default cap it becomes about four version 20 codes. Raise it to 40 to get the old single-code behaviour back.
 
 ## Requirements and safety
 
@@ -109,7 +111,7 @@ pnpm run dev
 
 Build output: `dist/webrtc-qrcode-pairing.js` and `dist/extension-manifest.json`. Load the JavaScript file as a custom TurboWarp extension. The manifest always records every declared block, including blocks the feature flag hides at runtime: it is the build-time contract, not the runtime state.
 
-Package name and version for future consumers (not a claim of publication): `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.1.0`.
+Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.0` (0.1.0 is the latest published on npm).
 
 ## Block reference
 
@@ -188,6 +190,36 @@ Returns the one-based part numbers that have not been read yet, separated by com
 |---|---|
 | Type | Reporter |
 | Opcode | `pairingMissingParts` |
+| `SESSION` | String, default: `pairing-1` |
+
+### `pairing QR reads of [SESSION]`
+
+Returns how many pairing QR codes this session has read, of any result. It rises by one per read, so a change means there is a new result to show.
+
+| Property | Value |
+|---|---|
+| Type | Reporter |
+| Opcode | `pairingReadCount` |
+| `SESSION` | String, default: `pairing-1` |
+
+### `last pairing QR read of [SESSION]`
+
+Returns what the latest pairing QR code was: accepted (a new part), duplicate (a part already read), foreign (a pairing code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.
+
+| Property | Value |
+|---|---|
+| Type | Reporter |
+| Opcode | `pairingLastRead` |
+| `SESSION` | String, default: `pairing-1` |
+
+### `last pairing QR read detail of [SESSION]`
+
+Returns the part as "2 / 4" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as stale-exchange, peer-mismatch or message-mismatch.
+
+| Property | Value |
+|---|---|
+| Type | Reporter |
+| Opcode | `pairingLastReadDetail` |
 | `SESSION` | String, default: `pairing-1` |
 
 ### `show pairing QR part [INDEX] of [SESSION] on this sprite`
