@@ -5,7 +5,6 @@ import {QrPairingError, type PairingErrorCode} from '../errors.js';
 import type {AddOutcome, StructuredAppendRead} from '@kubohiroya/qrcode-structured-append';
 import {
   createPairingCodes,
-  headerOfFirstCode,
   PairingAssembler,
   readPairingMessage,
   type CreateCodesOptions,
@@ -186,32 +185,58 @@ export class PairingController {
    *
    * A lone code — one that is not part of a sequence — is read as a whole
    * message, the way `ingestQrText` reads one.
+   *
+   * Reads of one session are taken one at a time, in the order they came, so
+   * two scripts feeding codes at once cannot both complete the message.
    */
   public async ingestQrRead(sessionKey: string, read: QrRead): Promise<void> {
     this.requireEnabled();
-    const session = this.requireReceiving(sessionKey);
+    const session = this.requireSession(sessionKey);
+    return this.inTurn(session, () => this.takeRead(session, read));
+  }
+
+  /**
+   * Accepts a whole pairing message as text, the way it would arrive through
+   * something other than a camera, or in one QR code.
+   */
+  public async ingestQrText(sessionKey: string, text: string): Promise<void> {
+    this.requireEnabled();
+    const session = this.requireSession(sessionKey);
+    return this.inTurn(session, () => this.takeText(session, text));
+  }
+
+  /** Runs `work` after every read of the session that came before it has finished. */
+  private inTurn(session: PairingSessionState, work: () => Promise<void>): Promise<void> {
+    const turn = session.readQueue.then(work);
+    session.readQueue = turn.catch(() => undefined);
+    return turn;
+  }
+
+  private async takeRead(session: PairingSessionState, read: QrRead): Promise<void> {
+    this.requireOpen(session);
     const position = read.structuredAppend;
     if (position === null) {
-      await this.ingestQrText(sessionKey, read.text);
+      await this.takeText(session, read.text);
       return;
     }
     const symbol = {...position, bytes: read.bytes};
     const part = `${symbol.index + 1} / ${symbol.count}`;
-    const assembler = session.assembler;
 
-    let outcome: AddOutcome;
-    try {
-      outcome = assembler.add(symbol);
-      if (outcome.result === 'foreign' && this.replacesUnverifiedSequence(session, symbol)) {
-        assembler.clear();
-        outcome = assembler.add(symbol);
+    if (session.delivered) {
+      // The code has been handed over; a read can only be a repeat or something else.
+      let repeat = false;
+      try {
+        repeat = session.assembler.add(symbol).result === 'duplicate';
+      } catch (error) {
+        if (!isReported(error)) throw error;
       }
-    } catch (error) {
-      // A position read twice with different content: this sequence is damaged,
-      // so it is dropped and collected again from the codes still being shown.
-      assembler.clear();
-      this.noteRead(session, 'foreign', codeOf(error));
-      throw error;
+      this.noteRead(session, repeat ? 'duplicate' : 'foreign', repeat ? part : 'message-mismatch');
+      throw alreadyAccepted();
+    }
+
+    let outcome = this.addTo(session, session.assembler, symbol);
+    if (outcome.result === 'foreign' && !session.assembler.headerVerified) {
+      outcome = this.offerToCandidate(session, symbol) ?? outcome;
     }
     if (outcome.result === 'foreign') {
       this.noteRead(session, 'foreign', 'message-mismatch');
@@ -220,28 +245,28 @@ export class PairingController {
         'QR code belongs to another sequence than the one being collected.'
       );
     }
-    if (session.delivered) {
-      this.noteRead(session, 'duplicate', part);
-      throw alreadyAccepted();
-    }
-    if (outcome.result === 'accepted' && symbol.index === 0) {
+    const assembler = session.assembler;
+    if (outcome.result === 'accepted' && !assembler.headerVerified) {
       try {
-        const header = headerOfFirstCode(symbol);
+        const header = assembler.header();
         if (header) {
           this.verifyHeader(session, header);
           assembler.headerVerified = true;
         }
       } catch (error) {
         assembler.clear();
-        if (error instanceof QrPairingError && unreportedCodes.has(error.code)) throw error;
+        if (!isReported(error)) throw error;
         this.noteRead(session, 'foreign', codeOf(error));
         throw error;
       }
     }
-    this.noteRead(session, outcome.result, part);
     session.phase = session.role === 'hub' ? 'awaiting-answer' : 'receiving';
-    if (!assembler.isComplete()) return;
+    if (!assembler.isComplete()) {
+      this.noteRead(session, outcome.result, part);
+      return;
+    }
 
+    // The last code is reported once, as what the whole message turned out to be.
     const epoch = session.epoch;
     let message: PairingMessage;
     try {
@@ -255,16 +280,12 @@ export class PairingController {
       throw error;
     }
     assembler.headerVerified = true;
+    this.noteRead(session, 'accepted', part);
     await this.deliver(session, message, epoch);
   }
 
-  /**
-   * Accepts a whole pairing message as text, the way it would arrive through
-   * something other than a camera, or in one QR code.
-   */
-  public async ingestQrText(sessionKey: string, text: string): Promise<void> {
-    this.requireEnabled();
-    const session = this.requireReceiving(sessionKey);
+  private async takeText(session: PairingSessionState, text: string): Promise<void> {
+    this.requireOpen(session);
     // Text that is not a pairing message at all throws here and is not reported.
     const epoch = session.epoch;
     const message = await readPairingMessage(text);
@@ -284,25 +305,56 @@ export class PairingController {
   }
 
   /**
-   * Whether a code of another sequence should replace the one being collected.
-   *
-   * Only while the sequence held has not shown whose it is, and only by the
-   * first code of a sequence that shows it is this exchange's. A camera that
-   * first catches a stray code of an old projection would otherwise wait for
-   * the rest of that old sequence forever.
+   * Adds a code to a sequence. A position read twice with different content
+   * means this sequence is damaged, so it is dropped and collected again from
+   * the codes still being shown. Anything else wrong with the code leaves the
+   * sequence as it was.
    */
-  private replacesUnverifiedSequence(
+  private addTo(
+    session: PairingSessionState,
+    assembler: PairingAssembler,
+    symbol: StructuredAppendRead
+  ): AddOutcome {
+    try {
+      return assembler.add(symbol);
+    } catch (error) {
+      if (codeOf(error) !== 'conflicting-part') throw error;
+      assembler.clear();
+      this.noteRead(session, 'foreign', 'conflicting-part');
+      throw error;
+    }
+  }
+
+  /**
+   * Collects a code of another sequence on the side, while the sequence held
+   * has not shown whose it is. If the other sequence's header shows it is this
+   * exchange's, it takes the place of the one held.
+   *
+   * A camera that first catches a stray code of an old projection would
+   * otherwise wait for the rest of that old sequence forever. Returns the
+   * outcome in the sequence that took over, or undefined when nothing changed.
+   */
+  private offerToCandidate(
     session: PairingSessionState,
     symbol: StructuredAppendRead
-  ): boolean {
-    if (symbol.index !== 0 || session.assembler.headerVerified || session.delivered) return false;
+  ): AddOutcome | undefined {
+    const candidate = session.candidate;
     try {
-      const header = headerOfFirstCode(symbol);
-      if (!header) return false;
+      let outcome = candidate.add(symbol);
+      if (outcome.result === 'foreign') {
+        candidate.clear();
+        outcome = candidate.add(symbol);
+      }
+      const header = candidate.header();
+      if (!header) return undefined;
       this.verifyHeader(session, header);
-      return true;
+      candidate.headerVerified = true;
+      session.assembler = candidate;
+      session.candidate = new PairingAssembler();
+      return outcome;
     } catch {
-      return false;
+      candidate.clear();
+      return undefined;
     }
   }
 
@@ -325,16 +377,15 @@ export class PairingController {
     }
   }
 
-  private requireReceiving(sessionKey: string): PairingSessionState {
-    const session = this.requireSession(sessionKey);
+  private requireOpen(session: PairingSessionState): void {
     if (isTerminalPhase(session.phase)) {
       throw new QrPairingError(
         session.phase === 'connected' ? 'already-accepted' : 'stale-exchange',
         `Pairing session ${session.sessionKey} is no longer receiving codes.`
       );
     }
-    return session;
   }
+
 
   /** Records what a pairing code turned out to be, for the application to show. */
   private noteRead(
@@ -779,6 +830,8 @@ export class PairingController {
       outgoingSvgs: [],
       outgoingCurrentIndex: -1,
       assembler: new PairingAssembler(),
+      candidate: new PairingAssembler(),
+      readQueue: Promise.resolve(),
       delivered: false,
       peerCreated: false,
       timeoutMilliseconds: DEFAULT_TIMEOUT_SECONDS * 1000,
@@ -806,6 +859,7 @@ export class PairingController {
     session.outgoingSvgs = [];
     session.outgoingCurrentIndex = -1;
     session.assembler = new PairingAssembler();
+    session.candidate = new PairingAssembler();
     session.delivered = false;
     session.peerCreated = false;
     session.startedAtMonotonic = this.clock.nowMilliseconds();
@@ -879,6 +933,7 @@ export class PairingController {
     this.releaseDisplay(session);
     if (!connected) {
       session.assembler.clear();
+      session.candidate.clear();
       if (session.peerCreated) {
         try {
           this.webrtc().closePeer(session.remotePeerId);
@@ -1003,4 +1058,9 @@ function alreadyAccepted(): QrPairingError {
     'already-accepted',
     'The pairing code for this exchange has already been accepted.'
   );
+}
+
+/** Whether a failure is about a pairing code, rather than about text that is not one at all. */
+function isReported(error: unknown): boolean {
+  return !(error instanceof QrPairingError && unreportedCodes.has(error.code));
 }

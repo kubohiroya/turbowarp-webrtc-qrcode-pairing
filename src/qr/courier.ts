@@ -125,31 +125,48 @@ export async function readPairingMessage(text: string): Promise<PairingMessage> 
   return message;
 }
 
-/** The header, if the given first code of a sequence holds all of it. */
-export function headerOfFirstCode(read: StructuredAppendRead): PairingMessageHeader | undefined {
-  return parseHeader(latin1(read.bytes));
-}
-
 /**
  * Collects the codes of one pairing message, in any order.
  *
- * The first code read decides the sequence. Until the first code of that
- * sequence has shown whose message it is, another sequence whose first code
- * does belong to this exchange may take its place: a camera may well see an
- * old projection before the right one.
+ * The first code read decides the sequence. The header comes first in the
+ * message, so the codes from the first onwards tell whose message it is before
+ * all of them have arrived — in the first code alone at the default settings,
+ * across the first few when codes are small or the error correction is high.
  */
 export class PairingAssembler {
   private readonly inner = new StructuredAppendAssembler();
-  /** True once the sequence's first code showed a header this exchange accepts. */
+  /** Each position's share of the message, as it arrived. */
+  private readonly shares = new Map<number, Uint8Array>();
+  /** True once the header showed this sequence belongs to the exchange. */
   public headerVerified = false;
 
   /** Throws `conflicting-part` for a position that arrives twice with different content. */
   public add(read: StructuredAppendRead): AddOutcome {
+    let outcome: AddOutcome;
     try {
-      return this.inner.add(read);
+      outcome = this.inner.add(read);
     } catch (error) {
       throw translate(error);
     }
+    if (outcome.result === 'accepted') this.shares.set(read.index, read.bytes);
+    return outcome;
+  }
+
+  /**
+   * The header, once the codes from the first onwards hold all of it.
+   * Undefined while they do not; throws as soon as they cannot be a pairing
+   * message, or the header is malformed.
+   */
+  public header(): PairingMessageHeader | undefined {
+    let prefix = '';
+    for (let index = 0; this.shares.has(index); index += 1) {
+      prefix += latin1(this.shares.get(index) ?? new Uint8Array());
+    }
+    return prefix === '' ? undefined : parseHeader(prefix);
+  }
+
+  public isEmpty(): boolean {
+    return this.inner.received() === 0;
   }
 
   public receivedCount(): number {
@@ -183,6 +200,7 @@ export class PairingAssembler {
 
   public clear(): void {
     this.inner.clear();
+    this.shares.clear();
     this.headerVerified = false;
   }
 }

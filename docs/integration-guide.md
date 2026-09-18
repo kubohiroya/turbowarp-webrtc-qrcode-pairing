@@ -156,14 +156,15 @@ Reading the same code repeatedly is normal and costs nothing. A code of another 
 and ignored without ending the exchange. QR codes that are not pairing codes at all, such as a
 poster, are skipped without a word.
 
-The first code read decides which sequence the session collects. The first code of each sequence
-carries its header, so once that one is read the session knows whose message it is:
+The first code read decides which sequence the session collects. The header comes first in the
+message, so once the leading codes are read the session knows whose message it is — the first code
+alone at the default settings, the first few when codes are small or the error correction is high:
 
 - if it belongs to another exchange, another pair of peers or the other direction, the sequence is
   dropped and reported as `foreign` with the reason;
-- while the first code of the sequence being collected has not been read yet, the first code of a
-  sequence that does belong to this exchange takes its place. A stray code of an old projection
-  therefore cannot block the right one;
+- while the header of the sequence being collected has not been read yet, codes of another sequence
+  are collected on the side, and a sequence whose header shows it belongs to this exchange takes its
+  place. A stray code of an old projection therefore cannot block the right one;
 - when every code has arrived, the message is checked against its hash. A damaged sequence is
   dropped, reported as `foreign` with `hash-mismatch`, and collected again from the codes still being
   cycled.
