@@ -246,6 +246,10 @@ session names.
 Pressing the stop button releases displays and cameras and cancels exchanges in progress. It does
 not disconnect an established connection.
 
+The QR codes carry the pairing code itself. When an exchange ends — connected, failed, cancelled or
+expired — the codes it made and the codes it received are forgotten, so `pairing QR part count` and
+`received parts` read 0 afterwards and the part SVG and data URI reporters return an empty string.
+
 ## 10. When something goes wrong
 
 `pairing error code of [SESSION]` gives a stable code; `pairing error message of [SESSION]` gives a

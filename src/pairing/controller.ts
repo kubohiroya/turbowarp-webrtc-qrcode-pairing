@@ -914,7 +914,7 @@ export class PairingController {
    * Moves a session to a terminal phase and releases what it owns.
    *
    * Everything but an established RTCPeerConnection is released: timers, the
-   * receive buffer, and the peer connection when it never connected.
+   * QR codes sent and received, and the peer connection when it never connected.
    */
   private finish(
     session: PairingSessionState,
@@ -931,9 +931,10 @@ export class PairingController {
     this.clearTimer(session);
     session.scanAbort?.abort();
     this.releaseDisplay(session);
+    // The codes carry the pairing code, SDP and all. Once the exchange is over,
+    // connected or not, nothing reads them again, so they are not kept.
+    this.dropCodes(session);
     if (!connected) {
-      session.assembler.clear();
-      session.candidate.clear();
       if (session.peerCreated) {
         try {
           this.webrtc().closePeer(session.remotePeerId);
@@ -948,6 +949,15 @@ export class PairingController {
       if (connected) waiter.resolve();
       else waiter.reject(this.terminalError(session));
     }
+  }
+
+  /** Forgets the codes this session made and the codes it received. */
+  private dropCodes(session: PairingSessionState): void {
+    session.outgoing = undefined;
+    session.outgoingSvgs = [];
+    session.outgoingCurrentIndex = -1;
+    session.assembler.clear();
+    session.candidate.clear();
   }
 
   private failFrom(session: PairingSessionState, error: unknown): void {

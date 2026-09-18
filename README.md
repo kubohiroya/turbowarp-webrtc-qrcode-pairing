@@ -15,7 +15,7 @@ A TurboWarp extension for exchanging WebRTC connection information through QR co
 - Tracks which offer an answer replies to, so two camera machines never receive each other's connection.
 - Reports transport progress and connection state as separate states, plus errors, cancellation, retry and deadlines.
 
-Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-jsqr` 0.4.0 or later. 0.2.1 fixes a camera scan that starved the page while a code stayed in view. 0.2.2 reads a header that runs past the first code, takes reads one at a time so a code is handed over once, and keeps a sequence when a malformed code is read.
+Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-jsqr` 0.4.0 or later. 0.2.1 fixes a camera scan that starved the page while a code stayed in view. 0.2.2 reads a header that runs past the first code, takes reads one at a time so a code is handed over once, and keeps a sequence when a malformed code is read. 0.2.3 forgets the QR codes, which carry the pairing codes, as soon as an exchange connects, fails or is cancelled.
 
 > [!NOTE]
 > The pairing blocks are behind a startup feature flag that is off by default. See
@@ -116,7 +116,7 @@ pnpm run dev
 
 Build output: `dist/webrtc-qrcode-pairing.js` and `dist/extension-manifest.json`. Load the JavaScript file as a custom TurboWarp extension. The manifest always records every declared block, including blocks the feature flag hides at runtime: it is the build-time contract, not the runtime state.
 
-Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.2`.
+Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.3`.
 
 ## Block reference
 
