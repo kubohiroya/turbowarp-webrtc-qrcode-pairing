@@ -129,6 +129,18 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
     return this.progress(args).missingParts.join(',');
   }
 
+  public pairingReadCount(args: {SESSION: unknown}): number {
+    return this.progress(args).readCount;
+  }
+
+  public pairingLastRead(args: {SESSION: unknown}): string {
+    return this.progress(args).lastRead;
+  }
+
+  public pairingLastReadDetail(args: {SESSION: unknown}): string {
+    return this.progress(args).lastReadDetail;
+  }
+
   // --- Display -------------------------------------------------------------
 
   public showPairingQrPart(

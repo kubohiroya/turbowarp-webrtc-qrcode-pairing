@@ -15,8 +15,6 @@ export type PairingErrorCode =
   | 'invalid-json'
   | 'unsupported-protocol'
   | 'invalid-envelope'
-  | 'part-too-large'
-  | 'index-out-of-range'
   | 'message-too-large'
   | 'too-many-parts'
   | 'message-mismatch'

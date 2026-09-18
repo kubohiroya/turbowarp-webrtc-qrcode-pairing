@@ -1,6 +1,5 @@
 import type {PairingErrorCode} from '../errors.js';
-import type {QrParts} from '../qr/courier.js';
-import type {PartAssembler} from '../qr/courier.js';
+import type {PairingAssembler, PairingCodes} from '../qr/courier.js';
 
 export type PairingRole = 'hub' | 'camera';
 
@@ -39,6 +38,22 @@ export function isTerminalPhase(phase: PairingPhase): boolean {
   return terminalPhases.has(phase);
 }
 
+/**
+ * What the latest pairing QR code a session read turned out to be.
+ *
+ * - `accepted`: a code of the sequence being collected that had not arrived yet.
+ * - `duplicate`: a code that had already arrived. Harmless; a camera reads the
+ *   code in front of it many times a second.
+ * - `foreign`: a code this exchange cannot use — another sequence while one is
+ *   being collected, or a sequence that turned out to be another exchange's,
+ *   another pair of peers', the other direction's, or damaged. It is ignored;
+ *   a sequence found unusable is dropped, so the right one can be collected.
+ *
+ * QR codes that are not Structured Append codes or pairing messages are not
+ * reported: a camera aimed at a projection also sees posters and signs.
+ */
+export type PairingReadResult = '' | 'accepted' | 'duplicate' | 'foreign';
+
 export interface PairingProgress {
   readonly phase: PairingPhase;
   readonly role: PairingRole;
@@ -59,6 +74,15 @@ export interface PairingProgress {
   readonly errorCode: PairingErrorCode | '';
   readonly errorMessage: string;
   readonly remainingSeconds: number;
+  /** Pairing QR codes read so far, of any result. Rises by one per read. */
+  readonly readCount: number;
+  readonly lastRead: PairingReadResult;
+  /**
+   * For `accepted` and `duplicate`, the code as "2 / 4"; for `foreign`, why it
+   * was ignored, as an error code such as `message-mismatch` (another
+   * sequence), `stale-exchange` or `peer-mismatch`.
+   */
+  readonly lastReadDetail: string;
 }
 
 export interface PairingSessionState {
@@ -74,11 +98,11 @@ export interface PairingSessionState {
   exchangeId: string;
   outgoingMessageId: string;
   incomingMessageId: string;
-  outgoing: QrParts | undefined;
+  outgoing: PairingCodes | undefined;
   outgoingSvgs: readonly string[];
   /** Zero-based index into `outgoingSvgs`, or -1 when nothing is selected. */
   outgoingCurrentIndex: number;
-  assembler: PartAssembler;
+  assembler: PairingAssembler;
   /** True once the reassembled code has been handed to WebRTC. Prevents a second delivery. */
   delivered: boolean;
   /** True once a WebRTC peer exists for `remotePeerId`, so its state is worth polling. */
@@ -93,4 +117,7 @@ export interface PairingSessionState {
   /** Aborts an in-flight camera scan when the session ends. */
   scanAbort: AbortController | undefined;
   waiters: {resolve: () => void; reject: (error: unknown) => void}[];
+  readCount: number;
+  lastRead: PairingReadResult;
+  lastReadDetail: string;
 }

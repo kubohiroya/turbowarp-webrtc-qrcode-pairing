@@ -10,12 +10,12 @@
 ```text
 extension.ts        ブロックのファサード。引数のCastと委譲、runtimeリスナの保持
   pairing/          sessionの状態機械。phase、epoch、期限、資源解放
-    qr/             純粋な搬送処理。envelope、分割、再構成、検証、SVG生成
+    qr/             純粋な搬送処理。メッセージ形式、連結QRコード、収集、検証
     ports/          アダプタ。WebRTC能力、カメラ走査、スプライトのskin
   errors.ts         搬送層とドメイン層が共有するエラーコード
 ```
 
-`qr/`は`qrcode`と`errors.ts`以外に依存しません。DOM、Scratch、WebRTCへの依存が無いため、
+`qr/`は`@kubohiroya/qrcode-structured-append`と`errors.ts`以外に依存しません。DOM、Scratch、WebRTCへの依存が無いため、
 搬送処理はruntimeなしで、かつフィーチャーフラグと独立して検証できます。`pairing/`は外部へ
 portのinterface経由でのみ到達します。`turbowarp-webrtc`のcapability v3が未公開の間も、
 フェイクを注入して往復をテストできるのはこのためです。

@@ -87,6 +87,26 @@
       ]
     },
     {
+      "opcode": "pairingLastRead",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingLastReadDetail",
+      "blockType": "REPORTER",
+      "arguments": [
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
       "opcode": "pairingLocalPeer",
       "blockType": "REPORTER",
       "arguments": [
@@ -158,6 +178,16 @@
           "id": "INDEX",
           "type": "NUMBER"
         },
+        {
+          "id": "SESSION",
+          "type": "STRING"
+        }
+      ]
+    },
+    {
+      "opcode": "pairingReadCount",
+      "blockType": "REPORTER",
+      "arguments": [
         {
           "id": "SESSION",
           "type": "STRING"

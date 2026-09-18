@@ -1,7 +1,12 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {PairingController} from '../src/pairing/controller.js';
-import {CameraQrScanner, CAMERA_SOURCE_KEY, QR_DECODER_KEY} from '../src/ports/qr-scan.js';
-import {createClock, FakeWebRtc, outgoingTexts, type ClockHarness} from './pairing-harness.js';
+import {
+  CameraQrScanner,
+  CAMERA_SOURCE_KEY,
+  QR_DECODER_KEY,
+  type QrRead
+} from '../src/ports/qr-scan.js';
+import {createClock, FakeWebRtc, loneRead, outgoingReads, readAt, type ClockHarness} from './pairing-harness.js';
 
 let harness: ClockHarness;
 
@@ -15,7 +20,7 @@ afterEach(() => {
 });
 
 /** Camera-source stand-in that counts leases, so lease churn is visible. */
-function createCameraRuntime(queue: (string | null)[]): {
+function createCameraRuntime(queue: (QrRead | null)[]): {
   runtime: TurboWarpRuntime;
   acquired: string[];
   released: number;
@@ -35,7 +40,8 @@ function createCameraRuntime(queue: (string | null)[]): {
       }
     },
     [QR_DECODER_KEY]: {
-      scanFrame: () => {
+      capabilityVersion: 2,
+      readFrame: async () => {
         state.scanned += 1;
         return queue.length > 0 ? (queue.shift() ?? null) : null;
       }
@@ -57,8 +63,8 @@ function createCameraRuntime(queue: (string | null)[]): {
 
 describe('camera scanning', () => {
   it('holds one camera lease for the whole exchange', async () => {
-    const hubRtc = new FakeWebRtc('hub', 6000);
-    const cameraRtc = new FakeWebRtc('camera', 6000);
+    const hubRtc = new FakeWebRtc('hub', 1100);
+    const cameraRtc = new FakeWebRtc('camera', 1100);
     const hub = new PairingController({
       enabled: true,
       webrtc: hubRtc,
@@ -67,7 +73,7 @@ describe('camera scanning', () => {
       now: () => 1000
     });
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    const texts = outgoingTexts(hub, 's');
+    const texts = outgoingReads(hub, 's');
     expect(texts.length).toBeGreaterThan(1);
 
     // The camera sees nothing, then each part in turn.
@@ -95,6 +101,66 @@ describe('camera scanning', () => {
     camera.dispose();
   }, 20_000);
 
+  it('collects a looping offer in whatever order the camera catches it', async () => {
+    const hub = new PairingController({
+      enabled: true,
+      webrtc: new FakeWebRtc('hub', 1100),
+      runtime: {},
+      clock: harness.clock,
+      now: () => 1000
+    });
+    const old = new PairingController({
+      enabled: true,
+      webrtc: new FakeWebRtc('old', 1100),
+      runtime: {},
+      clock: harness.clock,
+      now: () => 500
+    });
+    await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
+    await old.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
+    const reads = outgoingReads(hub, 's');
+    expect(reads.length).toBeGreaterThanOrEqual(3);
+    const last = reads.length - 1;
+
+    // The camera first catches a stray code of an old projection, then the hub's
+    // loop from the middle, with frames missed and codes read twice.
+    const source = createCameraRuntime([
+      readAt(outgoingReads(old, 's'), 1),
+      readAt(reads, last),
+      null,
+      readAt(reads, last),
+      readAt(reads, 0),
+      readAt(reads, 1),
+      ...reads.slice(2, last),
+      // The last code was only seen while the old sequence was held, so the loop brings it round again.
+      readAt(reads, last)
+    ]);
+    const camera = new PairingController({
+      enabled: true,
+      webrtc: new FakeWebRtc('camera'),
+      runtime: source.runtime,
+      scan: new CameraQrScanner(source.runtime, 'test'),
+      clock: harness.clock,
+      now: () => 2000
+    });
+    camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
+
+    const scanning = camera.scanFromCamera('s', 'default');
+    await harness.advance(200 * (reads.length + 6));
+    await scanning;
+
+    expect(camera.progress('s')).toMatchObject({
+      phase: 'answer-ready',
+      exchangeId: hub.progress('s').exchangeId,
+      receivedParts: reads.length,
+      requiredParts: reads.length
+    });
+
+    hub.dispose();
+    old.dispose();
+    camera.dispose();
+  }, 20_000);
+
   it('skips codes that belong to something else and keeps scanning', async () => {
     const hubRtc = new FakeWebRtc('hub');
     const otherRtc = new FakeWebRtc('other');
@@ -117,10 +183,10 @@ describe('camera scanning', () => {
     await other.startOfferPairing({sessionKey: 'o', localPeerId: 'other', remotePeerId: 'cam-Z'});
 
     const source = createCameraRuntime([
-      'https://example.com/poster',
-      '{"not":"an envelope"}',
-      outgoingTexts(other, 'o')[0] ?? '',
-      outgoingTexts(hub, 's')[0] ?? ''
+      loneRead('https://example.com/poster'),
+      loneRead('{"not":"a pairing message"}'),
+      readAt(outgoingReads(other, 'o'), 0),
+      readAt(outgoingReads(hub, 's'), 0)
     ]);
     const camera = new PairingController({
       enabled: true,
@@ -199,7 +265,17 @@ describe('camera scanning', () => {
       code: 'qr-decoder-missing'
     });
 
-    const decoderOnly: TurboWarpRuntime = {[QR_DECODER_KEY]: {scanFrame: () => null}};
+    // turbowarp-jsqr before 0.4.0 returns text only, which cannot tell the codes of a sequence apart.
+    const oldDecoder: TurboWarpRuntime = {
+      [QR_DECODER_KEY]: {capabilityVersion: 1, scanFrame: () => null, readFrame: async () => null}
+    };
+    await expect(
+      new CameraQrScanner(oldDecoder, 'test').scanOnce({cameraId: 'default', signal})
+    ).rejects.toMatchObject({code: 'qr-decoder-missing'});
+
+    const decoderOnly: TurboWarpRuntime = {
+      [QR_DECODER_KEY]: {capabilityVersion: 2, readFrame: async () => null}
+    };
     await expect(
       new CameraQrScanner(decoderOnly, 'test').scanOnce({cameraId: 'default', signal})
     ).rejects.toMatchObject({code: 'camera-unavailable'});

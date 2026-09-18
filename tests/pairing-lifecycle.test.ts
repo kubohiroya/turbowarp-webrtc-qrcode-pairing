@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {PairingController} from '../src/pairing/controller.js';
-import {carry, createClock, FakeWebRtc, outgoingTexts, type ClockHarness} from './pairing-harness.js';
+import {carry, createClock, FakeWebRtc, outgoingReads, readAt, type ClockHarness} from './pairing-harness.js';
 
 let harness: ClockHarness;
 
@@ -61,8 +61,8 @@ describe('pairing lifecycle', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    const staleAnswer = outgoingTexts(camera, 's');
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    const staleAnswer = outgoingReads(camera, 's');
     const firstExchange = hub.progress('s').exchangeId;
 
     await hub.retryPairing('s');
@@ -71,7 +71,7 @@ describe('pairing lifecycle', () => {
     expect(hub.progress('s').phase).toBe('offer-ready');
     expect(secondExchange).not.toBe(firstExchange);
     expect(hubRtc.createOfferCalls).toBe(2);
-    await expect(hub.ingestQrText('s', staleAnswer[0] ?? '')).rejects.toMatchObject({
+    await expect(hub.ingestQrRead('s', readAt(staleAnswer, 0))).rejects.toMatchObject({
       code: 'stale-exchange'
     });
     expect(hubRtc.acceptedAnswers).toHaveLength(0);
@@ -130,8 +130,8 @@ describe('pairing lifecycle', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    await carry(hub, 's', outgoingTexts(camera, 's'));
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    await carry(hub, 's', outgoingReads(camera, 's'));
 
     // Attach the assertion before the rejection happens, so the rejection is
     // never momentarily unhandled.
@@ -156,8 +156,8 @@ describe('pairing lifecycle', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    await carry(hub, 's', outgoingTexts(camera, 's'));
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    await carry(hub, 's', outgoingReads(camera, 's'));
 
     const waiting = hub.waitUntilConnected('s');
     hubRtc.connect('cam-A');

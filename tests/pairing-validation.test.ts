@@ -1,8 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {PairingController} from '../src/pairing/controller.js';
-import {parseEnvelope, serializeEnvelope, type QrEnvelopeV1} from '../src/qr/envelope.js';
+import {formatMessage, parseMessage, type PairingMessageHeader} from '../src/qr/message.js';
 import {MAX_ACTIVE_SESSIONS} from '../src/pairing/limits.js';
-import {carry, createClock, FakeWebRtc, outgoingTexts, type ClockHarness} from './pairing-harness.js';
+import {carry, createClock, FakeWebRtc, outgoingReads, readAt, type ClockHarness} from './pairing-harness.js';
 
 let harness: ClockHarness;
 
@@ -25,8 +25,10 @@ function controller(rtc: FakeWebRtc, enabled = true): PairingController {
   });
 }
 
-function rewrite(text: string, changes: Partial<QrEnvelopeV1>): string {
-  return serializeEnvelope({...parseEnvelope(text), ...changes} as QrEnvelopeV1);
+/** The same message with some header fields changed. Its hash still matches its pairing code. */
+function rewrite(text: string, changes: Partial<PairingMessageHeader>): string {
+  const message = parseMessage(text);
+  return formatMessage({...message, header: {...message.header, ...changes}});
 }
 
 describe('pairing validation', () => {
@@ -38,16 +40,15 @@ describe('pairing validation', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    const offerText = outgoingTexts(hub, 's')[0] ?? '';
+    const offerText = readAt(outgoingReads(hub, 's'), 0);
 
     // The hub is waiting for an answer, so its own offer must be refused.
-    await expect(hub.ingestQrText('s', offerText)).rejects.toMatchObject({
+    await expect(hub.ingestQrRead('s', offerText)).rejects.toMatchObject({
       code: 'unexpected-kind'
     });
 
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    const answerText = outgoingTexts(camera, 's')[0] ?? '';
-    await expect(camera.ingestQrText('s', answerText)).rejects.toMatchObject({
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    await expect(camera.ingestQrText('s', camera.messageText('s'))).rejects.toMatchObject({
       code: 'unexpected-kind'
     });
 
@@ -63,8 +64,8 @@ describe('pairing validation', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    const answerText = outgoingTexts(camera, 's')[0] ?? '';
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    const answerText = camera.messageText('s');
 
     await expect(
       hub.ingestQrText('s', rewrite(answerText, {replyTo: 'some-other-message'}))
@@ -83,8 +84,8 @@ describe('pairing validation', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    const answerText = outgoingTexts(camera, 's')[0] ?? '';
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    const answerText = camera.messageText('s');
 
     await expect(
       hub.ingestQrText('s', rewrite(answerText, {senderPeerId: 'cam-B'}))
@@ -108,7 +109,7 @@ describe('pairing validation', () => {
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
 
     await expect(
-      camera.ingestQrText('s', outgoingTexts(hub, 's')[0] ?? '')
+      camera.ingestQrRead('s', readAt(outgoingReads(hub, 's'), 0))
     ).rejects.toMatchObject({code: 'peer-mismatch'});
     expect(cameraRtc.acceptedOffers).toHaveLength(0);
 
@@ -116,27 +117,41 @@ describe('pairing validation', () => {
     camera.dispose();
   });
 
-  it('never delivers a code whose parts fail the hash check', async () => {
-    const hubRtc = new FakeWebRtc('hub', 6000);
-    const cameraRtc = new FakeWebRtc('camera', 6000);
+  it('drops a sequence that fails the hash check and collects it again', async () => {
+    const hubRtc = new FakeWebRtc('hub', 1100);
+    const cameraRtc = new FakeWebRtc('camera', 1100);
     const hub = controller(hubRtc);
     const camera = controller(cameraRtc);
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
 
-    const texts = outgoingTexts(hub, 's');
-    expect(texts.length).toBeGreaterThan(1);
-    const damaged = texts.map((text, index) => {
-      if (index !== 0) return text;
-      const envelope = parseEnvelope(text);
-      return serializeEnvelope({...envelope, payload: `B${envelope.payload.slice(1)}`});
+    const reads = outgoingReads(hub, 's');
+    expect(reads.length).toBeGreaterThan(1);
+    // Two characters of the pairing code changed the same way: the Structured
+    // Append parity still matches, so only the message's own hash can tell.
+    const damaged = reads.map((read, index) => {
+      if (index !== reads.length - 1) return read;
+      const bytes = read.bytes.slice();
+      const end = bytes.length - 1;
+      bytes[end] = (bytes[end] ?? 0) ^ 0x03;
+      bytes[end - 1] = (bytes[end - 1] ?? 0) ^ 0x03;
+      return {...read, bytes};
     });
 
     await expect(carry(camera, 's', damaged)).rejects.toMatchObject({code: 'hash-mismatch'});
     expect(cameraRtc.acceptedOffers).toHaveLength(0);
-    expect(camera.progress('s').phase).toBe('failed');
-    expect(camera.progress('s').errorCode).toBe('hash-mismatch');
+    expect(camera.progress('s')).toMatchObject({
+      phase: 'receiving',
+      errorCode: '',
+      lastRead: 'foreign',
+      lastReadDetail: 'hash-mismatch',
+      receivedParts: 0
+    });
+
+    // The hub keeps showing its codes, so the next pass delivers the offer.
+    await carry(camera, 's', reads);
+    expect(cameraRtc.acceptedOffers).toHaveLength(1);
 
     hub.dispose();
     camera.dispose();
@@ -150,17 +165,17 @@ describe('pairing validation', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    const offerTexts = outgoingTexts(hub, 's');
+    const offerTexts = outgoingReads(hub, 's');
 
     await carry(camera, 's', offerTexts);
-    await expect(camera.ingestQrText('s', offerTexts[0] ?? '')).rejects.toMatchObject({
+    await expect(camera.ingestQrRead('s', readAt(offerTexts, 0))).rejects.toMatchObject({
       code: 'already-accepted'
     });
     expect(cameraRtc.acceptedOffers).toHaveLength(1);
 
-    const answerTexts = outgoingTexts(camera, 's');
+    const answerTexts = outgoingReads(camera, 's');
     await carry(hub, 's', answerTexts);
-    await expect(hub.ingestQrText('s', answerTexts[0] ?? '')).rejects.toMatchObject({
+    await expect(hub.ingestQrRead('s', readAt(answerTexts, 0))).rejects.toMatchObject({
       code: 'already-accepted'
     });
     expect(hubRtc.acceptedAnswers).toHaveLength(1);
@@ -235,8 +250,8 @@ describe('pairing validation', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    const offerText = outgoingTexts(hub, 's')[0] ?? '';
-    const code = parseEnvelope(offerText).payload;
+    const offerText = hub.messageText('s');
+    const code = parseMessage(offerText).payload;
 
     await expect(hub.ingestQrText('s', offerText)).rejects.toSatisfy(
       (error: Error) => !error.message.includes(code)

@@ -3,3 +3,5 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@kubohiroya/vite-plugin-turbowarp-extension@0.3.0'
   - '@kubohiroya/turbowarp-webrtc@0.4.0'
+  - '@kubohiroya/qrcode-structured-append@0.1.0'
+  - '@kubohiroya/turbowarp-jsqr@0.4.0'

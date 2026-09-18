@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {PairingController} from '../src/pairing/controller.js';
-import {carry, createClock, FakeWebRtc, outgoingTexts, type ClockHarness} from './pairing-harness.js';
+import {carry, createClock, FakeWebRtc, outgoingReads, readAt, type ClockHarness} from './pairing-harness.js';
 
 let harness: ClockHarness;
 
@@ -58,10 +58,10 @@ describe('offer and answer round trip', () => {
     expect(hub.progress('pairing-1').outgoingPartCount).toBe(1);
     expect(camera.progress('pairing-1').phase).toBe('awaiting-offer');
 
-    await carry(camera, 'pairing-1', outgoingTexts(hub, 'pairing-1'));
+    await carry(camera, 'pairing-1', outgoingReads(hub, 'pairing-1'));
     expect(camera.progress('pairing-1').phase).toBe('answer-ready');
 
-    await carry(hub, 'pairing-1', outgoingTexts(camera, 'pairing-1'));
+    await carry(hub, 'pairing-1', outgoingReads(camera, 'pairing-1'));
     // The QR transport is finished, but the connection is not established yet.
     expect(hub.progress('pairing-1').phase).toBe('connecting');
     expect(hub.isConnected('pairing-1')).toBe(false);
@@ -83,8 +83,8 @@ describe('offer and answer round trip', () => {
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
-    await carry(camera, 's', outgoingTexts(hub, 's'));
-    await carry(hub, 's', outgoingTexts(camera, 's'));
+    await carry(camera, 's', outgoingReads(hub, 's'));
+    await carry(hub, 's', outgoingReads(camera, 's'));
 
     // The hub knows the camera as cam-A; the camera knows the hub as studio.
     expect(hubRtc.acceptedAnswers.map((call) => call.peer)).toEqual(['cam-A']);
@@ -97,15 +97,15 @@ describe('offer and answer round trip', () => {
   });
 
   it('carries a multi-part exchange out of order and with duplicates', async () => {
-    const {hub, camera} = createPair(6000);
+    const {hub, camera} = createPair(1100);
 
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
 
-    const offerTexts = outgoingTexts(hub, 's');
+    const offerTexts = outgoingReads(hub, 's');
     expect(offerTexts.length).toBeGreaterThan(1);
 
-    await camera.ingestQrText('s', offerTexts[offerTexts.length - 1] ?? '');
+    await camera.ingestQrRead('s', readAt(offerTexts, offerTexts.length - 1));
     const partial = camera.progress('s');
     expect(partial.phase).toBe('receiving');
     expect(partial.requiredParts).toBe(offerTexts.length);
@@ -115,12 +115,12 @@ describe('offer and answer round trip', () => {
     );
 
     // A camera reads the same symbol repeatedly; duplicates are normal.
-    await camera.ingestQrText('s', offerTexts[offerTexts.length - 1] ?? '');
+    await camera.ingestQrRead('s', readAt(offerTexts, offerTexts.length - 1));
     await carry(camera, 's', [...offerTexts].reverse());
     expect(camera.progress('s').phase).toBe('answer-ready');
     expect(camera.progress('s').missingParts).toEqual([]);
 
-    await carry(hub, 's', [...outgoingTexts(camera, 's')].reverse());
+    await carry(hub, 's', [...outgoingReads(camera, 's')].reverse());
     expect(hub.progress('s').phase).toBe('connecting');
 
     hub.dispose();
@@ -156,14 +156,14 @@ describe('offer and answer round trip', () => {
     await hub.startOfferPairing({sessionKey: 'a', localPeerId: 'studio', remotePeerId: 'cam-A'});
     await hub.startOfferPairing({sessionKey: 'b', localPeerId: 'studio', remotePeerId: 'cam-B'});
 
-    await carry(cameraA, 'x', outgoingTexts(hub, 'a'));
-    await carry(cameraB, 'x', outgoingTexts(hub, 'b'));
+    await carry(cameraA, 'x', outgoingReads(hub, 'a'));
+    await carry(cameraB, 'x', outgoingReads(hub, 'b'));
 
-    const answerA = outgoingTexts(cameraA, 'x');
-    const answerB = outgoingTexts(cameraB, 'x');
+    const answerA = outgoingReads(cameraA, 'x');
+    const answerB = outgoingReads(cameraB, 'x');
 
     // Camera B's answer must not be accepted for camera A's exchange.
-    await expect(hub.ingestQrText('a', answerB[0] ?? '')).rejects.toMatchObject({
+    await expect(hub.ingestQrRead('a', readAt(answerB, 0))).rejects.toMatchObject({
       code: 'stale-exchange'
     });
 
@@ -179,7 +179,7 @@ describe('offer and answer round trip', () => {
   });
 
   it('selects parts for display and wraps at the end', async () => {
-    const {hub, camera} = createPair(6000);
+    const {hub, camera} = createPair(1100);
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
 

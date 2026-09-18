@@ -21,9 +21,28 @@ export interface CameraSourcePort {
   acquireCamera(options: {owner: string; cameraId: string}): Promise<CameraLease>;
 }
 
+/**
+ * The turbowarp-jsqr capability version that reads Structured Append headers.
+ * Version 1 returned text only, which cannot tell the codes of a sequence apart.
+ */
+export const REQUIRED_DECODER_CAPABILITY = 2;
+
+/** One decoded QR code, as turbowarp-jsqr's `readFrame` returns it. */
+export interface QrRead {
+  readonly text: string;
+  readonly bytes: Uint8Array;
+  /** Where the code sits in a Structured Append sequence, or null for a lone code. */
+  readonly structuredAppend: {
+    readonly index: number;
+    readonly count: number;
+    readonly parity: number;
+  } | null;
+}
+
 /** Decoding stays in turbowarp-jsqr; this extension never touches pixels. */
 export interface QrDecodePort {
-  scanFrame(frame: CameraFrameSource): string | null;
+  readonly capabilityVersion: number;
+  readFrame(frame: CameraFrameSource): Promise<QrRead | null>;
 }
 
 export interface QrScanPort {
@@ -31,12 +50,12 @@ export interface QrScanPort {
     cameraId: string;
     signal: AbortSignal;
     intervalMilliseconds?: number;
-  }): Promise<string>;
+  }): Promise<QrRead>;
   release(): Promise<void>;
 }
 
 /**
- * Reads QR texts from a camera for the length of a pairing session.
+ * Reads QR codes from a camera for the length of a pairing session.
  *
  * The jsQR extension's own `waitForQrText` acquires and releases a camera lease
  * per call, which would restart the camera between every part. This holds one
@@ -57,16 +76,18 @@ export class CameraQrScanner implements QrScanPort {
     cameraId: string;
     signal: AbortSignal;
     intervalMilliseconds?: number;
-  }): Promise<string> {
+  }): Promise<QrRead> {
     if (options.signal.aborted) throw cancelled();
     const decoder = this.decoder();
     const lease = await this.acquire(options.cameraId);
     if (options.signal.aborted) throw cancelled();
     const interval = Math.max(50, options.intervalMilliseconds ?? SCAN_POLL_INTERVAL_MS);
 
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<QrRead>((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | undefined;
+      let settled = false;
       const cleanup = (): void => {
+        settled = true;
         if (timer !== undefined) clearTimeout(timer);
         options.signal.removeEventListener('abort', onAbort);
       };
@@ -74,19 +95,18 @@ export class CameraQrScanner implements QrScanPort {
         cleanup();
         reject(cancelled());
       };
-      const tick = (): void => {
+      const tick = async (): Promise<void> => {
+        timer = undefined;
+        if (settled) return;
         if (options.signal.aborted) {
           onAbort();
           return;
         }
+        let read: QrRead | null;
         try {
-          const text = decoder.scanFrame(lease.getFrameSource());
-          if (text !== null) {
-            cleanup();
-            resolve(text);
-            return;
-          }
+          read = await decoder.readFrame(lease.getFrameSource());
         } catch (error) {
+          if (settled) return;
           cleanup();
           reject(
             new QrPairingError('camera-unavailable', 'Reading the camera frame failed.', {
@@ -95,10 +115,17 @@ export class CameraQrScanner implements QrScanPort {
           );
           return;
         }
-        timer = setTimeout(tick, interval);
+        // Aborted while the frame was decoding: the abort handler already rejected.
+        if (settled) return;
+        if (read !== null) {
+          cleanup();
+          resolve(read);
+          return;
+        }
+        timer = setTimeout(() => void tick(), interval);
       };
       options.signal.addEventListener('abort', onAbort, {once: true});
-      tick();
+      void tick();
     });
   }
 
@@ -121,10 +148,17 @@ export class CameraQrScanner implements QrScanPort {
 
   private decoder(): QrDecodePort {
     const candidate = this.runtime[QR_DECODER_KEY];
-    if (!isRecord(candidate) || typeof candidate.scanFrame !== 'function') {
+    if (!isRecord(candidate) || typeof candidate.readFrame !== 'function') {
       throw new QrPairingError(
         'qr-decoder-missing',
-        'Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr.'
+        'Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later.'
+      );
+    }
+    const version = candidate.capabilityVersion;
+    if (typeof version !== 'number' || version < REQUIRED_DECODER_CAPABILITY) {
+      throw new QrPairingError(
+        'qr-decoder-missing',
+        'Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later, which reads Structured Append codes.'
       );
     }
     return candidate as unknown as QrDecodePort;

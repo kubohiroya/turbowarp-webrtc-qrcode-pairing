@@ -12,7 +12,7 @@ TurboWarpのプロジェクトから本拡張で2台の端末をペアリング�
 | 拡張 | 役割 |
 |---|---|
 | `turbowarp-webrtc` | Offer／Answerの生成と受理、接続の保持 |
-| `turbowarp-jsqr` | カメラフレームからのQRデコード |
+| `turbowarp-jsqr` 0.4.0以降 | カメラフレームからのQRデコード。連結QRコードの位置も読む |
 | `turbowarp-camera-source` | カメラの取得とフレームの提供 |
 
 `turbowarp-webrtc`はruntime capability **v3**を公開している必要があります。0.4.0以降が該当します。
@@ -62,25 +62,30 @@ pnpm run build:flagged      # 例: pnpm run build:flagged Q
 緑の旗が押されたとき
   start offer pairing [pairing-1] as [studio] to [cam-A]
   set pairing timeout of [pairing-1] to (600) seconds
-  show pairing QR part (1) of [pairing-1] on this sprite
+  [Answerを読む v]を送る
+  <<(pairing phase of [pairing-1]) = [offer-ready]>ではない>まで繰り返す
+    show next pairing QR part of [pairing-1] on this sprite
+    (0.8)秒待つ
+  end
+  end pairing QR display of [pairing-1]
+
+[Answerを読む v]を受け取ったとき
+  scan pairing QR for [pairing-1] from camera [default]
+  wait until pairing [pairing-1] is connected
 ```
 
 期限の設定はsessionを開いた後に置きます。2つの`start`ブロック以外はすべて
 開いているsessionを必要とし、無い場合は`no-session`になります。期限はsessionを
 開いた時点からの経過で測るため、直後に設定しても失うものはありません。
 
-`start offer pairing`はOfferが生成されQR partの準備が終わると戻り、phaseは`offer-ready`になります。
+`start offer pairing`はOfferが生成されQRの準備が終わると戻り、phaseは`offer-ready`になります。
 Offer生成はICE収集の完了を待つため、少し時間がかかります。
 
-partを投影してカメラ側に読み取らせ、担当者がAnswerを運んできたら次を実行します。
+続くループがOfferのQRを1枚ずつコマ送りで投影し、カメラ側は写った順に読み取ります。その間、hub側の
+カメラは担当者が運んでくるAnswerを待ちます。Answerの最初の1枚を読むとphaseが`awaiting-answer`に
+なり、ループが終わって投影からOfferが消えます。
 
-```
-scan pairing QR for [pairing-1] from camera [default]
-wait until pairing [pairing-1] is connected
-end pairing QR display of [pairing-1]
-```
-
-`scan pairing QR`はAnswerの全partが揃い検証を通った時点で戻ります。phaseは`answer-received`から
+`scan pairing QR`はAnswerの全QRが揃い検証を通った時点で戻ります。phaseは`answer-received`から
 `connecting`へ進みます。`wait until ... is connected`はWebRTCが接続を報告すると戻り、取消・期限
 切れ・失敗のときは失敗します。
 
@@ -99,38 +104,72 @@ end pairing QR display of [pairing-1]
 Offerが揃うと拡張が自動でOfferを受理しAnswerを準備するので、phaseは`receiving`→`offer-received`
 →`creating-answer`→`answer-ready`とブロックを追加せずに進みます。
 
-## 5. 撮影しやすいpartの見せ方
+## 5. QRの見せ方
 
-接続情報が長いとQRは複数枚になります。自動で巡回させず、**1枚ずつ表示して担当者が送る**形にして
-ください。投影を撮影する人は、各partが静止している必要があります。
+接続情報は、数枚のQRからなる1つの連結QRコード（Structured Append）で運びます。向きによって見せ方が
+違います。
+
+- **Offerはループ表示します。** カメラ側は読み続けるので、上のhub側スクリプトのようにhubが自分で
+  コマ送りします。1枚あたり0.5〜1秒あれば、カメラは各QRを何フレームも捉えられます。読み逃したQRは
+  次の周回でまた来ます。
+- **Answerは担当者を待ちます。** カメラ側の画面を撮影する人には各QRが静止している必要があるので、
+  キーやクリックで送ります。
 
 ```
 show pairing QR part (1) of [pairing-1] on this sprite
 say (join (join (current pairing QR part of [pairing-1]) " / ") (pairing QR part count of [pairing-1]))
 
-[スペース] キーが押されたとき
+[スペース v]キーが押されたとき
   show next pairing QR part of [pairing-1] on this sprite
 ```
 
-実務上の注意です。
+実際の運用での注意:
 
-- 「2 / 3」のようにpart番号と総数を出すと、担当者が残りを把握できます。
-- スプライトの元のコスチュームは保持されます。`end pairing QR display`のほか、取消、期限切れ、
-  停止ボタン、スプライトの削除でも元に戻ります。
-- 投影ではスプライトを大きく正方形に保ち、コード周囲の白い余白を削らないでください。余白も
-  シンボルの一部です。
-- 誤り訂正レベルを上げると光学条件に強くなりますが、1枚あたりの文字数が減るためpart数が増え、
-  運ぶ手間も増えます。既定は`M`です。読取りが不安定なら起動時に`Q`や`H`を指定します。
-  `globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q'};`
-- スプライトのskinではなく自前で描画する場合は、
+- 「2 / 3」のようにQRの番号と総数を出すと、担当者が残りを把握できます。
+- スプライトは元のコスチュームを保持します。`end pairing QR display`で元に戻り、取消、期限切れ、
+  停止ボタン、スプライトの削除でも戻ります。
+- スプライトは投影上で大きく正方形に保ち、QRの周囲の白い余白を削らないでください。余白もシンボルの
+  一部です。
+- 投影をカメラで読むときは、モジュールが粗いほど確実に読めます。Offer全体を1枚にしたversion 29〜32
+  のQRは、720pの画面の大半を占める必要があり、斜めからは読めませんでした。OfferのQRは既定で
+  version 15まで（約4枚、測定したすべての条件で読めた）、AnswerのQRはversion 20まで（約2枚）です。
+  上限は起動時に`globalThis.__TWQP_QR_CONFIG__ = {offerMaxVersion: 15, answerMaxVersion: 20};`
+  （それぞれ1〜40）で変えられます。
+- 誤り訂正レベルを上げると光学条件に強くなりますが、1枚あたりの文字数が減るため枚数が増えます。
+  既定は`M`です。読取りが不安定なら同じオブジェクトで`errorCorrectionLevel: 'Q'`か`'H'`を指定
+  してください。1メッセージは連結QRコードの上限の16枚までで、超えると`start offer pairing`が
+  `too-many-parts`で失敗します。
+- スプライトの一時スキンではなく自分で描く場合は、
   `pairing QR part [INDEX] of [SESSION] as data URI`または`... as SVG`を読みます。この経路は
   rendererが無くても動きます。
 
-## 6. partの読取り
+## 6. QRの読取り
 
 `scan pairing QR for [SESSION] from camera [CAMERA_ID]`はsessionの間1つのcamera leaseを保持し、
-全partが揃うまで読み続けます。同じpartを何度も読むのは正常で、害はありません。ポスターや別の
-session、前回の試行など、自分のものではないQRは黙って読み飛ばします。
+連結QRの全QRが揃うまで読み続けます。QRはどの順で読んでも揃います。同じQRを何度も読むのは正常で、
+害はありません。別の連結QRのQRは報告して無視し、交換は終わらせません。ポスターなど、ペアリング用
+ではないQRは何も言わずに読み飛ばします。
+
+最初に読んだQRで、どの連結QRを集めるかが決まります。各連結QRの1枚目にはheaderが入っているので、
+それを読めば誰宛てのメッセージかが分かります。
+
+- 別の交換、別の相手、逆向きのものなら、その連結QRを破棄し、理由を付けて`foreign`と報告します。
+- 集めている連結QRの1枚目をまだ読んでいない間は、この交換に属する連結QRの1枚目が読まれれば、
+  そちらに入れ替えます。古い投影のQRが1枚写り込んでも、正しいOfferの収集を妨げません。
+- 全QRが揃うと、メッセージをハッシュで検査します。壊れていた連結QRは破棄して`foreign`
+  （`hash-mismatch`）と報告し、表示が続いているQRから集め直します。
+
+読んだペアリング用のQRはすべて報告されるので、アプリは今何が起きたかを担当者に伝えられます。
+
+| `last pairing QR read of [SESSION]` | 意味                                   | `last pairing QR read detail of [SESSION]`          |
+| ----------------------------------- | -------------------------------------- | --------------------------------------------------- |
+| `accepted`                          | まだ届いていなかったQR                 | QR、`2 / 4`                                          |
+| `duplicate`                         | 読み取り済みのQR。何も変わらない       | QR、`2 / 4`                                          |
+| `foreign`                           | この交換では使わず無視したQR           | 理由：`message-mismatch`（別の連結QR）、`stale-exchange`、`peer-mismatch`、`reply-mismatch`、`unexpected-kind`、`hash-mismatch`、`conflicting-part` |
+
+`pairing QR reads of [SESSION]`は読むたびに1増えるので、スクリプトは前に見た値と比べて新しい結果に
+気づけます。カメラは目の前のQRを1秒に何度も読むので、結果は読むたびのメッセージではなく、書き換わる
+状態の1行として出してください。
 
 実行中は進捗を表示できます。
 
@@ -139,10 +178,10 @@ say (join (join (received parts of [pairing-1]) " / ") (required parts of [pairi
 say (join "未取得: " (missing parts of [pairing-1]))
 ```
 
-part数はpartの中に入っているため、`required parts`は最初のpartが届くまで0です。
+枚数はQRの中に入っているため、`required parts`は最初のQRが届くまで0です。
 
-QRの文字列を別の方法で得ている場合は、`receive pairing QR text [TEXT] for [SESSION]`で直接
-投入できます。こちらが正規の入口で、カメラ走査はその上に作られています。
+メッセージ全体を別の方法（貼り付けや1枚のQR）で得ている場合は、
+`receive pairing message [TEXT] for [SESSION]`で投入できます。
 
 ## 7. 進捗の観測
 
@@ -154,10 +193,10 @@ QRの文字列を別の方法で得ている場合は、`receive pairing QR text
 | `idle` | その名前のsessionが無い |
 | `creating-offer` | hub: WebRTCのOffer生成待ち |
 | `offer-ready` | hub: Offer QRの投影準備ができた |
-| `awaiting-answer` | hub: Answerのpartを部分受信中 |
+| `awaiting-answer` | hub: AnswerのQRを部分受信中 |
 | `answer-received` | hub: Answerが検証を通った |
-| `awaiting-offer` | camera: 最初のOffer partを待っている |
-| `receiving` | camera: Offerのpartを部分受信中 |
+| `awaiting-offer` | camera: 最初のOfferのQRを待っている |
+| `receiving` | camera: OfferのQRを部分受信中 |
 | `offer-received` | camera: Offerが検証を通った |
 | `creating-answer` | camera: WebRTCのAnswer生成待ち |
 | `answer-ready` | camera: Answer QRの表示準備ができた |
@@ -204,12 +243,12 @@ start offer pairing [pairing-B] as [studio] to [cam-B]
 |---|---|---|
 | `feature-disabled` | 起動時フラグが無効 | 読込み前に`__TWQP_FEATURE_FLAGS__`を設定する |
 | `webrtc-capability-missing` | `turbowarp-webrtc`が無いかv3未満 | 先に読み込む。capability v3が必要 |
-| `qr-decoder-missing` / `camera-unavailable` | `turbowarp-jsqr`か`turbowarp-camera-source`が無い、またはカメラ取得に失敗 | 先に読み込む。カメラの許可を確認する |
+| `qr-decoder-missing` / `camera-unavailable` | `turbowarp-jsqr` 0.4.0以降か`turbowarp-camera-source`が無い、またはカメラ取得に失敗 | 先に読み込む。カメラの許可を確認する |
 | `renderer-unavailable` | スプライトに一時skinを設定できない | ステージやクローンではなく通常のスプライトを使う。またはSVGを自分で表示する |
-| `unsupported-protocol` | `twqr/1`ではないQR | 旧`twmp-qr/1`か、別製品のQR |
-| `hash-mismatch` / `length-mismatch` | partは揃ったが内容が壊れている | 全partを読み直す。誤り訂正レベルを上げる |
-| `conflicting-part` | 同じpart番号が別内容で届いた | 異なる交換が混ざっている。やり直す |
-| `missing-parts` | 全partが揃っていない | `missing parts of [SESSION]`で不足を確認する |
+| `unsupported-protocol` | `twqr/2`ではないメッセージ | 旧版の`twqr/1`か`twmp-qr/1`、または別製品のQR |
+| `hash-mismatch` / `length-mismatch` | QRは揃ったが内容が壊れている | 走査中は連結QRを破棄して読み直す。続くなら誤り訂正レベルを上げる |
+| `conflicting-part` | 同じ番号のQRが別内容で届いた | 走査中は連結QRを破棄して読み直す |
+| `too-many-parts` | versionの上限では16枚を超える | versionの上限を上げるか、誤り訂正レベルを下げる |
 | `peer-mismatch` | 別の端末同士を指すQR | 誤った投影を読み取っている |
 | `reply-mismatch` / `stale-exchange` | 別のOfferへの応答、または前回の試行のQR | 現在のQRを撮り直す |
 | `already-accepted` | この交換はすでにWebRTCへ渡している | 対処不要 |
@@ -236,8 +275,8 @@ hub端末: <機種 / OS / ブラウザと版>
 搬送機: <スマートフォン機種 / OS / カメラアプリ>
 ICEモード: lan | stun
 ネットワーク: 同一LAN / 別セグメント / その他
-Offer: part数 =   / QR version =   / 誤り訂正 =   / プロジェクタ（投影サイズ, 距離, 照度）
-Answer: part数 =   / QR version =   / 誤り訂正 =   / 画面輝度
+Offer: 枚数 =   / QR version =   / 誤り訂正 =   / プロジェクタ（投影サイズ, 距離, 照度）
+Answer: 枚数 =   / QR version =   / 誤り訂正 =   / 画面輝度
 読取り: カメラ側   秒 / hub側   秒 / 撮り直し回数 =
 結果: 接続成立 = yes|no / connection state =   / テストメッセージ送受信 = yes|no
 エラー: code =   / 状況 =

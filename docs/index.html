@@ -10,15 +10,15 @@
   <p>A TurboWarp extension that pairs WebRTC peers by carrying the offer and the answer optically, as QR codes.</p>
   <h2>How the workflow runs</h2>
   <ol>
-    <li>The integration machine creates an offer and projects its QR parts.</li>
-    <li>A camera machine scans the parts, accepts the offer, and shows the answer QR parts on its screen.</li>
-    <li>An operator photographs every answer part with a smartphone and carries the images back.</li>
+    <li>The integration machine creates an offer and cycles its QR codes on the projection.</li>
+    <li>A camera machine reads the codes in any order until it has them all, accepts the offer, and shows the answer QR codes on its screen.</li>
+    <li>An operator photographs every answer code with a smartphone and carries the images back.</li>
     <li>The integration machine scans those images, accepts the answer, and reports the connection.</li>
   </ol>
   <p>No signaling server and no app on the smartphone: showing the photographed image is enough.</p>
   <h2>Before you start</h2>
   <ul>
-    <li>Load <code>turbowarp-webrtc</code>, <code>turbowarp-jsqr</code> and <code>turbowarp-camera-source</code> first.</li>
+    <li>Load <code>turbowarp-webrtc</code>, <code>turbowarp-jsqr</code> 0.4.0 or later and <code>turbowarp-camera-source</code> first.</li>
     <li>Run the extension unsandboxed.</li>
     <li>Turn on the pairing blocks at startup with <code>globalThis.__TWQP_FEATURE_FLAGS__ = {qrCodePairing: true};</code></li>
   </ul>
