@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-webrtc-qrcode-pairing",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "TurboWarp extension that pairs WebRTC peers by carrying offers and answers as QR codes.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "license": "MPL-2.0",

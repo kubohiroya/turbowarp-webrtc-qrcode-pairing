@@ -66,6 +66,15 @@ export interface QrScanPort {
 export class CameraQrScanner implements QrScanPort {
   private lease: CameraLease | undefined;
   private leasedCameraId = '';
+  /**
+   * Wall-clock time before which the next frame is not read.
+   *
+   * A code left in front of the camera reads on every frame, and a sequence is read code after
+   * code, so the caller asks again at once. Without a pause between reads the loop would run on
+   * promise callbacks alone and never give the page its turn: no redraw, no Scratch thread, no
+   * timer. Every read therefore waits for the poll interval after the one before it.
+   */
+  private nextReadAt = 0;
 
   public constructor(
     private readonly runtime: TurboWarpRuntime,
@@ -118,6 +127,7 @@ export class CameraQrScanner implements QrScanPort {
         // Aborted while the frame was decoding: the abort handler already rejected.
         if (settled) return;
         if (read !== null) {
+          this.nextReadAt = Date.now() + interval;
           cleanup();
           resolve(read);
           return;
@@ -125,7 +135,9 @@ export class CameraQrScanner implements QrScanPort {
         timer = setTimeout(() => void tick(), interval);
       };
       options.signal.addEventListener('abort', onAbort, {once: true});
-      void tick();
+      // Always through a timer, even when no wait is due, so a read never follows the previous
+      // one within the same turn of the event loop.
+      timer = setTimeout(() => void tick(), Math.max(0, this.nextReadAt - Date.now()));
     });
   }
 
