@@ -103,6 +103,13 @@ export interface PairingSessionState {
   /** Zero-based index into `outgoingSvgs`, or -1 when nothing is selected. */
   outgoingCurrentIndex: number;
   assembler: PairingAssembler;
+  /**
+   * Another sequence, collected on the side while the one in `assembler` has
+   * not shown whose it is, in case it turns out to be this exchange's.
+   */
+  candidate: PairingAssembler;
+  /** Settles when every read taken so far has been handled; reads wait their turn on it. */
+  readQueue: Promise<void>;
   /** True once the reassembled code has been handed to WebRTC. Prevents a second delivery. */
   delivered: boolean;
   /** True once a WebRTC peer exists for `remotePeerId`, so its state is worth polling. */

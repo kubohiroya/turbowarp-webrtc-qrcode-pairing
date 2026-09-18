@@ -15,7 +15,7 @@ A TurboWarp extension for exchanging WebRTC connection information through QR co
 - Tracks which offer an answer replies to, so two camera machines never receive each other's connection.
 - Reports transport progress and connection state as separate states, plus errors, cancellation, retry and deadlines.
 
-Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-jsqr` 0.4.0 or later. 0.2.1 fixes a camera scan that starved the page while a code stayed in view.
+Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-jsqr` 0.4.0 or later. 0.2.1 fixes a camera scan that starved the page while a code stayed in view. 0.2.2 reads a header that runs past the first code, takes reads one at a time so a code is handed over once, and keeps a sequence when a malformed code is read.
 
 > [!NOTE]
 > The pairing blocks are behind a startup feature flag that is off by default. See
@@ -62,9 +62,9 @@ A pairing session cannot be handed from one app to another. Opening a different 
 
 A pairing message is text in the `twqr/2` format: the protocol, a JSON header, and the pairing code, one per line. The header names the session, the sender and target peers, the message kind, the message id, what it replies to, the code's length and its SHA-256 hash.
 
-The message is carried as one Structured Append sequence, made by [`@kubohiroya/qrcode-structured-append`](https://github.com/kubohiroya/qrcode-structured-append). Each code holds its position, the count and the sequence's parity in the standard header, so a reader knows which code it has without any wrapper of this extension's. The header line comes first, so the first code of a sequence already tells a reader whose message it is.
+The message is carried as one Structured Append sequence, made by [`@kubohiroya/qrcode-structured-append`](https://github.com/kubohiroya/qrcode-structured-append). Each code holds its position, the count and the sequence's parity in the standard header, so a reader knows which code it has without any wrapper of this extension's. The header line comes first, so the leading codes of a sequence tell a reader whose message it is before the rest arrive: the first code alone at the default settings, the first few when codes are small or the error correction is high.
 
-Reading goes by sequence. The first code read decides the sequence being collected; codes of any other sequence are reported as `foreign` and ignored. Until the first code of that sequence has been read, a first code that belongs to this exchange replaces it, so a stray code of an old projection cannot block the right one. A sequence that turns out to be another exchange's, or damaged, is dropped and collected again from the codes still being shown.
+Reading goes by sequence. The first code read decides the sequence being collected; codes of any other sequence are reported as `foreign` and ignored. Until that sequence's header has been read, codes of another sequence are collected on the side, and if their header shows they belong to this exchange they replace it, so a stray code of an old projection cannot block the right one. A sequence that turns out to be another exchange's, or damaged, is dropped and collected again from the codes still being shown.
 
 The parity only groups codes and collides one time in 256, so the hash in the header is what detects optical damage and mixed sequences. It is not authentication: anyone who can photograph the codes can recompute it. Treat a projected pairing code as visible to everyone who can see the projection.
 
@@ -116,7 +116,7 @@ pnpm run dev
 
 Build output: `dist/webrtc-qrcode-pairing.js` and `dist/extension-manifest.json`. Load the JavaScript file as a custom TurboWarp extension. The manifest always records every declared block, including blocks the feature flag hides at runtime: it is the build-time contract, not the runtime state.
 
-Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.1`.
+Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.2`.
 
 ## Block reference
 
