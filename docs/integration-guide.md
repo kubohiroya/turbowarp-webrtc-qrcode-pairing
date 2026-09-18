@@ -128,6 +128,15 @@ Practical points:
 - Higher error correction survives worse optics but fits fewer characters per code, which means more
   parts to carry. `M` is the default; set `Q` or `H` at startup if reading is unreliable:
   `globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q'};`
+- Each part is at most QR version 20 by default. A camera reads a projected code far more reliably when
+  its modules are coarse: a single version 31-32 offer had to fill most of a 720p frame and failed
+  when seen from an angle, while the same offer as four version 20 codes read under about twice as many
+  conditions. Set `maxVersion` (1 to 40) at startup to change the cap; 40 restores one code per offer.
+  With a cap at or below 20, `Q` and `H` leave little room for the payload beside the envelope header,
+  so they produce many parts.
+- A projected offer is read by a camera that keeps scanning, so it can step through the parts by
+  itself; an answer photographed by a person should wait for them. `show next pairing QR part` works
+  for both — the application decides when to call it.
 - To draw the code yourself instead of using a sprite skin, read
   `pairing QR part [INDEX] of [SESSION] as data URI` or `... as SVG`. This path works even without a
   renderer.
@@ -135,9 +144,25 @@ Practical points:
 ## 6. Reading parts
 
 `scan pairing QR for [SESSION] from camera [CAMERA_ID]` holds one camera lease for the whole session
-and keeps looking until every part has arrived. Reading the same part repeatedly is normal and
-costs nothing. Codes belonging to something else — a poster, another session, the previous attempt —
-are skipped silently.
+and keeps looking until every part has arrived. Parts are taken in any order. Reading the same part
+repeatedly is normal and costs nothing, and a pairing code this exchange cannot use — another
+exchange, another pair of peers, the other direction, another split of the message — is ignored
+without ending the exchange. QR codes that are not pairing codes at all, such as a poster, are
+skipped without a word.
+
+Every pairing code read is reported, so the application can tell the operator what just happened:
+
+| `last pairing QR read of [SESSION]` | Meaning                                  | `last pairing QR read detail of [SESSION]`         |
+| ----------------------------------- | ---------------------------------------- | -------------------------------------------------- |
+| `accepted`                          | a part that had not arrived yet          | the part, `2 / 4`                                   |
+| `duplicate`                         | a part already read; nothing changes     | the part, `2 / 4`                                   |
+| `foreign`                           | a pairing code this exchange ignores     | why: `stale-exchange`, `peer-mismatch`, `reply-mismatch`, `unexpected-kind`, `message-mismatch` |
+
+`pairing QR reads of [SESSION]` rises by one per read, so a script notices a new result by comparing
+it with the value it saw last. A camera reads the code in front of it many times a second: show the
+result as a status line that is replaced, not as a message per read. On a camera, the first part read
+decides which exchange the session takes; if that was the wrong one, every later part of the right
+one reads as `foreign` with `stale-exchange`, and the way out is to cancel and start again.
 
 Show progress while it runs:
 

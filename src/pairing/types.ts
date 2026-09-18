@@ -39,6 +39,21 @@ export function isTerminalPhase(phase: PairingPhase): boolean {
   return terminalPhases.has(phase);
 }
 
+/**
+ * What the latest pairing QR code a session read turned out to be.
+ *
+ * - `accepted`: a part of this exchange that had not arrived yet.
+ * - `duplicate`: a part of this exchange that had already arrived. Harmless; a
+ *   camera reads the code in front of it many times a second.
+ * - `foreign`: a pairing code, but not one this exchange can use — another
+ *   exchange, another pair of peers, the other direction, or a different split
+ *   of the message. It is ignored.
+ *
+ * QR codes that are not pairing codes at all are not reported: a camera aimed at
+ * a projection also sees posters and signs.
+ */
+export type PairingReadResult = '' | 'accepted' | 'duplicate' | 'foreign';
+
 export interface PairingProgress {
   readonly phase: PairingPhase;
   readonly role: PairingRole;
@@ -59,6 +74,14 @@ export interface PairingProgress {
   readonly errorCode: PairingErrorCode | '';
   readonly errorMessage: string;
   readonly remainingSeconds: number;
+  /** Pairing QR codes read so far, of any result. Rises by one per read. */
+  readonly readCount: number;
+  readonly lastRead: PairingReadResult;
+  /**
+   * For `accepted` and `duplicate`, the part as "2 / 4"; for `foreign`, why it
+   * was ignored, as an error code such as `stale-exchange` or `peer-mismatch`.
+   */
+  readonly lastReadDetail: string;
 }
 
 export interface PairingSessionState {
@@ -93,4 +116,7 @@ export interface PairingSessionState {
   /** Aborts an in-flight camera scan when the session ends. */
   scanAbort: AbortController | undefined;
   waiters: {resolve: () => void; reject: (error: unknown) => void}[];
+  readCount: number;
+  lastRead: PairingReadResult;
+  lastReadDetail: string;
 }

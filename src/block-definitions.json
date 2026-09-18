@@ -7,9 +7,18 @@
       "text": "start offer pairing [SESSION] as [LOCAL_PEER] to [REMOTE_PEER]",
       "description": "Creates a WebRTC offer for the integration machine and prepares its QR parts.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"},
-        "LOCAL_PEER": {"type": "STRING", "defaultValue": "hub"},
-        "REMOTE_PEER": {"type": "STRING", "defaultValue": "camera-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        },
+        "LOCAL_PEER": {
+          "type": "STRING",
+          "defaultValue": "hub"
+        },
+        "REMOTE_PEER": {
+          "type": "STRING",
+          "defaultValue": "camera-1"
+        }
       }
     },
     {
@@ -18,8 +27,14 @@
       "text": "start answer pairing [SESSION] as [LOCAL_PEER]",
       "description": "Waits for an offer on the camera machine. Leave the name empty to adopt the name the offer assigns.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"},
-        "LOCAL_PEER": {"type": "STRING", "defaultValue": ""}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        },
+        "LOCAL_PEER": {
+          "type": "STRING",
+          "defaultValue": ""
+        }
       }
     },
     {
@@ -28,8 +43,14 @@
       "text": "receive pairing QR text [TEXT] for [SESSION]",
       "description": "Accepts one decoded QR text. Repeated readings of the same part are ignored.",
       "arguments": {
-        "TEXT": {"type": "STRING", "defaultValue": ""},
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "TEXT": {
+          "type": "STRING",
+          "defaultValue": ""
+        },
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -38,8 +59,14 @@
       "text": "scan pairing QR for [SESSION] from camera [CAMERA_ID]",
       "description": "Reads parts from the named camera until the exchange has every part it needs.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"},
-        "CAMERA_ID": {"type": "STRING", "defaultValue": "default"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        },
+        "CAMERA_ID": {
+          "type": "STRING",
+          "defaultValue": "default"
+        }
       }
     },
     {
@@ -48,7 +75,10 @@
       "text": "received parts of [SESSION]",
       "description": "Returns how many distinct parts have been accepted.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -57,7 +87,10 @@
       "text": "required parts of [SESSION]",
       "description": "Returns how many parts the incoming message has, or zero before the first part arrives.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -66,7 +99,46 @@
       "text": "missing parts of [SESSION]",
       "description": "Returns the one-based part numbers that have not been read yet, separated by commas.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingReadCount",
+      "blockType": "REPORTER",
+      "text": "pairing QR reads of [SESSION]",
+      "description": "Returns how many pairing QR codes this session has read, of any result. It rises by one per read, so a change means there is a new result to show.",
+      "arguments": {
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingLastRead",
+      "blockType": "REPORTER",
+      "text": "last pairing QR read of [SESSION]",
+      "description": "Returns what the latest pairing QR code was: accepted (a new part), duplicate (a part already read), foreign (a pairing code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.",
+      "arguments": {
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingLastReadDetail",
+      "blockType": "REPORTER",
+      "text": "last pairing QR read detail of [SESSION]",
+      "description": "Returns the part as \"2 / 4\" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as stale-exchange, peer-mismatch or message-mismatch.",
+      "arguments": {
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -75,8 +147,14 @@
       "text": "show pairing QR part [INDEX] of [SESSION] on this sprite",
       "description": "Shows the selected one-based part using a temporary sprite skin.",
       "arguments": {
-        "INDEX": {"type": "NUMBER", "defaultValue": 1},
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "INDEX": {
+          "type": "NUMBER",
+          "defaultValue": 1
+        },
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -85,7 +163,10 @@
       "text": "show next pairing QR part of [SESSION] on this sprite",
       "description": "Shows the next part and wraps from the last part back to the first.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -94,7 +175,10 @@
       "text": "pairing QR part count of [SESSION]",
       "description": "Returns how many parts are prepared for display, or zero when none are.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -103,7 +187,10 @@
       "text": "current pairing QR part of [SESSION]",
       "description": "Returns the one-based part selected for display, or zero when none is selected.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -112,8 +199,14 @@
       "text": "pairing QR part [INDEX] of [SESSION] as SVG",
       "description": "Returns the part as SVG markup so a project can display it its own way.",
       "arguments": {
-        "INDEX": {"type": "NUMBER", "defaultValue": 1},
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "INDEX": {
+          "type": "NUMBER",
+          "defaultValue": 1
+        },
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -122,8 +215,14 @@
       "text": "pairing QR part [INDEX] of [SESSION] as data URI",
       "description": "Returns the part as a base64 SVG data URI for costumes and HTML images.",
       "arguments": {
-        "INDEX": {"type": "NUMBER", "defaultValue": 1},
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "INDEX": {
+          "type": "NUMBER",
+          "defaultValue": 1
+        },
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -132,7 +231,10 @@
       "text": "end pairing QR display of [SESSION]",
       "description": "Restores the sprites this session changed. The session itself stays open.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -141,7 +243,10 @@
       "text": "pairing phase of [SESSION]",
       "description": "Returns the session phase, such as offer-ready, receiving, answer-ready, connecting, or connected.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -150,7 +255,10 @@
       "text": "pairing connection state of [SESSION]",
       "description": "Returns the WebRTC connection state reported for this session's peer.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -159,7 +267,10 @@
       "text": "pairing [SESSION] connected?",
       "description": "Reports whether WebRTC has established the connection for this session.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -168,7 +279,10 @@
       "text": "wait until pairing [SESSION] is connected",
       "description": "Waits for the connection, or fails when the session is cancelled, times out, or fails.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -177,7 +291,10 @@
       "text": "pairing error code of [SESSION]",
       "description": "Returns the latest error code, such as hash-mismatch or peer-mismatch, or an empty string.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -186,7 +303,10 @@
       "text": "pairing error message of [SESSION]",
       "description": "Returns the latest error message. Pairing codes and QR payloads are never included.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -195,7 +315,10 @@
       "text": "local peer of [SESSION]",
       "description": "Returns the name this machine uses for itself in this exchange.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -204,7 +327,10 @@
       "text": "remote peer of [SESSION]",
       "description": "Returns the name this machine uses for the other machine, which is also its WebRTC peer name.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -213,7 +339,10 @@
       "text": "exchange id of [SESSION]",
       "description": "Returns the identifier of the current offer and answer exchange. A retry allocates a new one.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -222,7 +351,10 @@
       "text": "remaining seconds of [SESSION]",
       "description": "Returns the seconds left before the exchange times out.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -238,7 +370,10 @@
       "text": "cancel pairing [SESSION]",
       "description": "Cancels the exchange and releases displays, buffers, and unconnected peers. Established connections stay up.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -247,7 +382,10 @@
       "text": "retry pairing [SESSION]",
       "description": "Starts a new exchange for the same session. QR codes from the previous exchange stop being accepted.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        }
       }
     },
     {
@@ -256,8 +394,14 @@
       "text": "set pairing timeout of [SESSION] to [SECONDS] seconds",
       "description": "Sets how long the exchange waits, measured on this machine's own clock.",
       "arguments": {
-        "SESSION": {"type": "STRING", "defaultValue": "pairing-1"},
-        "SECONDS": {"type": "NUMBER", "defaultValue": 600}
+        "SESSION": {
+          "type": "STRING",
+          "defaultValue": "pairing-1"
+        },
+        "SECONDS": {
+          "type": "NUMBER",
+          "defaultValue": 600
+        }
       }
     }
   ]

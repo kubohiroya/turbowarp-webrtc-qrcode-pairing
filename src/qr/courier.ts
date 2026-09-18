@@ -10,7 +10,12 @@ import {
   type QrMessageKind
 } from './envelope.js';
 import {sha256Base64Url} from './hash.js';
-import {MAX_CHUNK_LENGTH, MAX_MESSAGE_LENGTH, MAX_PART_COUNT} from './limits.js';
+import {
+  DEFAULT_MAX_QR_VERSION,
+  MAX_CHUNK_LENGTH,
+  MAX_MESSAGE_LENGTH,
+  MAX_PART_COUNT
+} from './limits.js';
 
 const printableAscii = /^[ -~]+$/u;
 
@@ -23,6 +28,12 @@ export interface CreatePartsOptions {
   /** Answers must reuse the offer's session ID. Offers default to a fresh UUID. */
   readonly sessionId?: string;
   readonly errorCorrectionLevel?: QrErrorCorrectionLevel;
+  /**
+   * Largest QR version a part may use, 1 to 40. Smaller versions are coarser
+   * codes a camera reads more easily, carried in more parts. Defaults to
+   * `DEFAULT_MAX_QR_VERSION`.
+   */
+  readonly maxVersion?: number;
   readonly createdAt?: number;
 }
 
@@ -35,7 +46,8 @@ export interface QrParts {
 }
 
 /**
- * Splits a pairing code into parts that each fit one QR symbol.
+ * Splits a pairing code into parts that each fit one QR symbol of at most the
+ * given version.
  *
  * The chunk length depends on the envelope header, which in turn depends on the
  * part count, so the loop repeats until the two agree.
@@ -63,6 +75,7 @@ export async function createParts(
     throw new QrPairingError('invalid-argument', 'QR creation timestamp is invalid.');
   }
   const errorCorrectionLevel = options.errorCorrectionLevel ?? 'M';
+  const maxVersion = requireVersion(options.maxVersion ?? DEFAULT_MAX_QR_VERSION);
   const messageHash = await sha256Base64Url(message);
   const messageId = `${sessionId}.${messageHash.slice(0, 12)}`;
 
@@ -85,12 +98,13 @@ export async function createParts(
         messageHash,
         payload: ''
       },
-      errorCorrectionLevel
+      errorCorrectionLevel,
+      maxVersion
     );
     if (chunkLength < 1) {
       throw new QrPairingError(
         'invalid-envelope',
-        'QR encoder capacity is too small for the part envelope.'
+        `QR version ${maxVersion} at level ${errorCorrectionLevel} is too small for the part envelope.`
       );
     }
     const required = Math.ceil(message.length / chunkLength);
@@ -123,7 +137,7 @@ export async function createParts(
     })
   );
   const texts = parts.map(serializeEnvelope);
-  for (const text of texts) QRCode.create(text, {errorCorrectionLevel});
+  for (const text of texts) QRCode.create(text, {errorCorrectionLevel, version: maxVersion});
   return {parts, texts, sessionId, messageId};
 }
 
@@ -226,12 +240,13 @@ export class PartAssembler {
 }
 
 /**
- * Largest payload that still lets the whole envelope fit a version 40 symbol at
- * the given error correction level.
+ * Largest payload that still lets the whole envelope fit a symbol of the given
+ * version at the given error correction level.
  */
 function maximumPayloadLength(
   base: QrEnvelopeV1,
-  errorCorrectionLevel: QrErrorCorrectionLevel
+  errorCorrectionLevel: QrErrorCorrectionLevel,
+  version: number
 ): number {
   let low = 0;
   let high = MAX_CHUNK_LENGTH;
@@ -240,7 +255,7 @@ function maximumPayloadLength(
     const text = JSON.stringify({...base, payload: 'A'.repeat(middle)});
     try {
       QRCode.create([{data: new TextEncoder().encode(text), mode: 'byte'}], {
-        version: 40,
+        version,
         errorCorrectionLevel
       });
       low = middle;
@@ -249,6 +264,17 @@ function maximumPayloadLength(
     }
   }
   return low;
+}
+
+/** A QR version is a whole number from 1 to 40. */
+export function requireVersion(value: number): number {
+  if (!Number.isInteger(value) || value < 1 || value > 40) {
+    throw new QrPairingError(
+      'invalid-argument',
+      `QR version cap must be a whole number from 1 to 40, not ${String(value)}.`
+    );
+  }
+  return value;
 }
 
 function requireMessage(value: string): void {
