@@ -161,6 +161,64 @@ describe('camera scanning', () => {
     camera.dispose();
   }, 20_000);
 
+  it('gives the page its turn between reads while one code stays in view', async () => {
+    const hub = new PairingController({
+      enabled: true,
+      webrtc: new FakeWebRtc('hub', 1100),
+      runtime: {},
+      clock: harness.clock,
+      now: () => 1000
+    });
+    await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
+    const stuck = readAt(outgoingReads(hub, 's'), 1);
+
+    // A camera held on one code of the loop: every frame reads, and every read is a duplicate.
+    let decoded = 0;
+    const runtime: TurboWarpRuntime = {
+      [CAMERA_SOURCE_KEY]: {
+        acquireCamera: async () => ({
+          getFrameSource: () => ({element: {}, width: 640, height: 480}),
+          release: async () => undefined
+        })
+      },
+      [QR_DECODER_KEY]: {
+        capabilityVersion: 2,
+        readFrame: async () => {
+          decoded += 1;
+          return stuck;
+        }
+      }
+    };
+    const camera = new PairingController({
+      enabled: true,
+      webrtc: new FakeWebRtc('camera'),
+      runtime,
+      scan: new CameraQrScanner(runtime, 'test'),
+      clock: harness.clock,
+      now: () => 2000
+    });
+    camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
+
+    let pageTurns = 0;
+    const page = setInterval(() => {
+      pageTurns += 1;
+    }, 100);
+    const scanning = camera.scanFromCamera('s', 'default');
+    await harness.advance(1000);
+
+    // One read per poll interval, not one per promise callback, and the page's own timer still runs.
+    expect(decoded).toBeGreaterThanOrEqual(5);
+    expect(decoded).toBeLessThanOrEqual(8);
+    expect(pageTurns).toBe(10);
+    expect(camera.progress('s')).toMatchObject({lastRead: 'duplicate', receivedParts: 1});
+
+    clearInterval(page);
+    camera.cancelPairing('s');
+    await scanning;
+    hub.dispose();
+    camera.dispose();
+  }, 20_000);
+
   it('skips codes that belong to something else and keeps scanning', async () => {
     const hubRtc = new FakeWebRtc('hub');
     const otherRtc = new FakeWebRtc('other');

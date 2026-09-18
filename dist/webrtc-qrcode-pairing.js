@@ -3207,6 +3207,7 @@
   		this.runtime = runtime;
   		this.owner = owner;
   		this.leasedCameraId = "";
+  		this.nextReadAt = 0;
   	}
   	async scanOnce(options) {
   		if (options.signal.aborted) throw cancelled();
@@ -3244,6 +3245,7 @@
   				}
   				if (settled) return;
   				if (read !== null) {
+  					this.nextReadAt = Date.now() + interval;
   					cleanup();
   					resolve(read);
   					return;
@@ -3251,7 +3253,7 @@
   				timer = setTimeout(() => void tick(), interval);
   			};
   			options.signal.addEventListener("abort", onAbort, { once: true });
-  			tick();
+  			timer = setTimeout(() => void tick(), Math.max(0, this.nextReadAt - Date.now()));
   		});
   	}
   	async release() {
