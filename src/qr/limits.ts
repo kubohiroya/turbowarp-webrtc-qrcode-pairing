@@ -1,61 +1,49 @@
 /**
- * Transport limits with their units and boundary conditions.
- *
- * Every length here counts characters. Payloads are restricted to printable
- * ASCII, so one character is one UTF-16 code unit and one byte; character
- * counts and byte counts agree.
+ * Transport limits. Every value is a boundary checked when a message is made or
+ * read, so a damaged or hostile code fails with a named error instead of
+ * exhausting memory.
  */
 
 /**
- * Largest carried message. Boundary: 1 <= messageLength <= MAX_MESSAGE_LENGTH;
- * zero is rejected.
+ * Most QR codes one message may take. It is the Structured Append limit: the
+ * symbol header has four bits for the position and four for the count.
+ */
+export const MAX_PART_COUNT = 16;
+
+/**
+ * Largest carried pairing code. Boundary: 1 <= length <= MAX_MESSAGE_LENGTH.
  *
- * The effective ceiling is lower than this value, because MAX_PART_COUNT parts
- * of (QR capacity at the version cap - envelope header) characters run out
- * first. At the version 40 ceiling:
- *
- *   L: 2953 - 362 = 2591 chars/part -> 165,824 for 64 parts (this value binds)
- *   M: 2331 - 362 = 1969 chars/part -> 126,016 for 64 parts (part count binds)
- *   Q: 1663 - 362 = 1301 chars/part ->  83,264 for 64 parts (part count binds)
- *   H: 1273 - 362 =  911 chars/part ->  58,304 for 64 parts (part count binds)
- *
- * At the default cap, version 20, level M carries 666 - 362 = 304 chars/part,
- * 19,456 for 64 parts: still more than ten times a pairing code.
- *
- * Exceeding either ceiling fails while splitting, with `message-too-large` or
+ * The version cap binds long before this: sixteen codes of version 15 at level
+ * M carry about 6,500 bytes, and of version 20 about 10,600, against a pairing
+ * code of about 1,250 characters. A longer code fails while splitting with
  * `too-many-parts`.
  */
-export const MAX_MESSAGE_LENGTH = 128 * 1024;
+export const MAX_MESSAGE_LENGTH = 32 * 1024;
 
-/**
- * Largest QR version a part may use unless the integrator says otherwise.
- * Boundary: 1 <= maxVersion <= 40.
- *
- * A part used to fill a version 40 symbol, which made a pairing offer a single
- * version 31-32 code: 145 modules, too fine for a camera to read off a
- * projection unless it filled most of the frame, and not at all from an angle.
- * Capping the version splits the same offer into about four version 20 codes,
- * which read under roughly twice as many optical conditions, at the price of
- * more parts to show. The measurement is in turbowarp-realtime-motion-capture-app
- * `docs/qr-pairing.md`.
- */
-export const DEFAULT_MAX_QR_VERSION = 20;
+/** Room for the header line in front of the pairing code. */
+export const MAX_HEADER_LENGTH = 2048;
 
-/** Boundary: 1 <= partCount <= MAX_PART_COUNT and 0 <= partIndex < partCount. */
-export const MAX_PART_COUNT = 64;
-
-/**
- * Payload characters per part. Always larger than the capacity a QR symbol can
- * actually carry, so this is a guard against hostile input rather than the
- * value that drives splitting.
- */
-export const MAX_CHUNK_LENGTH = 4096;
-
-/** Largest accepted QR text. Covers the envelope header plus its payload. */
-export const MAX_PART_TEXT_LENGTH = 8192;
-
-/** Longest accepted session, peer, and message identifier. */
 export const MAX_IDENTIFIER_LENGTH = 128;
 
-/** Base64url SHA-256 digests without padding are always this long. */
+/** SHA-256 as unpadded base64url. */
 export const MESSAGE_HASH_LENGTH = 43;
+
+/**
+ * Largest QR version an offer uses unless the integrator says otherwise.
+ * Boundary: 1 <= version <= 40.
+ *
+ * The hub shows the offer codes one after another in a loop and the camera
+ * reads them as they come, so small, coarse codes cost nothing but a few more
+ * frames: at version 15 a pairing offer is about four codes, which a camera
+ * read under every condition measured in turbowarp-realtime-motion-capture-app
+ * `docs/qr-pairing.md`.
+ */
+export const DEFAULT_OFFER_MAX_VERSION = 15;
+
+/**
+ * Largest QR version an answer uses unless the integrator says otherwise.
+ *
+ * The answer is shown on the camera device and turned by hand, so fewer codes
+ * matter more there: at version 20 an answer is about two codes.
+ */
+export const DEFAULT_ANSWER_MAX_VERSION = 20;

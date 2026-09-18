@@ -10,12 +10,12 @@ Using the extension: [Integration guide](integration-guide.md) ·
 ```text
 extension.ts        block facade: casts arguments, delegates, owns runtime listeners
   pairing/          session state machine: phases, epochs, deadlines, resource release
-    qr/             pure transport: envelope, splitting, reassembly, verification, SVG
+    qr/             pure transport: message format, Structured Append codes, collection, verification
     ports/          adapters: WebRTC capability, camera scanning, sprite skins
   errors.ts         error codes shared by the transport and the domain
 ```
 
-`qr/` depends on nothing but `qrcode` and `errors.ts`: it has no DOM, Scratch, or WebRTC
+`qr/` depends on nothing but `@kubohiroya/qrcode-structured-append` and `errors.ts`: it has no DOM, Scratch, or WebRTC
 dependency, so the transport can be tested without a runtime and independently of the feature flag.
 `pairing/` reaches the outside world only through the port interfaces, which is what lets the round
 trip be tested with a fake WebRTC capability while `turbowarp-webrtc` capability v3 is unpublished.

@@ -2,6 +2,12 @@
 
 出典: [Issue #1](https://github.com/kubohiroya/turbowarp-webrtc-qrcode-pairing/issues/1)
 
+> [!NOTE]
+> 本文書群は0.1.0の設計記録です。0.2.0で搬送形式を`twqr/1`（QRごとのJSON envelope）から
+> `twqr/2`（1つのメッセージを連結QRコード＝Structured Append、ISO/IEC 18004で運ぶ）に置き換えた。
+> 現行の形式と読取りの規則はリポジトリの[README](../../../README.ja.md#搬送形式)と
+> [利用ガイド](../../integration-guide.ja.md#6-qrの読取り)を正とする。
+
 | 文書 | 内容 |
 |---|---|
 | [requirements.md](requirements.md) | Issue #1の要求仕様の整理（FR/NFR/DoD）と、設計時に判明した制約 |

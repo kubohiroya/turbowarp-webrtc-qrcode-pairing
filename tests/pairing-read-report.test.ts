@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {PairingController} from '../src/pairing/controller.js';
-import {createClock, FakeWebRtc, outgoingTexts, type ClockHarness} from './pairing-harness.js';
+import {createClock, FakeWebRtc, outgoingReads, readAt, type ClockHarness} from './pairing-harness.js';
 
 let harness: ClockHarness;
 
@@ -30,23 +30,23 @@ function report(pairing: PairingController, session: string) {
   return {readCount, lastRead, lastReadDetail, receivedParts, requiredParts, phase};
 }
 
-/** A hub offering a code long enough to need several parts at the default version cap. */
+/** A hub offering a code long enough to need several codes at the default version cap. */
 async function multiPartOffer(sessionKey = 's', remotePeerId = 'cam-A') {
   const hub = controller(new FakeWebRtc('hub', 1100));
   await hub.startOfferPairing({sessionKey, localPeerId: 'studio', remotePeerId});
-  return {hub, texts: outgoingTexts(hub, sessionKey)};
+  return {hub, reads: outgoingReads(hub, sessionKey)};
 }
 
 describe('what each pairing QR read turns out to be', () => {
   it('takes parts in any order, and reports a part read again as a harmless duplicate', async () => {
-    const {hub, texts} = await multiPartOffer();
-    expect(texts.length).toBeGreaterThanOrEqual(3);
-    const total = texts.length;
+    const {hub, reads} = await multiPartOffer();
+    expect(reads.length).toBeGreaterThanOrEqual(3);
+    const total = reads.length;
     const camera = controller(new FakeWebRtc('camera'));
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
     expect(report(camera, 's')).toMatchObject({readCount: 0, lastRead: '', lastReadDetail: ''});
 
-    await camera.ingestQrText('s', texts[total - 1] ?? '');
+    await camera.ingestQrRead('s', readAt(reads, total - 1));
     expect(report(camera, 's')).toMatchObject({
       readCount: 1,
       lastRead: 'accepted',
@@ -55,7 +55,7 @@ describe('what each pairing QR read turns out to be', () => {
     });
 
     // The same code again, as a camera held in front of it would read it: noted, nothing changes.
-    await camera.ingestQrText('s', texts[total - 1] ?? '');
+    await camera.ingestQrRead('s', readAt(reads, total - 1));
     expect(report(camera, 's')).toMatchObject({
       readCount: 2,
       lastRead: 'duplicate',
@@ -63,7 +63,7 @@ describe('what each pairing QR read turns out to be', () => {
       receivedParts: 1
     });
 
-    for (const text of texts.slice(0, total - 1).reverse()) await camera.ingestQrText('s', text);
+    for (const read of reads.slice(0, total - 1).reverse()) await camera.ingestQrRead('s', read);
     expect(report(camera, 's')).toMatchObject({
       readCount: total + 1,
       lastRead: 'accepted',
@@ -76,26 +76,26 @@ describe('what each pairing QR read turns out to be', () => {
     camera.dispose();
   });
 
-  it('ignores a part of another exchange and says so, keeping what it has', async () => {
+  it('ignores a code of another sequence and says so, keeping what it has', async () => {
     const first = await multiPartOffer('s', 'cam-A');
     const other = await multiPartOffer('s', 'cam-B');
     const camera = controller(new FakeWebRtc('camera'));
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
 
-    await camera.ingestQrText('s', first.texts[0] ?? '');
-    await expect(camera.ingestQrText('s', other.texts[1] ?? '')).rejects.toMatchObject({
-      code: 'stale-exchange'
+    await camera.ingestQrRead('s', readAt(first.reads, 0));
+    await expect(camera.ingestQrRead('s', readAt(other.reads, 1))).rejects.toMatchObject({
+      code: 'message-mismatch'
     });
     expect(report(camera, 's')).toMatchObject({
       readCount: 2,
       lastRead: 'foreign',
-      lastReadDetail: 'stale-exchange',
+      lastReadDetail: 'message-mismatch',
       receivedParts: 1,
       phase: 'receiving'
     });
 
     // The exchange carries on with its own parts.
-    await camera.ingestQrText('s', first.texts[1] ?? '');
+    await camera.ingestQrRead('s', readAt(first.reads, 1));
     expect(report(camera, 's')).toMatchObject({lastRead: 'accepted', receivedParts: 2});
 
     first.hub.dispose();
@@ -103,9 +103,31 @@ describe('what each pairing QR read turns out to be', () => {
     camera.dispose();
   });
 
+  it('drops a sequence whose first code is addressed to another device', async () => {
+    const {hub, reads} = await multiPartOffer('s', 'cam-B');
+    const camera = controller(new FakeWebRtc('camera'));
+    camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: 'cam-A'});
+
+    await camera.ingestQrRead('s', readAt(reads, 1));
+    expect(report(camera, 's')).toMatchObject({lastRead: 'accepted', receivedParts: 1});
+    await expect(camera.ingestQrRead('s', readAt(reads, 0))).rejects.toMatchObject({
+      code: 'peer-mismatch'
+    });
+    expect(report(camera, 's')).toMatchObject({
+      readCount: 2,
+      lastRead: 'foreign',
+      lastReadDetail: 'peer-mismatch',
+      receivedParts: 0,
+      requiredParts: 0
+    });
+    expect(camera.progress('s').errorCode).toBe('');
+    hub.dispose();
+    camera.dispose();
+  });
+
   it('reports the hub reading its own offer as foreign rather than failing', async () => {
-    const {hub, texts} = await multiPartOffer();
-    await expect(hub.ingestQrText('s', texts[0] ?? '')).rejects.toMatchObject({
+    const {hub, reads} = await multiPartOffer();
+    await expect(hub.ingestQrRead('s', readAt(reads, 0))).rejects.toMatchObject({
       code: 'unexpected-kind'
     });
     expect(report(hub, 's')).toMatchObject({
@@ -126,10 +148,10 @@ describe('what each pairing QR read turns out to be', () => {
   });
 
   it('starts the report again when the exchange is retried', async () => {
-    const {hub, texts} = await multiPartOffer();
+    const {hub, reads} = await multiPartOffer();
     const camera = controller(new FakeWebRtc('camera'));
     camera.startAnswerPairing({sessionKey: 's', expectedLocalPeerId: ''});
-    await camera.ingestQrText('s', texts[0] ?? '');
+    await camera.ingestQrRead('s', readAt(reads, 0));
     expect(report(camera, 's').readCount).toBe(1);
 
     await camera.retryPairing('s');

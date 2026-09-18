@@ -5,7 +5,7 @@
       "opcode": "startOfferPairing",
       "blockType": "COMMAND",
       "text": "start offer pairing [SESSION] as [LOCAL_PEER] to [REMOTE_PEER]",
-      "description": "Creates a WebRTC offer for the integration machine and prepares its QR parts.",
+      "description": "Creates a WebRTC offer for the integration machine and prepares it as a Structured Append sequence of QR codes.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -40,8 +40,8 @@
     {
       "opcode": "ingestPairingQrText",
       "blockType": "COMMAND",
-      "text": "receive pairing QR text [TEXT] for [SESSION]",
-      "description": "Accepts one decoded QR text. Repeated readings of the same part are ignored.",
+      "text": "receive pairing message [TEXT] for [SESSION]",
+      "description": "Accepts a whole pairing message as text, such as one pasted or carried some other way. Camera scanning reads the QR codes of a sequence itself.",
       "arguments": {
         "TEXT": {
           "type": "STRING",
@@ -57,7 +57,7 @@
       "opcode": "scanPairingQrFromCamera",
       "blockType": "COMMAND",
       "text": "scan pairing QR for [SESSION] from camera [CAMERA_ID]",
-      "description": "Reads parts from the named camera until the exchange has every part it needs.",
+      "description": "Reads QR codes from the named camera, in any order, until the exchange has every code of the sequence. Codes of other sequences are reported and ignored.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -73,7 +73,7 @@
       "opcode": "pairingReceivedParts",
       "blockType": "REPORTER",
       "text": "received parts of [SESSION]",
-      "description": "Returns how many distinct parts have been accepted.",
+      "description": "Returns how many distinct codes of the incoming sequence have been read.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -85,7 +85,7 @@
       "opcode": "pairingRequiredParts",
       "blockType": "REPORTER",
       "text": "required parts of [SESSION]",
-      "description": "Returns how many parts the incoming message has, or zero before the first part arrives.",
+      "description": "Returns how many codes the incoming sequence has, or zero before the first code arrives.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -97,7 +97,7 @@
       "opcode": "pairingMissingParts",
       "blockType": "REPORTER",
       "text": "missing parts of [SESSION]",
-      "description": "Returns the one-based part numbers that have not been read yet, separated by commas.",
+      "description": "Returns the one-based code numbers that have not been read yet, separated by commas.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -121,7 +121,7 @@
       "opcode": "pairingLastRead",
       "blockType": "REPORTER",
       "text": "last pairing QR read of [SESSION]",
-      "description": "Returns what the latest pairing QR code was: accepted (a new part), duplicate (a part already read), foreign (a pairing code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.",
+      "description": "Returns what the latest pairing QR code was: accepted (a new code of the sequence), duplicate (a code already read), foreign (a code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -133,7 +133,7 @@
       "opcode": "pairingLastReadDetail",
       "blockType": "REPORTER",
       "text": "last pairing QR read detail of [SESSION]",
-      "description": "Returns the part as \"2 / 4\" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as stale-exchange, peer-mismatch or message-mismatch.",
+      "description": "Returns the code as \"2 / 4\" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as message-mismatch (another sequence), stale-exchange or peer-mismatch.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -145,7 +145,7 @@
       "opcode": "showPairingQrPart",
       "blockType": "COMMAND",
       "text": "show pairing QR part [INDEX] of [SESSION] on this sprite",
-      "description": "Shows the selected one-based part using a temporary sprite skin.",
+      "description": "Shows the selected one-based code of the sequence using a temporary sprite skin.",
       "arguments": {
         "INDEX": {
           "type": "NUMBER",
@@ -161,7 +161,7 @@
       "opcode": "showNextPairingQrPart",
       "blockType": "COMMAND",
       "text": "show next pairing QR part of [SESSION] on this sprite",
-      "description": "Shows the next part and wraps from the last part back to the first.",
+      "description": "Shows the next code and wraps from the last back to the first, so a loop with a short wait cycles the whole sequence.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -173,7 +173,7 @@
       "opcode": "pairingQrPartCount",
       "blockType": "REPORTER",
       "text": "pairing QR part count of [SESSION]",
-      "description": "Returns how many parts are prepared for display, or zero when none are.",
+      "description": "Returns how many codes are prepared for display, or zero when none are.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -185,7 +185,7 @@
       "opcode": "pairingQrCurrentPart",
       "blockType": "REPORTER",
       "text": "current pairing QR part of [SESSION]",
-      "description": "Returns the one-based part selected for display, or zero when none is selected.",
+      "description": "Returns the one-based code selected for display, or zero when none is selected.",
       "arguments": {
         "SESSION": {
           "type": "STRING",
@@ -197,7 +197,7 @@
       "opcode": "pairingQrPartSvg",
       "blockType": "REPORTER",
       "text": "pairing QR part [INDEX] of [SESSION] as SVG",
-      "description": "Returns the part as SVG markup so a project can display it its own way.",
+      "description": "Returns the code as SVG markup so a project can display it its own way.",
       "arguments": {
         "INDEX": {
           "type": "NUMBER",
@@ -213,7 +213,7 @@
       "opcode": "pairingQrPartDataUri",
       "blockType": "REPORTER",
       "text": "pairing QR part [INDEX] of [SESSION] as data URI",
-      "description": "Returns the part as a base64 SVG data URI for costumes and HTML images.",
+      "description": "Returns the code as a base64 SVG data URI for costumes and HTML images.",
       "arguments": {
         "INDEX": {
           "type": "NUMBER",

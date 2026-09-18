@@ -13,7 +13,7 @@ some other means, which is what this extension adds.
 
 ### Format
 
-`twqr/1` is **not compatible** with `twmp-qr/1` and does not read it. `twmp-qr/1` carries one peer
+`twqr/2`, like `twqr/1` before it, is **not compatible** with `twmp-qr/1` and does not read it. `twmp-qr/1` carries one peer
 name and no reply-to, so it cannot express:
 
 - which name the sender uses for itself versus for the receiver, and
@@ -90,10 +90,11 @@ the repository policy check, and an npm pack dry run.
 Beyond that, a change to the transport or the state machine should be re-verified by hand, because
 optical conditions are not testable in CI:
 
-- [ ] A single-part exchange and a multi-part exchange both complete.
-- [ ] Parts read out of order, and the same part read repeatedly, still assemble.
-- [ ] A missing part is reported by `missing parts of [SESSION]` and never assembles.
-- [ ] A damaged part fails with `hash-mismatch` and nothing reaches WebRTC.
+- [ ] A single-code exchange and a multi-code exchange both complete.
+- [ ] Codes read out of order, and the same code read repeatedly, still assemble.
+- [ ] A code of another sequence is reported as `foreign` and does not disturb the one being collected.
+- [ ] A missing code is reported by `missing parts of [SESSION]` and never assembles.
+- [ ] A damaged sequence is reported with `hash-mismatch`, nothing reaches WebRTC, and the looping offer is collected again.
 - [ ] Two camera machines pair one after another without their answers crossing.
 - [ ] Cancel, timeout and retry each release the display and the camera, and a code photographed
       before a retry is refused.
@@ -106,7 +107,7 @@ Record hardware runs with the template in the [integration guide](integration-gu
 
 ## 4. Changing the transport format later
 
-If a future change needs a different envelope:
+If a future change needs a different message format:
 
 - Receivers match `protocol` exactly and refuse anything else, so an unknown version is always
   rejected rather than half-read.

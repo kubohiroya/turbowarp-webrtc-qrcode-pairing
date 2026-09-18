@@ -1,25 +1,26 @@
-import QRCode from 'qrcode';
-import {QrPairingError} from '../errors.js';
 import {
-  envelopeIdentity,
-  QR_PROTOCOL,
+  createStructuredAppend,
+  StructuredAppendAssembler,
+  StructuredAppendError,
+  type AddOutcome,
+  type StructuredAppendRead,
+  type StructuredAppendSymbol
+} from '@kubohiroya/qrcode-structured-append';
+import {QrPairingError} from '../errors.js';
+import {sha256Base64Url} from './hash.js';
+import {DEFAULT_OFFER_MAX_VERSION, MAX_PART_COUNT} from './limits.js';
+import {
+  formatMessage,
+  parseHeader,
+  parseMessage,
   requireIdentifier,
-  serializeEnvelope,
-  type QrEnvelopeV1,
+  type PairingMessage,
+  type PairingMessageHeader,
   type QrErrorCorrectionLevel,
   type QrMessageKind
-} from './envelope.js';
-import {sha256Base64Url} from './hash.js';
-import {
-  DEFAULT_MAX_QR_VERSION,
-  MAX_CHUNK_LENGTH,
-  MAX_MESSAGE_LENGTH,
-  MAX_PART_COUNT
-} from './limits.js';
+} from './message.js';
 
-const printableAscii = /^[ -~]+$/u;
-
-export interface CreatePartsOptions {
+export interface CreateCodesOptions {
   readonly senderPeerId: string;
   readonly targetPeerId: string;
   readonly kind: QrMessageKind;
@@ -29,99 +30,53 @@ export interface CreatePartsOptions {
   readonly sessionId?: string;
   readonly errorCorrectionLevel?: QrErrorCorrectionLevel;
   /**
-   * Largest QR version a part may use, 1 to 40. Smaller versions are coarser
-   * codes a camera reads more easily, carried in more parts. Defaults to
-   * `DEFAULT_MAX_QR_VERSION`.
+   * Largest QR version a code may use, 1 to 40. Smaller versions are coarser
+   * codes a camera reads more easily, in more codes. Defaults to
+   * `DEFAULT_OFFER_MAX_VERSION`.
    */
   readonly maxVersion?: number;
   readonly createdAt?: number;
 }
 
-export interface QrParts {
-  readonly parts: readonly QrEnvelopeV1[];
-  /** QR texts in the same order as `parts`. */
-  readonly texts: readonly string[];
+export interface PairingCodes {
+  /** The Structured Append sequence, in order. */
+  readonly symbols: readonly StructuredAppendSymbol[];
+  /** One SVG per symbol, in the same order. */
+  readonly svgs: readonly string[];
+  /** The whole message as text, for carrying it some other way. */
+  readonly text: string;
   readonly sessionId: string;
   readonly messageId: string;
 }
 
-/**
- * Splits a pairing code into parts that each fit one QR symbol of at most the
- * given version.
- *
- * The chunk length depends on the envelope header, which in turn depends on the
- * part count, so the loop repeats until the two agree.
- */
-export async function createParts(
-  message: string,
-  options: CreatePartsOptions
-): Promise<QrParts> {
-  requireMessage(message);
-  const senderPeerId = requireIdentifier(options.senderPeerId, 'sender peer ID');
-  const targetPeerId = requireIdentifier(options.targetPeerId, 'target peer ID');
+/** Wraps a pairing code in its header and splits it into a Structured Append sequence. */
+export async function createPairingCodes(
+  payload: string,
+  options: CreateCodesOptions
+): Promise<PairingCodes> {
+  const senderPeerId = requireArgument(options.senderPeerId, 'sender peer ID');
+  const targetPeerId = requireArgument(options.targetPeerId, 'target peer ID');
   if (options.kind !== 'offer' && options.kind !== 'answer') {
     throw new QrPairingError('invalid-argument', 'QR message kind must be offer or answer.');
   }
   const replyTo =
-    options.kind === 'answer'
-      ? requireIdentifier(options.replyTo ?? '', 'reply-to message ID')
-      : '';
+    options.kind === 'answer' ? requireArgument(options.replyTo ?? '', 'reply-to message ID') : '';
   if (options.kind === 'offer' && (options.replyTo ?? '') !== '') {
     throw new QrPairingError('invalid-argument', 'An offer must not set reply-to.');
   }
-  const sessionId = requireIdentifier(options.sessionId ?? crypto.randomUUID(), 'session ID');
+  const sessionId = requireArgument(options.sessionId ?? crypto.randomUUID(), 'session ID');
   const createdAt = options.createdAt ?? Date.now();
   if (!Number.isSafeInteger(createdAt) || createdAt < 0) {
     throw new QrPairingError('invalid-argument', 'QR creation timestamp is invalid.');
   }
-  const errorCorrectionLevel = options.errorCorrectionLevel ?? 'M';
-  const maxVersion = requireVersion(options.maxVersion ?? DEFAULT_MAX_QR_VERSION);
-  const messageHash = await sha256Base64Url(message);
-  const messageId = `${sessionId}.${messageHash.slice(0, 12)}`;
-
-  let partCount = 1;
-  let chunkLength = 0;
-  for (;;) {
-    chunkLength = maximumPayloadLength(
-      {
-        protocol: QR_PROTOCOL,
-        sessionId,
-        senderPeerId,
-        targetPeerId,
-        kind: options.kind,
-        messageId,
-        replyTo,
-        createdAt,
-        partIndex: partCount - 1,
-        partCount,
-        messageLength: message.length,
-        messageHash,
-        payload: ''
-      },
-      errorCorrectionLevel,
-      maxVersion
-    );
-    if (chunkLength < 1) {
-      throw new QrPairingError(
-        'invalid-envelope',
-        `QR version ${maxVersion} at level ${errorCorrectionLevel} is too small for the part envelope.`
-      );
-    }
-    const required = Math.ceil(message.length / chunkLength);
-    if (required > MAX_PART_COUNT) {
-      throw new QrPairingError(
-        'too-many-parts',
-        `Splitting needs ${required} parts, which exceeds the limit of ${MAX_PART_COUNT}.`
-      );
-    }
-    if (required === partCount) break;
-    partCount = required;
+  const maxVersion = requireVersion(options.maxVersion ?? DEFAULT_OFFER_MAX_VERSION);
+  if (typeof payload !== 'string' || payload.length < 1) {
+    throw new QrPairingError('invalid-argument', 'Pairing code is empty.');
   }
-
-  const parts = Array.from(
-    {length: partCount},
-    (_unused, partIndex): QrEnvelopeV1 => ({
-      protocol: QR_PROTOCOL,
+  const messageHash = await sha256Base64Url(payload);
+  const messageId = `${sessionId}.${messageHash.slice(0, 12)}`;
+  const text = formatMessage({
+    header: {
       sessionId,
       senderPeerId,
       targetPeerId,
@@ -129,141 +84,107 @@ export async function createParts(
       messageId,
       replyTo,
       createdAt,
-      partIndex,
-      partCount,
-      messageLength: message.length,
-      messageHash,
-      payload: message.slice(partIndex * chunkLength, (partIndex + 1) * chunkLength)
-    })
-  );
-  const texts = parts.map(serializeEnvelope);
-  for (const text of texts) QRCode.create(text, {errorCorrectionLevel, version: maxVersion});
-  return {parts, texts, sessionId, messageId};
+      messageLength: payload.length,
+      messageHash
+    },
+    payload
+  });
+  let symbols: StructuredAppendSymbol[];
+  try {
+    symbols = createStructuredAppend(text, {
+      level: options.errorCorrectionLevel ?? 'M',
+      maxVersion
+    });
+  } catch (error) {
+    if (error instanceof StructuredAppendError && error.code === 'too-many-symbols') {
+      throw new QrPairingError(
+        'too-many-parts',
+        `The pairing code needs more than ${MAX_PART_COUNT} QR codes at version ${maxVersion}.`,
+        {cause: error}
+      );
+    }
+    throw new QrPairingError('invalid-argument', 'The pairing code cannot be made into QR codes.', {
+      cause: error
+    });
+  }
+  return {
+    symbols,
+    svgs: symbols.map((symbol) => symbol.toSvg()),
+    text,
+    sessionId,
+    messageId
+  };
 }
 
-export interface PartAcceptResult {
-  readonly received: number;
-  readonly total: number;
-  /** True when the same index arrived again with the same payload. Not an error. */
-  readonly duplicate: boolean;
+/** Reads the whole message the codes carry, and checks it against its hash. */
+export async function readPairingMessage(text: string): Promise<PairingMessage> {
+  const message = parseMessage(text);
+  if ((await sha256Base64Url(message.payload)) !== message.header.messageHash) {
+    throw new QrPairingError('hash-mismatch', 'The pairing code failed its hash check.');
+  }
+  return message;
 }
 
-/** Collects the parts of exactly one message and verifies the result. */
-export class PartAssembler {
-  private readonly parts = new Map<number, QrEnvelopeV1>();
-  private identity: string | undefined;
-
-  public add(envelope: QrEnvelopeV1): PartAcceptResult {
-    const identity = envelopeIdentity(envelope);
-    if (this.identity !== undefined && this.identity !== identity) {
-      throw new QrPairingError(
-        'message-mismatch',
-        'QR part does not belong to the message being assembled.'
-      );
-    }
-    this.identity = identity;
-    const existing = this.parts.get(envelope.partIndex);
-    if (existing && existing.payload !== envelope.payload) {
-      throw new QrPairingError(
-        'conflicting-part',
-        `QR part ${envelope.partIndex + 1} arrived twice with different content.`
-      );
-    }
-    this.parts.set(envelope.partIndex, envelope);
-    return {
-      received: this.parts.size,
-      total: envelope.partCount,
-      duplicate: existing !== undefined
-    };
-  }
-
-  public receivedCount(): number {
-    return this.parts.size;
-  }
-
-  /** Zero until the first part arrives, because the part count is carried by the parts. */
-  public requiredCount(): number {
-    return this.first()?.partCount ?? 0;
-  }
-
-  /** Zero-based indices that have not arrived yet, in ascending order. */
-  public missingParts(): readonly number[] {
-    const total = this.requiredCount();
-    const missing: number[] = [];
-    for (let index = 0; index < total; index += 1) {
-      if (!this.parts.has(index)) missing.push(index);
-    }
-    return missing;
-  }
-
-  public isComplete(): boolean {
-    const total = this.requiredCount();
-    return total > 0 && this.parts.size === total;
-  }
-
-  /** Joins the parts and verifies length and hash before returning anything. */
-  public async assemble(): Promise<string> {
-    const first = this.first();
-    if (!first) {
-      throw new QrPairingError('missing-parts', 'No QR parts have been received.');
-    }
-    if (this.parts.size !== first.partCount) {
-      throw new QrPairingError(
-        'missing-parts',
-        `QR message is missing ${first.partCount - this.parts.size} of ${first.partCount} parts.`
-      );
-    }
-    const message = Array.from({length: first.partCount}, (_unused, index) => {
-      const part = this.parts.get(index);
-      if (!part) {
-        throw new QrPairingError('missing-parts', `QR message is missing part ${index + 1}.`);
-      }
-      return part.payload;
-    }).join('');
-    if (message.length !== first.messageLength) {
-      throw new QrPairingError('length-mismatch', 'Reassembled QR message has the wrong length.');
-    }
-    if ((await sha256Base64Url(message)) !== first.messageHash) {
-      throw new QrPairingError('hash-mismatch', 'Reassembled QR message failed its hash check.');
-    }
-    return message;
-  }
-
-  public clear(): void {
-    this.parts.clear();
-    this.identity = undefined;
-  }
-
-  private first(): QrEnvelopeV1 | undefined {
-    return this.parts.values().next().value as QrEnvelopeV1 | undefined;
-  }
+/** The header, if the given first code of a sequence holds all of it. */
+export function headerOfFirstCode(read: StructuredAppendRead): PairingMessageHeader | undefined {
+  return parseHeader(latin1(read.bytes));
 }
 
 /**
- * Largest payload that still lets the whole envelope fit a symbol of the given
- * version at the given error correction level.
+ * Collects the codes of one pairing message, in any order.
+ *
+ * The first code read decides the sequence. Until the first code of that
+ * sequence has shown whose message it is, another sequence whose first code
+ * does belong to this exchange may take its place: a camera may well see an
+ * old projection before the right one.
  */
-function maximumPayloadLength(
-  base: QrEnvelopeV1,
-  errorCorrectionLevel: QrErrorCorrectionLevel,
-  version: number
-): number {
-  let low = 0;
-  let high = MAX_CHUNK_LENGTH;
-  while (low < high) {
-    const middle = Math.ceil((low + high) / 2);
-    const text = JSON.stringify({...base, payload: 'A'.repeat(middle)});
+export class PairingAssembler {
+  private readonly inner = new StructuredAppendAssembler();
+  /** True once the sequence's first code showed a header this exchange accepts. */
+  public headerVerified = false;
+
+  /** Throws `conflicting-part` for a position that arrives twice with different content. */
+  public add(read: StructuredAppendRead): AddOutcome {
     try {
-      QRCode.create([{data: new TextEncoder().encode(text), mode: 'byte'}], {
-        version,
-        errorCorrectionLevel
-      });
-      low = middle;
-    } catch {
-      high = middle - 1;
+      return this.inner.add(read);
+    } catch (error) {
+      throw translate(error);
     }
   }
-  return low;
+
+  public receivedCount(): number {
+    return this.inner.received();
+  }
+
+  /** Zero until the first code arrives, because the count is carried by the codes. */
+  public requiredCount(): number {
+    return this.inner.count();
+  }
+
+  /** Zero-based positions that have not arrived yet, in ascending order. */
+  public missingParts(): readonly number[] {
+    return this.inner.missing();
+  }
+
+  public isComplete(): boolean {
+    return this.inner.isComplete();
+  }
+
+  /** Joins the codes and checks the result before returning anything. */
+  public async assemble(): Promise<PairingMessage> {
+    let text: string;
+    try {
+      text = this.inner.text();
+    } catch (error) {
+      throw translate(error);
+    }
+    return readPairingMessage(text);
+  }
+
+  public clear(): void {
+    this.inner.clear();
+    this.headerVerified = false;
+  }
 }
 
 /** A QR version is a whole number from 1 to 40. */
@@ -277,17 +198,31 @@ export function requireVersion(value: number): number {
   return value;
 }
 
-function requireMessage(value: string): void {
-  if (typeof value !== 'string' || value.length < 1) {
-    throw new QrPairingError('invalid-argument', 'Pairing code is empty.');
+function requireArgument(value: string, label: string): string {
+  try {
+    return requireIdentifier(value, label);
+  } catch (error) {
+    throw new QrPairingError('invalid-argument', `Invalid ${label}.`, {cause: error});
   }
-  if (value.length > MAX_MESSAGE_LENGTH) {
-    throw new QrPairingError(
-      'message-too-large',
-      `Pairing code must be at most ${MAX_MESSAGE_LENGTH} characters.`
-    );
+}
+
+function translate(error: unknown): unknown {
+  if (!(error instanceof StructuredAppendError)) return error;
+  switch (error.code) {
+    case 'conflicting-symbol':
+      return new QrPairingError('conflicting-part', error.message, {cause: error});
+    case 'incomplete':
+      return new QrPairingError('missing-parts', error.message, {cause: error});
+    case 'parity-mismatch':
+      return new QrPairingError('hash-mismatch', error.message, {cause: error});
+    default:
+      return new QrPairingError('invalid-envelope', error.message, {cause: error});
   }
-  if (!printableAscii.test(value)) {
-    throw new QrPairingError('invalid-argument', 'Pairing code must be printable ASCII.');
-  }
+}
+
+/** Pairing messages are ASCII, so each byte of a code is one character. */
+function latin1(bytes: Uint8Array): string {
+  let text = '';
+  for (const byte of bytes) text += String.fromCharCode(byte);
+  return text;
 }

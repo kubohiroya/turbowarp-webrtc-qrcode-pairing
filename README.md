@@ -8,14 +8,14 @@ A TurboWarp extension for exchanging WebRTC connection information through QR co
 
 ## What it does
 
-- Encodes a WebRTC Offer or Answer into QR envelopes, splitting large ones across several codes.
-- Displays one part at a time on a sprite, so an operator can photograph each part of a projection.
-- Accepts decoded parts in any order, tolerates repeated readings, and reports which parts are still missing.
+- Encodes a WebRTC Offer or Answer as a Structured Append sequence (ISO/IEC 18004), the QR standard's own way of splitting one message across up to 16 codes.
+- Displays one code at a time on a sprite, so the integration machine can cycle the Offer codes in a loop.
+- Reads the codes in any order, tolerates repeated readings, reports codes of other sequences and ignores them, and reports which codes are still missing.
 - Verifies length and hash before a code reaches WebRTC, and hands each verified code over exactly once.
 - Tracks which offer an answer replies to, so two camera machines never receive each other's connection.
 - Reports transport progress and connection state as separate states, plus errors, cancellation, retry and deadlines.
 
-Version 0.2.0 caps each part at QR version 20 by default and reports every pairing code read; 0.1.0 is the version published on npm.
+Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-jsqr` 0.4.0 or later. 0.1.0 is the version published on npm.
 
 > [!NOTE]
 > The pairing blocks are behind a startup feature flag that is off by default. See
@@ -44,8 +44,9 @@ The smartphone carries signaling information optically. Camera data is sent over
 | Package | Responsibility |
 |---|---|
 | `turbowarp-webrtc` | Offer/Answer creation and acceptance, ICE and WebRTC connections |
-| `turbowarp-webrtc-qrcode-pairing` | QR transport protocol, multipart display/assembly and pairing orchestration |
-| `turbowarp-jsqr` | Decode QR codes from camera frames |
+| `turbowarp-webrtc-qrcode-pairing` | Pairing message format, display and collection of its codes, and pairing orchestration |
+| `qrcode-structured-append` | Creating and joining Structured Append sequences; a library, not an extension |
+| `turbowarp-jsqr` | Decode QR codes from camera frames, including Structured Append positions |
 | `turbowarp-camera-source` | Camera acquisition and frame access |
 | `turbowarp-time-space-sync` | Optical time correspondence and camera placement calibration |
 | `turbowarp-time-space-sync-app` | Verification app for the time-space-sync extension |
@@ -59,13 +60,17 @@ A pairing session cannot be handed from one app to another. Opening a different 
 
 ## Transport format
 
-QR parts use the `twqr/1` envelope: protocol, session, sender and target peer names, message kind, message id, reply-to, part index and count, message length, SHA-256 hash and payload.
+A pairing message is text in the `twqr/2` format: the protocol, a JSON header, and the pairing code, one per line. The header names the session, the sender and target peers, the message kind, the message id, what it replies to, the code's length and its SHA-256 hash.
 
-The hash detects optical damage. It is not authentication: anyone who can photograph the codes can recompute it. Treat a projected pairing code as visible to everyone who can see the projection.
+The message is carried as one Structured Append sequence, made by [`@kubohiroya/qrcode-structured-append`](https://github.com/kubohiroya/qrcode-structured-append). Each code holds its position, the count and the sequence's parity in the standard header, so a reader knows which code it has without any wrapper of this extension's. The header line comes first, so the first code of a sequence already tells a reader whose message it is.
 
-`twmp-qr/1` from `turbowarp-realtime-motion-capture` is the format this one grew out of, but the two do not interoperate. `twmp-qr/1` carries a single peer name and no reply-to, so it cannot express the peer mapping and answer tracking this extension needs. A `twmp-qr/1` code is rejected with `unsupported-protocol` rather than accepted in a compatibility mode, because an ambiguous acceptance could pair the wrong machines.
+Reading goes by sequence. The first code read decides the sequence being collected; codes of any other sequence are reported as `foreign` and ignored. Until the first code of that sequence has been read, a first code that belongs to this exchange replaces it, so a stray code of an old projection cannot block the right one. A sequence that turns out to be another exchange's, or damaged, is dropped and collected again from the codes still being shown.
 
-Limits: at most 64 parts, 4096 payload characters per part, and 131072 characters per message. Character counts equal byte counts because payloads are printable ASCII. At error correction level M the binding limit is the part count, which allows about 126000 characters.
+The parity only groups codes and collides one time in 256, so the hash in the header is what detects optical damage and mixed sequences. It is not authentication: anyone who can photograph the codes can recompute it. Treat a projected pairing code as visible to everyone who can see the projection.
+
+`twqr/1`, which put a JSON envelope into every code, and `twmp-qr/1` from `turbowarp-realtime-motion-capture` do not interoperate with this format and are rejected with `unsupported-protocol`.
+
+Limits: at most 16 codes per message, the Structured Append limit, and 32768 characters per pairing code. A pairing offer of about 1,250 characters is about four version 15 codes; the version cap binds long before the character limit.
 
 ## Feature flag and rollback
 
@@ -79,18 +84,18 @@ Set it before the extension loads. While the flag is off, `getInfo` publishes no
 
 To roll back, stop setting the flag and pair with the `turbowarp-webrtc` blocks directly: `create offer code`, `accept offer code`, `answer code` and `accept answer code`. Turning the flag off selects the other route; it never disconnects an established connection.
 
-Error correction level and the largest QR version a part may use can be fixed at startup the same way:
+Error correction level and the largest QR version each direction uses can be fixed at startup the same way:
 
 ```js
-globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'Q', maxVersion: 20};
+globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'M', offerMaxVersion: 15, answerMaxVersion: 20};
 ```
 
-`maxVersion` (1 to 40, default 20) caps how fine each code gets. A WebRTC offer of about 1,100 characters used to fill a single version 31-32 code, which a camera reads off a projection only when it fills most of the frame; at the default cap it becomes about four version 20 codes. Raise it to 40 to get the old single-code behaviour back.
+The caps (1 to 40) decide how fine each code gets. A single version 29-32 code for a whole offer is read off a projection only when it fills most of the frame. Offer codes default to version 15, about four codes that the integration machine cycles automatically and a camera read under every measured condition; Answer codes default to version 20, about two codes an operator turns by hand.
 
 ## Requirements and safety
 
 - Node.js >=22.18.0 and pnpm 11.11.0.
-- Companion extensions: `turbowarp-webrtc` for the connection, `turbowarp-jsqr` for decoding and `turbowarp-camera-source` for camera frames. Load them before this one.
+- Companion extensions: `turbowarp-webrtc` for the connection, `turbowarp-jsqr` 0.4.0 or later for decoding and `turbowarp-camera-source` for camera frames. Load them before this one. Earlier `turbowarp-jsqr` versions return text only and are refused with `qr-decoder-missing`.
 - `turbowarp-webrtc` must publish runtime capability v3, which adds `acceptOffer`, `getAnswer`, `acceptAnswer`, `connectionState`, `hasPeer` and `closePeer`. Version 0.4.0 publishes it; 0.3.0 and earlier publish v2, which can produce an offer but not accept one, so a round trip cannot complete.
 - Carrying a code by QR does not make a connection reachable. Network conditions, ICE and STUN/TURN belong to `turbowarp-webrtc`.
 
@@ -119,7 +124,7 @@ Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.0` (0
 
 ### `start offer pairing [SESSION] as [LOCAL_PEER] to [REMOTE_PEER]`
 
-Creates a WebRTC offer for the integration machine and prepares its QR parts.
+Creates a WebRTC offer for the integration machine and prepares it as a Structured Append sequence of QR codes.
 
 | Property | Value |
 |---|---|
@@ -140,9 +145,9 @@ Waits for an offer on the camera machine. Leave the name empty to adopt the name
 | `SESSION` | String, default: `pairing-1` |
 | `LOCAL_PEER` | String, default: `` |
 
-### `receive pairing QR text [TEXT] for [SESSION]`
+### `receive pairing message [TEXT] for [SESSION]`
 
-Accepts one decoded QR text. Repeated readings of the same part are ignored.
+Accepts a whole pairing message as text, such as one pasted or carried some other way. Camera scanning reads the QR codes of a sequence itself.
 
 | Property | Value |
 |---|---|
@@ -153,7 +158,7 @@ Accepts one decoded QR text. Repeated readings of the same part are ignored.
 
 ### `scan pairing QR for [SESSION] from camera [CAMERA_ID]`
 
-Reads parts from the named camera until the exchange has every part it needs.
+Reads QR codes from the named camera, in any order, until the exchange has every code of the sequence. Codes of other sequences are reported and ignored.
 
 | Property | Value |
 |---|---|
@@ -164,7 +169,7 @@ Reads parts from the named camera until the exchange has every part it needs.
 
 ### `received parts of [SESSION]`
 
-Returns how many distinct parts have been accepted.
+Returns how many distinct codes of the incoming sequence have been read.
 
 | Property | Value |
 |---|---|
@@ -174,7 +179,7 @@ Returns how many distinct parts have been accepted.
 
 ### `required parts of [SESSION]`
 
-Returns how many parts the incoming message has, or zero before the first part arrives.
+Returns how many codes the incoming sequence has, or zero before the first code arrives.
 
 | Property | Value |
 |---|---|
@@ -184,7 +189,7 @@ Returns how many parts the incoming message has, or zero before the first part a
 
 ### `missing parts of [SESSION]`
 
-Returns the one-based part numbers that have not been read yet, separated by commas.
+Returns the one-based code numbers that have not been read yet, separated by commas.
 
 | Property | Value |
 |---|---|
@@ -204,7 +209,7 @@ Returns how many pairing QR codes this session has read, of any result. It rises
 
 ### `last pairing QR read of [SESSION]`
 
-Returns what the latest pairing QR code was: accepted (a new part), duplicate (a part already read), foreign (a pairing code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.
+Returns what the latest pairing QR code was: accepted (a new code of the sequence), duplicate (a code already read), foreign (a code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.
 
 | Property | Value |
 |---|---|
@@ -214,7 +219,7 @@ Returns what the latest pairing QR code was: accepted (a new part), duplicate (a
 
 ### `last pairing QR read detail of [SESSION]`
 
-Returns the part as "2 / 4" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as stale-exchange, peer-mismatch or message-mismatch.
+Returns the code as "2 / 4" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as message-mismatch (another sequence), stale-exchange or peer-mismatch.
 
 | Property | Value |
 |---|---|
@@ -224,7 +229,7 @@ Returns the part as "2 / 4" for accepted and duplicate reads, or why a foreign c
 
 ### `show pairing QR part [INDEX] of [SESSION] on this sprite`
 
-Shows the selected one-based part using a temporary sprite skin.
+Shows the selected one-based code of the sequence using a temporary sprite skin.
 
 | Property | Value |
 |---|---|
@@ -235,7 +240,7 @@ Shows the selected one-based part using a temporary sprite skin.
 
 ### `show next pairing QR part of [SESSION] on this sprite`
 
-Shows the next part and wraps from the last part back to the first.
+Shows the next code and wraps from the last back to the first, so a loop with a short wait cycles the whole sequence.
 
 | Property | Value |
 |---|---|
@@ -245,7 +250,7 @@ Shows the next part and wraps from the last part back to the first.
 
 ### `pairing QR part count of [SESSION]`
 
-Returns how many parts are prepared for display, or zero when none are.
+Returns how many codes are prepared for display, or zero when none are.
 
 | Property | Value |
 |---|---|
@@ -255,7 +260,7 @@ Returns how many parts are prepared for display, or zero when none are.
 
 ### `current pairing QR part of [SESSION]`
 
-Returns the one-based part selected for display, or zero when none is selected.
+Returns the one-based code selected for display, or zero when none is selected.
 
 | Property | Value |
 |---|---|
@@ -265,7 +270,7 @@ Returns the one-based part selected for display, or zero when none is selected.
 
 ### `pairing QR part [INDEX] of [SESSION] as SVG`
 
-Returns the part as SVG markup so a project can display it its own way.
+Returns the code as SVG markup so a project can display it its own way.
 
 | Property | Value |
 |---|---|
@@ -276,7 +281,7 @@ Returns the part as SVG markup so a project can display it its own way.
 
 ### `pairing QR part [INDEX] of [SESSION] as data URI`
 
-Returns the part as a base64 SVG data URI for costumes and HTML images.
+Returns the code as a base64 SVG data URI for costumes and HTML images.
 
 | Property | Value |
 |---|---|

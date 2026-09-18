@@ -7,29 +7,6 @@
 (function (Scratch) {
   'use strict';
 
-  //#region \0rolldown/runtime.js
-  var __create = Object.create;
-  var __defProp = Object.defineProperty;
-  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames = Object.getOwnPropertyNames;
-  var __getProtoOf = Object.getPrototypeOf;
-  var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
-  var __copyProps = (to, from, except, desc) => {
-  	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-  		key = keys[i];
-  		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-  			get: ((k) => from[k]).bind(null, key),
-  			enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-  		});
-  	}
-  	return to;
-  };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
-  	value: mod,
-  	enumerable: true
-  }) : target, mod));
-  //#endregion
   //#region src/config.ts
   var extensionConfig = {
   	id: "kubohiroyawebrtcqrcodepairing",
@@ -49,7 +26,7 @@
   			"opcode": "startOfferPairing",
   			"blockType": "COMMAND",
   			"text": "start offer pairing [SESSION] as [LOCAL_PEER] to [REMOTE_PEER]",
-  			"description": "Creates a WebRTC offer for the integration machine and prepares its QR parts.",
+  			"description": "Creates a WebRTC offer for the integration machine and prepares it as a Structured Append sequence of QR codes.",
   			"arguments": {
   				"SESSION": {
   					"type": "STRING",
@@ -84,8 +61,8 @@
   		{
   			"opcode": "ingestPairingQrText",
   			"blockType": "COMMAND",
-  			"text": "receive pairing QR text [TEXT] for [SESSION]",
-  			"description": "Accepts one decoded QR text. Repeated readings of the same part are ignored.",
+  			"text": "receive pairing message [TEXT] for [SESSION]",
+  			"description": "Accepts a whole pairing message as text, such as one pasted or carried some other way. Camera scanning reads the QR codes of a sequence itself.",
   			"arguments": {
   				"TEXT": {
   					"type": "STRING",
@@ -101,7 +78,7 @@
   			"opcode": "scanPairingQrFromCamera",
   			"blockType": "COMMAND",
   			"text": "scan pairing QR for [SESSION] from camera [CAMERA_ID]",
-  			"description": "Reads parts from the named camera until the exchange has every part it needs.",
+  			"description": "Reads QR codes from the named camera, in any order, until the exchange has every code of the sequence. Codes of other sequences are reported and ignored.",
   			"arguments": {
   				"SESSION": {
   					"type": "STRING",
@@ -117,7 +94,7 @@
   			"opcode": "pairingReceivedParts",
   			"blockType": "REPORTER",
   			"text": "received parts of [SESSION]",
-  			"description": "Returns how many distinct parts have been accepted.",
+  			"description": "Returns how many distinct codes of the incoming sequence have been read.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -127,7 +104,7 @@
   			"opcode": "pairingRequiredParts",
   			"blockType": "REPORTER",
   			"text": "required parts of [SESSION]",
-  			"description": "Returns how many parts the incoming message has, or zero before the first part arrives.",
+  			"description": "Returns how many codes the incoming sequence has, or zero before the first code arrives.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -137,7 +114,7 @@
   			"opcode": "pairingMissingParts",
   			"blockType": "REPORTER",
   			"text": "missing parts of [SESSION]",
-  			"description": "Returns the one-based part numbers that have not been read yet, separated by commas.",
+  			"description": "Returns the one-based code numbers that have not been read yet, separated by commas.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -157,7 +134,7 @@
   			"opcode": "pairingLastRead",
   			"blockType": "REPORTER",
   			"text": "last pairing QR read of [SESSION]",
-  			"description": "Returns what the latest pairing QR code was: accepted (a new part), duplicate (a part already read), foreign (a pairing code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.",
+  			"description": "Returns what the latest pairing QR code was: accepted (a new code of the sequence), duplicate (a code already read), foreign (a code this exchange cannot use, which is ignored), or an empty string before the first read. QR codes that are not pairing codes are not reported.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -167,7 +144,7 @@
   			"opcode": "pairingLastReadDetail",
   			"blockType": "REPORTER",
   			"text": "last pairing QR read detail of [SESSION]",
-  			"description": "Returns the part as \"2 / 4\" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as stale-exchange, peer-mismatch or message-mismatch.",
+  			"description": "Returns the code as \"2 / 4\" for accepted and duplicate reads, or why a foreign code was ignored as an error code such as message-mismatch (another sequence), stale-exchange or peer-mismatch.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -177,7 +154,7 @@
   			"opcode": "showPairingQrPart",
   			"blockType": "COMMAND",
   			"text": "show pairing QR part [INDEX] of [SESSION] on this sprite",
-  			"description": "Shows the selected one-based part using a temporary sprite skin.",
+  			"description": "Shows the selected one-based code of the sequence using a temporary sprite skin.",
   			"arguments": {
   				"INDEX": {
   					"type": "NUMBER",
@@ -193,7 +170,7 @@
   			"opcode": "showNextPairingQrPart",
   			"blockType": "COMMAND",
   			"text": "show next pairing QR part of [SESSION] on this sprite",
-  			"description": "Shows the next part and wraps from the last part back to the first.",
+  			"description": "Shows the next code and wraps from the last back to the first, so a loop with a short wait cycles the whole sequence.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -203,7 +180,7 @@
   			"opcode": "pairingQrPartCount",
   			"blockType": "REPORTER",
   			"text": "pairing QR part count of [SESSION]",
-  			"description": "Returns how many parts are prepared for display, or zero when none are.",
+  			"description": "Returns how many codes are prepared for display, or zero when none are.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -213,7 +190,7 @@
   			"opcode": "pairingQrCurrentPart",
   			"blockType": "REPORTER",
   			"text": "current pairing QR part of [SESSION]",
-  			"description": "Returns the one-based part selected for display, or zero when none is selected.",
+  			"description": "Returns the one-based code selected for display, or zero when none is selected.",
   			"arguments": { "SESSION": {
   				"type": "STRING",
   				"defaultValue": "pairing-1"
@@ -223,7 +200,7 @@
   			"opcode": "pairingQrPartSvg",
   			"blockType": "REPORTER",
   			"text": "pairing QR part [INDEX] of [SESSION] as SVG",
-  			"description": "Returns the part as SVG markup so a project can display it its own way.",
+  			"description": "Returns the code as SVG markup so a project can display it its own way.",
   			"arguments": {
   				"INDEX": {
   					"type": "NUMBER",
@@ -239,7 +216,7 @@
   			"opcode": "pairingQrPartDataUri",
   			"blockType": "REPORTER",
   			"text": "pairing QR part [INDEX] of [SESSION] as data URI",
-  			"description": "Returns the part as a base64 SVG data URI for costumes and HTML images.",
+  			"description": "Returns the code as a base64 SVG data URI for costumes and HTML images.",
   			"arguments": {
   				"INDEX": {
   					"type": "NUMBER",
@@ -421,54 +398,31 @@
   //#endregion
   //#region src/qr/limits.ts
   /**
-  * Transport limits with their units and boundary conditions.
+  * Largest carried pairing code. Boundary: 1 <= length <= MAX_MESSAGE_LENGTH.
   *
-  * Every length here counts characters. Payloads are restricted to printable
-  * ASCII, so one character is one UTF-16 code unit and one byte; character
-  * counts and byte counts agree.
-  */
-  /**
-  * Largest carried message. Boundary: 1 <= messageLength <= MAX_MESSAGE_LENGTH;
-  * zero is rejected.
-  *
-  * The effective ceiling is lower than this value, because MAX_PART_COUNT parts
-  * of (QR capacity at the version cap - envelope header) characters run out
-  * first. At the version 40 ceiling:
-  *
-  *   L: 2953 - 362 = 2591 chars/part -> 165,824 for 64 parts (this value binds)
-  *   M: 2331 - 362 = 1969 chars/part -> 126,016 for 64 parts (part count binds)
-  *   Q: 1663 - 362 = 1301 chars/part ->  83,264 for 64 parts (part count binds)
-  *   H: 1273 - 362 =  911 chars/part ->  58,304 for 64 parts (part count binds)
-  *
-  * At the default cap, version 20, level M carries 666 - 362 = 304 chars/part,
-  * 19,456 for 64 parts: still more than ten times a pairing code.
-  *
-  * Exceeding either ceiling fails while splitting, with `message-too-large` or
+  * The version cap binds long before this: sixteen codes of version 15 at level
+  * M carry about 6,500 bytes, and of version 20 about 10,600, against a pairing
+  * code of about 1,250 characters. A longer code fails while splitting with
   * `too-many-parts`.
   */
-  var MAX_MESSAGE_LENGTH = 131072;
-  /**
-  * Payload characters per part. Always larger than the capacity a QR symbol can
-  * actually carry, so this is a guard against hostile input rather than the
-  * value that drives splitting.
-  */
-  var MAX_CHUNK_LENGTH = 4096;
-  /** Largest accepted QR text. Covers the envelope header plus its payload. */
-  var MAX_PART_TEXT_LENGTH = 8192;
+  var MAX_MESSAGE_LENGTH = 32768;
   //#endregion
   //#region src/config/qr-config.ts
   var configured = globalThis.__TWQP_QR_CONFIG__;
   /**
   * Startup-fixed QR settings. M is the software-validated default; higher levels
-  * survive worse optical conditions but carry fewer characters per symbol, which
-  * raises the part count the operator has to carry. The version cap trades the
-  * other way: a lower cap makes each code coarser and easier for a camera to
-  * read, in more parts. A value that is not a level, or not a version from 1 to
-  * 40, falls back to the default rather than failing the extension at load.
+  * survive worse optical conditions but carry fewer characters per code, which
+  * raises the number of codes. The version caps trade the other way: a lower
+  * cap makes each code coarser and easier for a camera to read, in more codes.
+  * The offer and the answer have their own caps, because the offer is cycled
+  * automatically and the answer is turned by hand. A value that is not a level,
+  * or not a version from 1 to 40, falls back to the default rather than failing
+  * the extension at load.
   */
   var qrConfig = Object.freeze({
   	errorCorrectionLevel: isLevel(configured?.errorCorrectionLevel) ? configured.errorCorrectionLevel : "M",
-  	maxVersion: isVersion(configured?.maxVersion) ? configured.maxVersion : 20
+  	offerMaxVersion: isVersion(configured?.offerMaxVersion) ? configured.offerMaxVersion : 15,
+  	answerMaxVersion: isVersion(configured?.answerMaxVersion) ? configured.answerMaxVersion : 20
   });
   function isLevel(value) {
   	return value === "L" || value === "M" || value === "Q" || value === "H";
@@ -486,2482 +440,2417 @@
   	}
   };
   //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/can-promise.js
-  var require_can_promise = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	module.exports = function() {
-  		return typeof Promise === "function" && Promise.prototype && Promise.prototype.then;
-  	};
-  }));
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/checkPrivateRedeclaration.js
+  function _checkPrivateRedeclaration(e, t) {
+  	if (t.has(e)) throw new TypeError("Cannot initialize the same private elements twice on an object");
+  }
   //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/utils.js
-  var require_utils$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var toSJISFunction;
-  	var CODEWORDS_COUNT = [
-  		0,
-  		26,
-  		44,
-  		70,
-  		100,
-  		134,
-  		172,
-  		196,
-  		242,
-  		292,
-  		346,
-  		404,
-  		466,
-  		532,
-  		581,
-  		655,
-  		733,
-  		815,
-  		901,
-  		991,
-  		1085,
-  		1156,
-  		1258,
-  		1364,
-  		1474,
-  		1588,
-  		1706,
-  		1828,
-  		1921,
-  		2051,
-  		2185,
-  		2323,
-  		2465,
-  		2611,
-  		2761,
-  		2876,
-  		3034,
-  		3196,
-  		3362,
-  		3532,
-  		3706
-  	];
-  	/**
-  	* Returns the QR Code size for the specified version
-  	*
-  	* @param  {Number} version QR Code version
-  	* @return {Number}         size of QR code
-  	*/
-  	exports.getSymbolSize = function getSymbolSize(version) {
-  		if (!version) throw new Error("\"version\" cannot be null or undefined");
-  		if (version < 1 || version > 40) throw new Error("\"version\" should be in range from 1 to 40");
-  		return version * 4 + 17;
-  	};
-  	/**
-  	* Returns the total number of codewords used to store data and EC information.
-  	*
-  	* @param  {Number} version QR Code version
-  	* @return {Number}         Data length in bits
-  	*/
-  	exports.getSymbolTotalCodewords = function getSymbolTotalCodewords(version) {
-  		return CODEWORDS_COUNT[version];
-  	};
-  	/**
-  	* Encode data with Bose-Chaudhuri-Hocquenghem
-  	*
-  	* @param  {Number} data Value to encode
-  	* @return {Number}      Encoded value
-  	*/
-  	exports.getBCHDigit = function(data) {
-  		let digit = 0;
-  		while (data !== 0) {
-  			digit++;
-  			data >>>= 1;
-  		}
-  		return digit;
-  	};
-  	exports.setToSJISFunction = function setToSJISFunction(f) {
-  		if (typeof f !== "function") throw new Error("\"toSJISFunc\" is not a valid function.");
-  		toSJISFunction = f;
-  	};
-  	exports.isKanjiModeEnabled = function() {
-  		return typeof toSJISFunction !== "undefined";
-  	};
-  	exports.toSJIS = function toSJIS(kanji) {
-  		return toSJISFunction(kanji);
-  	};
-  }));
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/classPrivateFieldInitSpec.js
+  function _classPrivateFieldInitSpec(e, t, a) {
+  	_checkPrivateRedeclaration(e, t), t.set(e, a);
+  }
   //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/error-correction-level.js
-  var require_error_correction_level = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	exports.L = { bit: 1 };
-  	exports.M = { bit: 0 };
-  	exports.Q = { bit: 3 };
-  	exports.H = { bit: 2 };
-  	function fromString(string) {
-  		if (typeof string !== "string") throw new Error("Param is not a string");
-  		switch (string.toLowerCase()) {
-  			case "l":
-  			case "low": return exports.L;
-  			case "m":
-  			case "medium": return exports.M;
-  			case "q":
-  			case "quartile": return exports.Q;
-  			case "h":
-  			case "high": return exports.H;
-  			default: throw new Error("Unknown EC Level: " + string);
-  		}
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/assertClassBrand.js
+  function _assertClassBrand(e, t, n) {
+  	if ("function" == typeof e ? e === t : e.has(t)) return arguments.length < 3 ? t : n;
+  	throw new TypeError("Private element is not present on this object");
+  }
+  //#endregion
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/classPrivateFieldSet2.js
+  function _classPrivateFieldSet2(s, a, r) {
+  	return s.set(_assertClassBrand(s, a), r), r;
+  }
+  //#endregion
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/classPrivateFieldGet2.js
+  function _classPrivateFieldGet2(s, a) {
+  	return s.get(_assertClassBrand(s, a));
+  }
+  //#endregion
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/typeof.js
+  function _typeof(o) {
+  	"@babel/helpers - typeof";
+  	return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o) {
+  		return typeof o;
+  	} : function(o) {
+  		return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
+  	}, _typeof(o);
+  }
+  //#endregion
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/toPrimitive.js
+  function toPrimitive(t, r) {
+  	if ("object" != _typeof(t) || !t) return t;
+  	var e = t[Symbol.toPrimitive];
+  	if (void 0 !== e) {
+  		var i = e.call(t, r || "default");
+  		if ("object" != _typeof(i)) return i;
+  		throw new TypeError("@@toPrimitive must return a primitive value.");
   	}
-  	exports.isValid = function isValid(level) {
-  		return level && typeof level.bit !== "undefined" && level.bit >= 0 && level.bit < 4;
-  	};
-  	exports.from = function from(value, defaultValue) {
-  		if (exports.isValid(value)) return value;
-  		try {
-  			return fromString(value);
-  		} catch (e) {
-  			return defaultValue;
-  		}
-  	};
-  }));
+  	return ("string" === r ? String : Number)(t);
+  }
   //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/bit-buffer.js
-  var require_bit_buffer = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	function BitBuffer() {
-  		this.buffer = [];
-  		this.length = 0;
-  	}
-  	BitBuffer.prototype = {
-  		get: function(index) {
-  			const bufIndex = Math.floor(index / 8);
-  			return (this.buffer[bufIndex] >>> 7 - index % 8 & 1) === 1;
-  		},
-  		put: function(num, length) {
-  			for (let i = 0; i < length; i++) this.putBit((num >>> length - i - 1 & 1) === 1);
-  		},
-  		getLengthInBits: function() {
-  			return this.length;
-  		},
-  		putBit: function(bit) {
-  			const bufIndex = Math.floor(this.length / 8);
-  			if (this.buffer.length <= bufIndex) this.buffer.push(0);
-  			if (bit) this.buffer[bufIndex] |= 128 >>> this.length % 8;
-  			this.length++;
-  		}
-  	};
-  	module.exports = BitBuffer;
-  }));
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/toPropertyKey.js
+  function toPropertyKey(t) {
+  	var i = toPrimitive(t, "string");
+  	return "symbol" == _typeof(i) ? i : i + "";
+  }
   //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/bit-matrix.js
-  var require_bit_matrix = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/defineProperty.js
+  function _defineProperty(e, r, t) {
+  	return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+  		value: t,
+  		enumerable: !0,
+  		configurable: !0,
+  		writable: !0
+  	}) : e[r] = t, e;
+  }
+  //#endregion
+  //#region \0@oxc-project+runtime@0.148.0/helpers/esm/classPrivateMethodInitSpec.js
+  function _classPrivateMethodInitSpec(e, a) {
+  	_checkPrivateRedeclaration(e, a), a.add(e);
+  }
+  //#endregion
+  //#region node_modules/.pnpm/@kubohiroya+qrcode-structured-append@0.1.0/node_modules/@kubohiroya/qrcode-structured-append/dist/index.js
+  var _Charset;
+  var _label;
+  var _values;
+  var _Mode;
+  var _bits;
+  var _characterCountBitsSet;
+  var _ECLevel;
+  var _bits2;
+  var _level;
+  var _name;
+  var _count;
+  var _numDataCodewords;
+  var _ecBlocks;
+  var _numTotalCodewords;
+  var _numTotalECCodewords;
+  var _numTotalDataCodewords;
+  var _numECCodewordsPerBlock;
+  var _size;
+  var _version;
+  var _ecBlocks2;
+  var _alignmentPatterns;
+  var _field;
+  var _coefficients;
+  var _size2;
+  var _one;
+  var _zero;
+  var _generator;
+  var _expTable;
+  var _logTable;
+  var _length;
+  var _bits3;
+  var _BitArray_brand;
+  var _size3;
+  var _bytes;
+  var _ecCodewords;
+  var _dataCodewords;
+  var _field2;
+  var _generators;
+  var _bof;
+  var _eof;
+  var _bits4;
+  var _depth;
+  var _size4;
+  var _unused;
+  var _codes;
+  var _bits5;
+  var _dict;
+  var _buffer;
+  var _bytes2;
+  var _bytes3;
+  var _bits6;
+  var _buffer2;
+  var _length2;
+  var _stream;
+  var _width;
+  var _height;
+  var _foreground;
+  var _background;
+  var _pixels;
+  var _Class_brand;
+  var _mask;
+  var _level2;
+  var _version2;
+  var _matrix;
+  var _hints;
+  var _level3;
+  var _encode2;
+  var _version3;
+  var _content;
+  var _charset;
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Charset
+  */
+  var VALUES_TO_CHARSET = /* @__PURE__ */ new Map();
+  var Charset = (_label = /* @__PURE__ */ new WeakMap(), _values = /* @__PURE__ */ new WeakMap(), _Charset = class Charset {
   	/**
-  	* Helper class to handle QR Code symbol modules
-  	*
-  	* @param {Number} size Symbol size
+  	* @constructor
+  	* @param label The label of charset.
+  	* @param values The values of charset.
   	*/
-  	function BitMatrix(size) {
-  		if (!size || size < 1) throw new Error("BitMatrix size must be defined and greater than 0");
-  		this.size = size;
-  		this.data = new Uint8Array(size * size);
-  		this.reservedBit = new Uint8Array(size * size);
+  	constructor(label, ...values) {
+  		_classPrivateFieldInitSpec(this, _label, void 0);
+  		_classPrivateFieldInitSpec(this, _values, void 0);
+  		_classPrivateFieldSet2(_label, this, label);
+  		_classPrivateFieldSet2(_values, this, Object.freeze(values));
+  		for (const value of values) if (value >= 0 && value <= 999999 && Number.isInteger(value)) VALUES_TO_CHARSET.set(value, this);
+  		else throw new Error("illegal extended channel interpretation value");
   	}
   	/**
-  	* Set bit value at specified location
-  	* If reserved flag is set, this bit will be ignored during masking process
-  	*
-  	* @param {Number}  row
-  	* @param {Number}  col
-  	* @param {Boolean} value
-  	* @param {Boolean} reserved
+  	* @property label
+  	* @description Get the label of charset.
   	*/
-  	BitMatrix.prototype.set = function(row, col, value, reserved) {
-  		const index = row * this.size + col;
-  		this.data[index] = value;
-  		if (reserved) this.reservedBit[index] = true;
-  	};
+  	get label() {
+  		return _classPrivateFieldGet2(_label, this);
+  	}
   	/**
-  	* Returns bit value at specified location
-  	*
-  	* @param  {Number}  row
-  	* @param  {Number}  col
-  	* @return {Boolean}
+  	* @property values
+  	* @description Get the values of charset.
   	*/
-  	BitMatrix.prototype.get = function(row, col) {
-  		return this.data[row * this.size + col];
-  	};
-  	/**
-  	* Applies xor operator at specified location
-  	* (used during masking process)
-  	*
-  	* @param {Number}  row
-  	* @param {Number}  col
-  	* @param {Boolean} value
-  	*/
-  	BitMatrix.prototype.xor = function(row, col, value) {
-  		this.data[row * this.size + col] ^= value;
-  	};
-  	/**
-  	* Check if bit at specified location is reserved
-  	*
-  	* @param {Number}   row
-  	* @param {Number}   col
-  	* @return {Boolean}
-  	*/
-  	BitMatrix.prototype.isReserved = function(row, col) {
-  		return this.reservedBit[row * this.size + col];
-  	};
-  	module.exports = BitMatrix;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/alignment-pattern.js
-  var require_alignment_pattern = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	/**
-  	* Alignment pattern are fixed reference pattern in defined positions
-  	* in a matrix symbology, which enables the decode software to re-synchronise
-  	* the coordinate mapping of the image modules in the event of moderate amounts
-  	* of distortion of the image.
-  	*
-  	* Alignment patterns are present only in QR Code symbols of version 2 or larger
-  	* and their number depends on the symbol version.
-  	*/
-  	var getSymbolSize = require_utils$1().getSymbolSize;
-  	/**
-  	* Calculate the row/column coordinates of the center module of each alignment pattern
-  	* for the specified QR Code version.
-  	*
-  	* The alignment patterns are positioned symmetrically on either side of the diagonal
-  	* running from the top left corner of the symbol to the bottom right corner.
-  	*
-  	* Since positions are simmetrical only half of the coordinates are returned.
-  	* Each item of the array will represent in turn the x and y coordinate.
-  	* @see {@link getPositions}
-  	*
-  	* @param  {Number} version QR Code version
-  	* @return {Array}          Array of coordinate
-  	*/
-  	exports.getRowColCoords = function getRowColCoords(version) {
-  		if (version === 1) return [];
-  		const posCount = Math.floor(version / 7) + 2;
-  		const size = getSymbolSize(version);
-  		const intervals = size === 145 ? 26 : Math.ceil((size - 13) / (2 * posCount - 2)) * 2;
-  		const positions = [size - 7];
-  		for (let i = 1; i < posCount - 1; i++) positions[i] = positions[i - 1] - intervals;
-  		positions.push(6);
-  		return positions.reverse();
-  	};
-  	/**
-  	* Returns an array containing the positions of each alignment pattern.
-  	* Each array's element represent the center point of the pattern as (x, y) coordinates
-  	*
-  	* Coordinates are calculated expanding the row/column coordinates returned by {@link getRowColCoords}
-  	* and filtering out the items that overlaps with finder pattern
-  	*
-  	* @example
-  	* For a Version 7 symbol {@link getRowColCoords} returns values 6, 22 and 38.
-  	* The alignment patterns, therefore, are to be centered on (row, column)
-  	* positions (6,22), (22,6), (22,22), (22,38), (38,22), (38,38).
-  	* Note that the coordinates (6,6), (6,38), (38,6) are occupied by finder patterns
-  	* and are not therefore used for alignment patterns.
-  	*
-  	* let pos = getPositions(7)
-  	* // [[6,22], [22,6], [22,22], [22,38], [38,22], [38,38]]
-  	*
-  	* @param  {Number} version QR Code version
-  	* @return {Array}          Array of coordinates
-  	*/
-  	exports.getPositions = function getPositions(version) {
-  		const coords = [];
-  		const pos = exports.getRowColCoords(version);
-  		const posLength = pos.length;
-  		for (let i = 0; i < posLength; i++) for (let j = 0; j < posLength; j++) {
-  			if (i === 0 && j === 0 || i === 0 && j === posLength - 1 || i === posLength - 1 && j === 0) continue;
-  			coords.push([pos[i], pos[j]]);
-  		}
-  		return coords;
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/finder-pattern.js
-  var require_finder_pattern = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var getSymbolSize = require_utils$1().getSymbolSize;
-  	var FINDER_PATTERN_SIZE = 7;
-  	/**
-  	* Returns an array containing the positions of each finder pattern.
-  	* Each array's element represent the top-left point of the pattern as (x, y) coordinates
-  	*
-  	* @param  {Number} version QR Code version
-  	* @return {Array}          Array of coordinates
-  	*/
-  	exports.getPositions = function getPositions(version) {
-  		const size = getSymbolSize(version);
-  		return [
-  			[0, 0],
-  			[size - FINDER_PATTERN_SIZE, 0],
-  			[0, size - FINDER_PATTERN_SIZE]
-  		];
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/mask-pattern.js
-  var require_mask_pattern = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	/**
-  	* Data mask pattern reference
-  	* @type {Object}
-  	*/
-  	exports.Patterns = {
-  		PATTERN000: 0,
-  		PATTERN001: 1,
-  		PATTERN010: 2,
-  		PATTERN011: 3,
-  		PATTERN100: 4,
-  		PATTERN101: 5,
-  		PATTERN110: 6,
-  		PATTERN111: 7
-  	};
-  	/**
-  	* Weighted penalty scores for the undesirable features
-  	* @type {Object}
-  	*/
-  	var PenaltyScores = {
-  		N1: 3,
-  		N2: 3,
-  		N3: 40,
-  		N4: 10
-  	};
-  	/**
-  	* Check if mask pattern value is valid
-  	*
-  	* @param  {Number}  mask    Mask pattern
-  	* @return {Boolean}         true if valid, false otherwise
-  	*/
-  	exports.isValid = function isValid(mask) {
-  		return mask != null && mask !== "" && !isNaN(mask) && mask >= 0 && mask <= 7;
-  	};
-  	/**
-  	* Returns mask pattern from a value.
-  	* If value is not valid, returns undefined
-  	*
-  	* @param  {Number|String} value        Mask pattern value
-  	* @return {Number}                     Valid mask pattern or undefined
-  	*/
-  	exports.from = function from(value) {
-  		return exports.isValid(value) ? parseInt(value, 10) : void 0;
-  	};
-  	/**
-  	* Find adjacent modules in row/column with the same color
-  	* and assign a penalty value.
-  	*
-  	* Points: N1 + i
-  	* i is the amount by which the number of adjacent modules of the same color exceeds 5
-  	*/
-  	exports.getPenaltyN1 = function getPenaltyN1(data) {
-  		const size = data.size;
-  		let points = 0;
-  		let sameCountCol = 0;
-  		let sameCountRow = 0;
-  		let lastCol = null;
-  		let lastRow = null;
-  		for (let row = 0; row < size; row++) {
-  			sameCountCol = sameCountRow = 0;
-  			lastCol = lastRow = null;
-  			for (let col = 0; col < size; col++) {
-  				let module$1 = data.get(row, col);
-  				if (module$1 === lastCol) sameCountCol++;
-  				else {
-  					if (sameCountCol >= 5) points += PenaltyScores.N1 + (sameCountCol - 5);
-  					lastCol = module$1;
-  					sameCountCol = 1;
-  				}
-  				module$1 = data.get(col, row);
-  				if (module$1 === lastRow) sameCountRow++;
-  				else {
-  					if (sameCountRow >= 5) points += PenaltyScores.N1 + (sameCountRow - 5);
-  					lastRow = module$1;
-  					sameCountRow = 1;
-  				}
-  			}
-  			if (sameCountCol >= 5) points += PenaltyScores.N1 + (sameCountCol - 5);
-  			if (sameCountRow >= 5) points += PenaltyScores.N1 + (sameCountRow - 5);
-  		}
-  		return points;
-  	};
-  	/**
-  	* Find 2x2 blocks with the same color and assign a penalty value
-  	*
-  	* Points: N2 * (m - 1) * (n - 1)
-  	*/
-  	exports.getPenaltyN2 = function getPenaltyN2(data) {
-  		const size = data.size;
-  		let points = 0;
-  		for (let row = 0; row < size - 1; row++) for (let col = 0; col < size - 1; col++) {
-  			const last = data.get(row, col) + data.get(row, col + 1) + data.get(row + 1, col) + data.get(row + 1, col + 1);
-  			if (last === 4 || last === 0) points++;
-  		}
-  		return points * PenaltyScores.N2;
-  	};
-  	/**
-  	* Find 1:1:3:1:1 ratio (dark:light:dark:light:dark) pattern in row/column,
-  	* preceded or followed by light area 4 modules wide
-  	*
-  	* Points: N3 * number of pattern found
-  	*/
-  	exports.getPenaltyN3 = function getPenaltyN3(data) {
-  		const size = data.size;
-  		let points = 0;
-  		let bitsCol = 0;
-  		let bitsRow = 0;
-  		for (let row = 0; row < size; row++) {
-  			bitsCol = bitsRow = 0;
-  			for (let col = 0; col < size; col++) {
-  				bitsCol = bitsCol << 1 & 2047 | data.get(row, col);
-  				if (col >= 10 && (bitsCol === 1488 || bitsCol === 93)) points++;
-  				bitsRow = bitsRow << 1 & 2047 | data.get(col, row);
-  				if (col >= 10 && (bitsRow === 1488 || bitsRow === 93)) points++;
+  	get values() {
+  		return _classPrivateFieldGet2(_values, this);
+  	}
+  }, _defineProperty(_Charset, "CP437", new _Charset("cp437", 2, 0)), _defineProperty(_Charset, "ISO_8859_1", new _Charset("iso-8859-1", 3, 1)), _defineProperty(_Charset, "ISO_8859_2", new _Charset("iso-8859-2", 4)), _defineProperty(_Charset, "ISO_8859_3", new _Charset("iso-8859-3", 5)), _defineProperty(_Charset, "ISO_8859_4", new _Charset("iso-8859-4", 6)), _defineProperty(_Charset, "ISO_8859_5", new _Charset("iso-8859-5", 7)), _defineProperty(_Charset, "ISO_8859_6", new _Charset("iso-8859-6", 8)), _defineProperty(_Charset, "ISO_8859_7", new _Charset("iso-8859-7", 9)), _defineProperty(_Charset, "ISO_8859_8", new _Charset("iso-8859-8", 10)), _defineProperty(_Charset, "ISO_8859_9", new _Charset("iso-8859-9", 11)), _defineProperty(_Charset, "ISO_8859_10", new _Charset("iso-8859-10", 12)), _defineProperty(_Charset, "ISO_8859_11", new _Charset("iso-8859-11", 13)), _defineProperty(_Charset, "ISO_8859_13", new _Charset("iso-8859-13", 15)), _defineProperty(_Charset, "ISO_8859_14", new _Charset("iso-8859-14", 16)), _defineProperty(_Charset, "ISO_8859_15", new _Charset("iso-8859-15", 17)), _defineProperty(_Charset, "ISO_8859_16", new _Charset("iso-8859-16", 18)), _defineProperty(_Charset, "SHIFT_JIS", new _Charset("shift-jis", 20)), _defineProperty(_Charset, "CP1250", new _Charset("cp1250", 21)), _defineProperty(_Charset, "CP1251", new _Charset("cp1251", 22)), _defineProperty(_Charset, "CP1252", new _Charset("cp1252", 23)), _defineProperty(_Charset, "CP1256", new _Charset("cp1256", 24)), _defineProperty(_Charset, "UTF_16BE", new _Charset("utf-16be", 25)), _defineProperty(_Charset, "UTF_8", new _Charset("utf-8", 26)), _defineProperty(_Charset, "ASCII", new _Charset("ascii", 27)), _defineProperty(_Charset, "BIG5", new _Charset("big5", 28)), _defineProperty(_Charset, "GB2312", new _Charset("gb2312", 29)), _defineProperty(_Charset, "EUC_KR", new _Charset("euc-kr", 30)), _defineProperty(_Charset, "GBK", new _Charset("gbk", 31)), _defineProperty(_Charset, "GB18030", new _Charset("gb18030", 32)), _defineProperty(_Charset, "UTF_16LE", new _Charset("utf-16le", 33)), _defineProperty(_Charset, "UTF_32BE", new _Charset("utf-32be", 34)), _defineProperty(_Charset, "UTF_32LE", new _Charset("utf-32le", 35)), _defineProperty(_Charset, "ISO_646_INV", new _Charset("iso-646-inv", 170)), _defineProperty(_Charset, "BINARY", new _Charset("binary", 899)), _Charset);
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Mode
+  */
+  var VALUES_TO_MODE = /* @__PURE__ */ new Map();
+  var Mode = (_bits = /* @__PURE__ */ new WeakMap(), _characterCountBitsSet = /* @__PURE__ */ new WeakMap(), _Mode = class Mode {
+  	constructor(characterCountBitsSet, bits) {
+  		_classPrivateFieldInitSpec(this, _bits, void 0);
+  		_classPrivateFieldInitSpec(this, _characterCountBitsSet, void 0);
+  		_classPrivateFieldSet2(_bits, this, bits);
+  		_classPrivateFieldSet2(_characterCountBitsSet, this, new Int32Array(characterCountBitsSet));
+  		VALUES_TO_MODE.set(bits, this);
+  	}
+  	get bits() {
+  		return _classPrivateFieldGet2(_bits, this);
+  	}
+  	getCharacterCountBits({ version }) {
+  		let offset;
+  		if (version <= 9) offset = 0;
+  		else if (version <= 26) offset = 1;
+  		else offset = 2;
+  		return _classPrivateFieldGet2(_characterCountBitsSet, this)[offset];
+  	}
+  }, _defineProperty(_Mode, "TERMINATOR", new _Mode([
+  	0,
+  	0,
+  	0
+  ], 0)), _defineProperty(_Mode, "NUMERIC", new _Mode([
+  	10,
+  	12,
+  	14
+  ], 1)), _defineProperty(_Mode, "ALPHANUMERIC", new _Mode([
+  	9,
+  	11,
+  	13
+  ], 2)), _defineProperty(_Mode, "STRUCTURED_APPEND", new _Mode([
+  	0,
+  	0,
+  	0
+  ], 3)), _defineProperty(_Mode, "BYTE", new _Mode([
+  	8,
+  	16,
+  	16
+  ], 4)), _defineProperty(_Mode, "ECI", new _Mode([
+  	0,
+  	0,
+  	0
+  ], 7)), _defineProperty(_Mode, "KANJI", new _Mode([
+  	8,
+  	10,
+  	12
+  ], 8)), _defineProperty(_Mode, "FNC1_FIRST_POSITION", new _Mode([
+  	0,
+  	0,
+  	0
+  ], 5)), _defineProperty(_Mode, "FNC1_SECOND_POSITION", new _Mode([
+  	0,
+  	0,
+  	0
+  ], 9)), _defineProperty(_Mode, "HANZI", new _Mode([
+  	8,
+  	10,
+  	12
+  ], 13)), _Mode);
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module utils
+  */
+  function toBit(value) {
+  	return value & 1;
+  }
+  function toInt32(value) {
+  	return value | 0;
+  }
+  function getBitMask(value) {
+  	return 1 << getBitOffset(value);
+  }
+  function getBitOffset(value) {
+  	return value & 31;
+  }
+  function findMSBSet(value) {
+  	return 32 - Math.clz32(value);
+  }
+  function calculateBCHCode(value, poly) {
+  	const msbSetInPoly = findMSBSet(poly);
+  	value <<= msbSetInPoly - 1;
+  	while (findMSBSet(value) >= msbSetInPoly) value ^= poly << findMSBSet(value) - msbSetInPoly;
+  	return value;
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module mask
+  */
+  var N1 = 3;
+  var N2 = 3;
+  var N3 = 40;
+  var N4 = 10;
+  function isDark(matrix, x, y) {
+  	return matrix.get(x, y) === 1;
+  }
+  function applyMaskPenaltyRule1Internal(matrix, isVertical) {
+  	let penalty = 0;
+  	const { size } = matrix;
+  	for (let y = 0; y < size; y++) {
+  		let prevBit = -1;
+  		let numSameBitCells = 0;
+  		for (let x = 0; x < size; x++) {
+  			const bit = isVertical ? matrix.get(y, x) : matrix.get(x, y);
+  			if (bit === prevBit) numSameBitCells++;
+  			else {
+  				if (numSameBitCells >= 5) penalty += N1 + (numSameBitCells - 5);
+  				prevBit = bit;
+  				numSameBitCells = 1;
   			}
   		}
-  		return points * PenaltyScores.N3;
-  	};
-  	/**
-  	* Calculate proportion of dark modules in entire symbol
-  	*
-  	* Points: N4 * k
-  	*
-  	* k is the rating of the deviation of the proportion of dark modules
-  	* in the symbol from 50% in steps of 5%
-  	*/
-  	exports.getPenaltyN4 = function getPenaltyN4(data) {
-  		let darkCount = 0;
-  		const modulesCount = data.data.length;
-  		for (let i = 0; i < modulesCount; i++) darkCount += data.data[i];
-  		return Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10) * PenaltyScores.N4;
-  	};
-  	/**
-  	* Return mask value at given position
-  	*
-  	* @param  {Number} maskPattern Pattern reference value
-  	* @param  {Number} i           Row
-  	* @param  {Number} j           Column
-  	* @return {Boolean}            Mask value
-  	*/
-  	function getMaskAt(maskPattern, i, j) {
-  		switch (maskPattern) {
-  			case exports.Patterns.PATTERN000: return (i + j) % 2 === 0;
-  			case exports.Patterns.PATTERN001: return i % 2 === 0;
-  			case exports.Patterns.PATTERN010: return j % 3 === 0;
-  			case exports.Patterns.PATTERN011: return (i + j) % 3 === 0;
-  			case exports.Patterns.PATTERN100: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
-  			case exports.Patterns.PATTERN101: return i * j % 2 + i * j % 3 === 0;
-  			case exports.Patterns.PATTERN110: return (i * j % 2 + i * j % 3) % 2 === 0;
-  			case exports.Patterns.PATTERN111: return (i * j % 3 + (i + j) % 2) % 2 === 0;
-  			default: throw new Error("bad maskPattern:" + maskPattern);
-  		}
+  		if (numSameBitCells >= 5) penalty += N1 + (numSameBitCells - 5);
   	}
-  	/**
-  	* Apply a mask pattern to a BitMatrix
-  	*
-  	* @param  {Number}    pattern Pattern reference number
-  	* @param  {BitMatrix} data    BitMatrix data
-  	*/
-  	exports.applyMask = function applyMask(pattern, data) {
-  		const size = data.size;
-  		for (let col = 0; col < size; col++) for (let row = 0; row < size; row++) {
-  			if (data.isReserved(row, col)) continue;
-  			data.xor(row, col, getMaskAt(pattern, row, col));
+  	return penalty;
+  }
+  function applyMaskPenaltyRule1(matrix) {
+  	return applyMaskPenaltyRule1Internal(matrix) + applyMaskPenaltyRule1Internal(matrix, true);
+  }
+  function applyMaskPenaltyRule2(matrix) {
+  	let penalty = 0;
+  	const size = matrix.size - 1;
+  	for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+  		const bit = matrix.get(x, y);
+  		if (bit === matrix.get(x + 1, y) && bit === matrix.get(x, y + 1) && bit === matrix.get(x + 1, y + 1)) penalty += N2;
+  	}
+  	return penalty;
+  }
+  function isFourWhite(matrix, offset, from, to, isVertical) {
+  	if (from < 0 || to > matrix.size) return false;
+  	for (let i = from; i < to; i++) if (isVertical ? isDark(matrix, offset, i) : isDark(matrix, i, offset)) return false;
+  	return true;
+  }
+  function applyMaskPenaltyRule3(matrix) {
+  	let numPenalties = 0;
+  	const { size } = matrix;
+  	for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+  		if (x + 6 < size && isDark(matrix, x, y) && !isDark(matrix, x + 1, y) && isDark(matrix, x + 2, y) && isDark(matrix, x + 3, y) && isDark(matrix, x + 4, y) && !isDark(matrix, x + 5, y) && isDark(matrix, x + 6, y) && (isFourWhite(matrix, y, x - 4, x) || isFourWhite(matrix, y, x + 7, x + 11))) numPenalties++;
+  		if (y + 6 < size && isDark(matrix, x, y) && !isDark(matrix, x, y + 1) && isDark(matrix, x, y + 2) && isDark(matrix, x, y + 3) && isDark(matrix, x, y + 4) && !isDark(matrix, x, y + 5) && isDark(matrix, x, y + 6) && (isFourWhite(matrix, x, y - 4, y, true) || isFourWhite(matrix, x, y + 7, y + 11, true))) numPenalties++;
+  	}
+  	return numPenalties * N3;
+  }
+  function applyMaskPenaltyRule4(matrix) {
+  	let numDarkCells = 0;
+  	const { size } = matrix;
+  	for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (isDark(matrix, x, y)) numDarkCells++;
+  	const numTotalCells = size * size;
+  	return toInt32(Math.abs(numDarkCells * 2 - numTotalCells) * 10 / numTotalCells) * N4;
+  }
+  function calculateMaskPenalty(matrix) {
+  	return applyMaskPenaltyRule1(matrix) + applyMaskPenaltyRule2(matrix) + applyMaskPenaltyRule3(matrix) + applyMaskPenaltyRule4(matrix);
+  }
+  function isApplyMask(mask, x, y) {
+  	let temporary;
+  	let intermediate;
+  	switch (mask) {
+  		case 0:
+  			intermediate = y + x & 1;
+  			break;
+  		case 1:
+  			intermediate = y & 1;
+  			break;
+  		case 2:
+  			intermediate = x % 3;
+  			break;
+  		case 3:
+  			intermediate = (y + x) % 3;
+  			break;
+  		case 4:
+  			intermediate = toInt32(y / 2) + toInt32(x / 3) & 1;
+  			break;
+  		case 5:
+  			temporary = y * x;
+  			intermediate = (temporary & 1) + temporary % 3;
+  			break;
+  		case 6:
+  			temporary = y * x;
+  			intermediate = (temporary & 1) + temporary % 3 & 1;
+  			break;
+  		case 7:
+  			intermediate = y * x % 3 + (y + x & 1) & 1;
+  			break;
+  		default: throw new Error(`illegal mask: ${mask}`);
+  	}
+  	return intermediate === 0;
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module ECLevel
+  */
+  var VALUES_TO_ECLEVEL = /* @__PURE__ */ new Map();
+  var ECLevel = (_bits2 = /* @__PURE__ */ new WeakMap(), _level = /* @__PURE__ */ new WeakMap(), _name = /* @__PURE__ */ new WeakMap(), _ECLevel = class ECLevel {
+  	constructor(name, level, bits) {
+  		_classPrivateFieldInitSpec(this, _bits2, void 0);
+  		_classPrivateFieldInitSpec(this, _level, void 0);
+  		_classPrivateFieldInitSpec(this, _name, void 0);
+  		_classPrivateFieldSet2(_bits2, this, bits);
+  		_classPrivateFieldSet2(_name, this, name);
+  		_classPrivateFieldSet2(_level, this, level);
+  		VALUES_TO_ECLEVEL.set(bits, this);
+  	}
+  	get bits() {
+  		return _classPrivateFieldGet2(_bits2, this);
+  	}
+  	get level() {
+  		return _classPrivateFieldGet2(_level, this);
+  	}
+  	get name() {
+  		return _classPrivateFieldGet2(_name, this);
+  	}
+  }, _defineProperty(_ECLevel, "L", new _ECLevel("L", 0, 1)), _defineProperty(_ECLevel, "M", new _ECLevel("M", 1, 0)), _defineProperty(_ECLevel, "Q", new _ECLevel("Q", 2, 3)), _defineProperty(_ECLevel, "H", new _ECLevel("H", 3, 2)), _ECLevel);
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module ECB
+  */
+  var ECB = (_count = /* @__PURE__ */ new WeakMap(), _numDataCodewords = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(count, numDataCodewords) {
+  		_classPrivateFieldInitSpec(this, _count, void 0);
+  		_classPrivateFieldInitSpec(this, _numDataCodewords, void 0);
+  		_classPrivateFieldSet2(_count, this, count);
+  		_classPrivateFieldSet2(_numDataCodewords, this, numDataCodewords);
+  	}
+  	get count() {
+  		return _classPrivateFieldGet2(_count, this);
+  	}
+  	get numDataCodewords() {
+  		return _classPrivateFieldGet2(_numDataCodewords, this);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module ECBlocks
+  */
+  var ECBlocks = (_ecBlocks = /* @__PURE__ */ new WeakMap(), _numTotalCodewords = /* @__PURE__ */ new WeakMap(), _numTotalECCodewords = /* @__PURE__ */ new WeakMap(), _numTotalDataCodewords = /* @__PURE__ */ new WeakMap(), _numECCodewordsPerBlock = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(numECCodewordsPerBlock, ...ecBlocks) {
+  		_classPrivateFieldInitSpec(this, _ecBlocks, void 0);
+  		_classPrivateFieldInitSpec(this, _numTotalCodewords, void 0);
+  		_classPrivateFieldInitSpec(this, _numTotalECCodewords, void 0);
+  		_classPrivateFieldInitSpec(this, _numTotalDataCodewords, void 0);
+  		_classPrivateFieldInitSpec(this, _numECCodewordsPerBlock, void 0);
+  		let numBlocks = 0;
+  		let numTotalDataCodewords = 0;
+  		for (const { count, numDataCodewords } of ecBlocks) {
+  			numBlocks += count;
+  			numTotalDataCodewords += numDataCodewords * count;
   		}
-  	};
-  	/**
-  	* Returns the best mask pattern for data
-  	*
-  	* @param  {BitMatrix} data
-  	* @return {Number} Mask pattern reference number
-  	*/
-  	exports.getBestMask = function getBestMask(data, setupFormatFunc) {
-  		const numPatterns = Object.keys(exports.Patterns).length;
-  		let bestPattern = 0;
-  		let lowerPenalty = Infinity;
-  		for (let p = 0; p < numPatterns; p++) {
-  			setupFormatFunc(p);
-  			exports.applyMask(p, data);
-  			const penalty = exports.getPenaltyN1(data) + exports.getPenaltyN2(data) + exports.getPenaltyN3(data) + exports.getPenaltyN4(data);
-  			exports.applyMask(p, data);
-  			if (penalty < lowerPenalty) {
-  				lowerPenalty = penalty;
-  				bestPattern = p;
-  			}
-  		}
-  		return bestPattern;
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/error-correction-code.js
-  var require_error_correction_code = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var ECLevel = require_error_correction_level();
-  	var EC_BLOCKS_TABLE = [
-  		1,
-  		1,
-  		1,
-  		1,
-  		1,
-  		1,
-  		1,
-  		1,
-  		1,
-  		1,
-  		2,
-  		2,
-  		1,
-  		2,
-  		2,
-  		4,
-  		1,
-  		2,
-  		4,
-  		4,
-  		2,
-  		4,
-  		4,
-  		4,
-  		2,
-  		4,
+  		const numTotalECCodewords = numECCodewordsPerBlock * numBlocks;
+  		_classPrivateFieldSet2(_ecBlocks, this, ecBlocks);
+  		_classPrivateFieldSet2(_numTotalECCodewords, this, numTotalECCodewords);
+  		_classPrivateFieldSet2(_numTotalDataCodewords, this, numTotalDataCodewords);
+  		_classPrivateFieldSet2(_numECCodewordsPerBlock, this, numECCodewordsPerBlock);
+  		_classPrivateFieldSet2(_numTotalCodewords, this, numTotalDataCodewords + numTotalECCodewords);
+  	}
+  	get ecBlocks() {
+  		return _classPrivateFieldGet2(_ecBlocks, this);
+  	}
+  	get numTotalCodewords() {
+  		return _classPrivateFieldGet2(_numTotalCodewords, this);
+  	}
+  	get numTotalECCodewords() {
+  		return _classPrivateFieldGet2(_numTotalECCodewords, this);
+  	}
+  	get numTotalDataCodewords() {
+  		return _classPrivateFieldGet2(_numTotalDataCodewords, this);
+  	}
+  	get numECCodewordsPerBlock() {
+  		return _classPrivateFieldGet2(_numECCodewordsPerBlock, this);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  var Version = (_size = /* @__PURE__ */ new WeakMap(), _version = /* @__PURE__ */ new WeakMap(), _ecBlocks2 = /* @__PURE__ */ new WeakMap(), _alignmentPatterns = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(version, alignmentPatterns, ...ecBlocks) {
+  		_classPrivateFieldInitSpec(this, _size, void 0);
+  		_classPrivateFieldInitSpec(this, _version, void 0);
+  		_classPrivateFieldInitSpec(this, _ecBlocks2, void 0);
+  		_classPrivateFieldInitSpec(this, _alignmentPatterns, void 0);
+  		_classPrivateFieldSet2(_version, this, version);
+  		_classPrivateFieldSet2(_ecBlocks2, this, ecBlocks);
+  		_classPrivateFieldSet2(_size, this, 17 + 4 * version);
+  		_classPrivateFieldSet2(_alignmentPatterns, this, alignmentPatterns);
+  	}
+  	get size() {
+  		return _classPrivateFieldGet2(_size, this);
+  	}
+  	get version() {
+  		return _classPrivateFieldGet2(_version, this);
+  	}
+  	get alignmentPatterns() {
+  		return _classPrivateFieldGet2(_alignmentPatterns, this);
+  	}
+  	getECBlocks({ level }) {
+  		return _classPrivateFieldGet2(_ecBlocks2, this)[level];
+  	}
+  });
+  var VERSIONS = [
+  	new Version(1, [], new ECBlocks(7, new ECB(1, 19)), new ECBlocks(10, new ECB(1, 16)), new ECBlocks(13, new ECB(1, 13)), new ECBlocks(17, new ECB(1, 9))),
+  	new Version(2, [6, 18], new ECBlocks(10, new ECB(1, 34)), new ECBlocks(16, new ECB(1, 28)), new ECBlocks(22, new ECB(1, 22)), new ECBlocks(28, new ECB(1, 16))),
+  	new Version(3, [6, 22], new ECBlocks(15, new ECB(1, 55)), new ECBlocks(26, new ECB(1, 44)), new ECBlocks(18, new ECB(2, 17)), new ECBlocks(22, new ECB(2, 13))),
+  	new Version(4, [6, 26], new ECBlocks(20, new ECB(1, 80)), new ECBlocks(18, new ECB(2, 32)), new ECBlocks(26, new ECB(2, 24)), new ECBlocks(16, new ECB(4, 9))),
+  	new Version(5, [6, 30], new ECBlocks(26, new ECB(1, 108)), new ECBlocks(24, new ECB(2, 43)), new ECBlocks(18, new ECB(2, 15), new ECB(2, 16)), new ECBlocks(22, new ECB(2, 11), new ECB(2, 12))),
+  	new Version(6, [6, 34], new ECBlocks(18, new ECB(2, 68)), new ECBlocks(16, new ECB(4, 27)), new ECBlocks(24, new ECB(4, 19)), new ECBlocks(28, new ECB(4, 15))),
+  	new Version(7, [
   		6,
-  		5,
-  		2,
-  		4,
-  		6,
-  		6,
-  		2,
-  		5,
-  		8,
-  		8,
-  		4,
-  		5,
-  		8,
-  		8,
-  		4,
-  		5,
-  		8,
-  		11,
-  		4,
-  		8,
-  		10,
-  		11,
-  		4,
-  		9,
-  		12,
-  		16,
-  		4,
-  		9,
-  		16,
-  		16,
-  		6,
-  		10,
-  		12,
-  		18,
-  		6,
-  		10,
-  		17,
-  		16,
-  		6,
-  		11,
-  		16,
-  		19,
-  		6,
-  		13,
-  		18,
-  		21,
-  		7,
-  		14,
-  		21,
-  		25,
-  		8,
-  		16,
-  		20,
-  		25,
-  		8,
-  		17,
-  		23,
-  		25,
-  		9,
-  		17,
-  		23,
-  		34,
-  		9,
-  		18,
-  		25,
-  		30,
-  		10,
-  		20,
-  		27,
-  		32,
-  		12,
-  		21,
-  		29,
-  		35,
-  		12,
-  		23,
-  		34,
-  		37,
-  		12,
-  		25,
-  		34,
-  		40,
-  		13,
-  		26,
-  		35,
-  		42,
-  		14,
-  		28,
-  		38,
-  		45,
-  		15,
-  		29,
-  		40,
-  		48,
-  		16,
-  		31,
-  		43,
-  		51,
-  		17,
-  		33,
-  		45,
-  		54,
-  		18,
-  		35,
-  		48,
-  		57,
-  		19,
-  		37,
-  		51,
-  		60,
-  		19,
-  		38,
-  		53,
-  		63,
-  		20,
-  		40,
-  		56,
-  		66,
-  		21,
-  		43,
-  		59,
-  		70,
   		22,
-  		45,
-  		62,
-  		74,
+  		38
+  	], new ECBlocks(20, new ECB(2, 78)), new ECBlocks(18, new ECB(4, 31)), new ECBlocks(18, new ECB(2, 14), new ECB(4, 15)), new ECBlocks(26, new ECB(4, 13), new ECB(1, 14))),
+  	new Version(8, [
+  		6,
   		24,
-  		47,
-  		65,
-  		77,
-  		25,
-  		49,
-  		68,
-  		81
-  	];
-  	var EC_CODEWORDS_TABLE = [
-  		7,
-  		10,
-  		13,
-  		17,
-  		10,
-  		16,
-  		22,
+  		42
+  	], new ECBlocks(24, new ECB(2, 97)), new ECBlocks(22, new ECB(2, 38), new ECB(2, 39)), new ECBlocks(22, new ECB(4, 18), new ECB(2, 19)), new ECBlocks(26, new ECB(4, 14), new ECB(2, 15))),
+  	new Version(9, [
+  		6,
+  		26,
+  		46
+  	], new ECBlocks(30, new ECB(2, 116)), new ECBlocks(22, new ECB(3, 36), new ECB(2, 37)), new ECBlocks(20, new ECB(4, 16), new ECB(4, 17)), new ECBlocks(24, new ECB(4, 12), new ECB(4, 13))),
+  	new Version(10, [
+  		6,
   		28,
-  		15,
+  		50
+  	], new ECBlocks(18, new ECB(2, 68), new ECB(2, 69)), new ECBlocks(26, new ECB(4, 43), new ECB(1, 44)), new ECBlocks(24, new ECB(6, 19), new ECB(2, 20)), new ECBlocks(28, new ECB(6, 15), new ECB(2, 16))),
+  	new Version(11, [
+  		6,
+  		30,
+  		54
+  	], new ECBlocks(20, new ECB(4, 81)), new ECBlocks(30, new ECB(1, 50), new ECB(4, 51)), new ECBlocks(28, new ECB(4, 22), new ECB(4, 23)), new ECBlocks(24, new ECB(3, 12), new ECB(8, 13))),
+  	new Version(12, [
+  		6,
+  		32,
+  		58
+  	], new ECBlocks(24, new ECB(2, 92), new ECB(2, 93)), new ECBlocks(22, new ECB(6, 36), new ECB(2, 37)), new ECBlocks(26, new ECB(4, 20), new ECB(6, 21)), new ECBlocks(28, new ECB(7, 14), new ECB(4, 15))),
+  	new Version(13, [
+  		6,
+  		34,
+  		62
+  	], new ECBlocks(26, new ECB(4, 107)), new ECBlocks(22, new ECB(8, 37), new ECB(1, 38)), new ECBlocks(24, new ECB(8, 20), new ECB(4, 21)), new ECBlocks(22, new ECB(12, 11), new ECB(4, 12))),
+  	new Version(14, [
+  		6,
   		26,
-  		36,
-  		44,
-  		20,
-  		36,
-  		52,
-  		64,
+  		46,
+  		66
+  	], new ECBlocks(30, new ECB(3, 115), new ECB(1, 116)), new ECBlocks(24, new ECB(4, 40), new ECB(5, 41)), new ECBlocks(20, new ECB(11, 16), new ECB(5, 17)), new ECBlocks(24, new ECB(11, 12), new ECB(5, 13))),
+  	new Version(15, [
+  		6,
   		26,
   		48,
+  		70
+  	], new ECBlocks(22, new ECB(5, 87), new ECB(1, 88)), new ECBlocks(24, new ECB(5, 41), new ECB(5, 42)), new ECBlocks(30, new ECB(5, 24), new ECB(7, 25)), new ECBlocks(24, new ECB(11, 12), new ECB(7, 13))),
+  	new Version(16, [
+  		6,
+  		26,
+  		50,
+  		74
+  	], new ECBlocks(24, new ECB(5, 98), new ECB(1, 99)), new ECBlocks(28, new ECB(7, 45), new ECB(3, 46)), new ECBlocks(24, new ECB(15, 19), new ECB(2, 20)), new ECBlocks(30, new ECB(3, 15), new ECB(13, 16))),
+  	new Version(17, [
+  		6,
+  		30,
+  		54,
+  		78
+  	], new ECBlocks(28, new ECB(1, 107), new ECB(5, 108)), new ECBlocks(28, new ECB(10, 46), new ECB(1, 47)), new ECBlocks(28, new ECB(1, 22), new ECB(15, 23)), new ECBlocks(28, new ECB(2, 14), new ECB(17, 15))),
+  	new Version(18, [
+  		6,
+  		30,
+  		56,
+  		82
+  	], new ECBlocks(30, new ECB(5, 120), new ECB(1, 121)), new ECBlocks(26, new ECB(9, 43), new ECB(4, 44)), new ECBlocks(28, new ECB(17, 22), new ECB(1, 23)), new ECBlocks(28, new ECB(2, 14), new ECB(19, 15))),
+  	new Version(19, [
+  		6,
+  		30,
+  		58,
+  		86
+  	], new ECBlocks(28, new ECB(3, 113), new ECB(4, 114)), new ECBlocks(26, new ECB(3, 44), new ECB(11, 45)), new ECBlocks(26, new ECB(17, 21), new ECB(4, 22)), new ECBlocks(26, new ECB(9, 13), new ECB(16, 14))),
+  	new Version(20, [
+  		6,
+  		34,
+  		62,
+  		90
+  	], new ECBlocks(28, new ECB(3, 107), new ECB(5, 108)), new ECBlocks(26, new ECB(3, 41), new ECB(13, 42)), new ECBlocks(30, new ECB(15, 24), new ECB(5, 25)), new ECBlocks(28, new ECB(15, 15), new ECB(10, 16))),
+  	new Version(21, [
+  		6,
+  		28,
+  		50,
   		72,
-  		88,
-  		36,
-  		64,
-  		96,
-  		112,
-  		40,
-  		72,
-  		108,
-  		130,
-  		48,
-  		88,
-  		132,
-  		156,
-  		60,
-  		110,
-  		160,
-  		192,
-  		72,
-  		130,
-  		192,
-  		224,
+  		94
+  	], new ECBlocks(28, new ECB(4, 116), new ECB(4, 117)), new ECBlocks(26, new ECB(17, 42)), new ECBlocks(28, new ECB(17, 22), new ECB(6, 23)), new ECBlocks(30, new ECB(19, 16), new ECB(6, 17))),
+  	new Version(22, [
+  		6,
+  		26,
+  		50,
+  		74,
+  		98
+  	], new ECBlocks(28, new ECB(2, 111), new ECB(7, 112)), new ECBlocks(28, new ECB(17, 46)), new ECBlocks(30, new ECB(7, 24), new ECB(16, 25)), new ECBlocks(24, new ECB(34, 13))),
+  	new Version(23, [
+  		6,
+  		30,
+  		54,
+  		78,
+  		102
+  	], new ECBlocks(30, new ECB(4, 121), new ECB(5, 122)), new ECBlocks(28, new ECB(4, 47), new ECB(14, 48)), new ECBlocks(30, new ECB(11, 24), new ECB(14, 25)), new ECBlocks(30, new ECB(16, 15), new ECB(14, 16))),
+  	new Version(24, [
+  		6,
+  		28,
+  		54,
   		80,
-  		150,
-  		224,
-  		264,
-  		96,
-  		176,
-  		260,
-  		308,
+  		106
+  	], new ECBlocks(30, new ECB(6, 117), new ECB(4, 118)), new ECBlocks(28, new ECB(6, 45), new ECB(14, 46)), new ECBlocks(30, new ECB(11, 24), new ECB(16, 25)), new ECBlocks(30, new ECB(30, 16), new ECB(2, 17))),
+  	new Version(25, [
+  		6,
+  		32,
+  		58,
+  		84,
+  		110
+  	], new ECBlocks(26, new ECB(8, 106), new ECB(4, 107)), new ECBlocks(28, new ECB(8, 47), new ECB(13, 48)), new ECBlocks(30, new ECB(7, 24), new ECB(22, 25)), new ECBlocks(30, new ECB(22, 15), new ECB(13, 16))),
+  	new Version(26, [
+  		6,
+  		30,
+  		58,
+  		86,
+  		114
+  	], new ECBlocks(28, new ECB(10, 114), new ECB(2, 115)), new ECBlocks(28, new ECB(19, 46), new ECB(4, 47)), new ECBlocks(28, new ECB(28, 22), new ECB(6, 23)), new ECBlocks(30, new ECB(33, 16), new ECB(4, 17))),
+  	new Version(27, [
+  		6,
+  		34,
+  		62,
+  		90,
+  		118
+  	], new ECBlocks(30, new ECB(8, 122), new ECB(4, 123)), new ECBlocks(28, new ECB(22, 45), new ECB(3, 46)), new ECBlocks(30, new ECB(8, 23), new ECB(26, 24)), new ECBlocks(30, new ECB(12, 15), new ECB(28, 16))),
+  	new Version(28, [
+  		6,
+  		26,
+  		50,
+  		74,
+  		98,
+  		122
+  	], new ECBlocks(30, new ECB(3, 117), new ECB(10, 118)), new ECBlocks(28, new ECB(3, 45), new ECB(23, 46)), new ECBlocks(30, new ECB(4, 24), new ECB(31, 25)), new ECBlocks(30, new ECB(11, 15), new ECB(31, 16))),
+  	new Version(29, [
+  		6,
+  		30,
+  		54,
+  		78,
+  		102,
+  		126
+  	], new ECBlocks(30, new ECB(7, 116), new ECB(7, 117)), new ECBlocks(28, new ECB(21, 45), new ECB(7, 46)), new ECBlocks(30, new ECB(1, 23), new ECB(37, 24)), new ECBlocks(30, new ECB(19, 15), new ECB(26, 16))),
+  	new Version(30, [
+  		6,
+  		26,
+  		52,
+  		78,
   		104,
-  		198,
-  		288,
-  		352,
-  		120,
-  		216,
-  		320,
-  		384,
+  		130
+  	], new ECBlocks(30, new ECB(5, 115), new ECB(10, 116)), new ECBlocks(28, new ECB(19, 47), new ECB(10, 48)), new ECBlocks(30, new ECB(15, 24), new ECB(25, 25)), new ECBlocks(30, new ECB(23, 15), new ECB(25, 16))),
+  	new Version(31, [
+  		6,
+  		30,
+  		56,
+  		82,
+  		108,
+  		134
+  	], new ECBlocks(30, new ECB(13, 115), new ECB(3, 116)), new ECBlocks(28, new ECB(2, 46), new ECB(29, 47)), new ECBlocks(30, new ECB(42, 24), new ECB(1, 25)), new ECBlocks(30, new ECB(23, 15), new ECB(28, 16))),
+  	new Version(32, [
+  		6,
+  		34,
+  		60,
+  		86,
+  		112,
+  		138
+  	], new ECBlocks(30, new ECB(17, 115)), new ECBlocks(28, new ECB(10, 46), new ECB(23, 47)), new ECBlocks(30, new ECB(10, 24), new ECB(35, 25)), new ECBlocks(30, new ECB(19, 15), new ECB(35, 16))),
+  	new Version(33, [
+  		6,
+  		30,
+  		58,
+  		86,
+  		114,
+  		142
+  	], new ECBlocks(30, new ECB(17, 115), new ECB(1, 116)), new ECBlocks(28, new ECB(14, 46), new ECB(21, 47)), new ECBlocks(30, new ECB(29, 24), new ECB(19, 25)), new ECBlocks(30, new ECB(11, 15), new ECB(46, 16))),
+  	new Version(34, [
+  		6,
+  		34,
+  		62,
+  		90,
+  		118,
+  		146
+  	], new ECBlocks(30, new ECB(13, 115), new ECB(6, 116)), new ECBlocks(28, new ECB(14, 46), new ECB(23, 47)), new ECBlocks(30, new ECB(44, 24), new ECB(7, 25)), new ECBlocks(30, new ECB(59, 16), new ECB(1, 17))),
+  	new Version(35, [
+  		6,
+  		30,
+  		54,
+  		78,
+  		102,
+  		126,
+  		150
+  	], new ECBlocks(30, new ECB(12, 121), new ECB(7, 122)), new ECBlocks(28, new ECB(12, 47), new ECB(26, 48)), new ECBlocks(30, new ECB(39, 24), new ECB(14, 25)), new ECBlocks(30, new ECB(22, 15), new ECB(41, 16))),
+  	new Version(36, [
+  		6,
+  		24,
+  		50,
+  		76,
+  		102,
+  		128,
+  		154
+  	], new ECBlocks(30, new ECB(6, 121), new ECB(14, 122)), new ECBlocks(28, new ECB(6, 47), new ECB(34, 48)), new ECBlocks(30, new ECB(46, 24), new ECB(10, 25)), new ECBlocks(30, new ECB(2, 15), new ECB(64, 16))),
+  	new Version(37, [
+  		6,
+  		28,
+  		54,
+  		80,
+  		106,
   		132,
-  		240,
-  		360,
-  		432,
-  		144,
-  		280,
-  		408,
-  		480,
-  		168,
-  		308,
-  		448,
-  		532,
-  		180,
-  		338,
-  		504,
-  		588,
-  		196,
-  		364,
-  		546,
-  		650,
-  		224,
-  		416,
-  		600,
-  		700,
-  		224,
-  		442,
-  		644,
-  		750,
-  		252,
-  		476,
-  		690,
-  		816,
-  		270,
-  		504,
-  		750,
-  		900,
-  		300,
-  		560,
-  		810,
-  		960,
-  		312,
-  		588,
-  		870,
-  		1050,
-  		336,
-  		644,
-  		952,
-  		1110,
-  		360,
-  		700,
-  		1020,
-  		1200,
-  		390,
-  		728,
-  		1050,
-  		1260,
-  		420,
-  		784,
-  		1140,
-  		1350,
-  		450,
-  		812,
-  		1200,
-  		1440,
-  		480,
-  		868,
-  		1290,
-  		1530,
-  		510,
-  		924,
-  		1350,
-  		1620,
-  		540,
-  		980,
-  		1440,
-  		1710,
-  		570,
-  		1036,
-  		1530,
-  		1800,
-  		570,
-  		1064,
-  		1590,
-  		1890,
-  		600,
-  		1120,
-  		1680,
-  		1980,
-  		630,
-  		1204,
-  		1770,
-  		2100,
-  		660,
-  		1260,
-  		1860,
-  		2220,
-  		720,
-  		1316,
-  		1950,
-  		2310,
-  		750,
-  		1372,
-  		2040,
-  		2430
-  	];
-  	/**
-  	* Returns the number of error correction block that the QR Code should contain
-  	* for the specified version and error correction level.
-  	*
-  	* @param  {Number} version              QR Code version
-  	* @param  {Number} errorCorrectionLevel Error correction level
-  	* @return {Number}                      Number of error correction blocks
-  	*/
-  	exports.getBlocksCount = function getBlocksCount(version, errorCorrectionLevel) {
-  		switch (errorCorrectionLevel) {
-  			case ECLevel.L: return EC_BLOCKS_TABLE[(version - 1) * 4 + 0];
-  			case ECLevel.M: return EC_BLOCKS_TABLE[(version - 1) * 4 + 1];
-  			case ECLevel.Q: return EC_BLOCKS_TABLE[(version - 1) * 4 + 2];
-  			case ECLevel.H: return EC_BLOCKS_TABLE[(version - 1) * 4 + 3];
-  			default: return;
+  		158
+  	], new ECBlocks(30, new ECB(17, 122), new ECB(4, 123)), new ECBlocks(28, new ECB(29, 46), new ECB(14, 47)), new ECBlocks(30, new ECB(49, 24), new ECB(10, 25)), new ECBlocks(30, new ECB(24, 15), new ECB(46, 16))),
+  	new Version(38, [
+  		6,
+  		32,
+  		58,
+  		84,
+  		110,
+  		136,
+  		162
+  	], new ECBlocks(30, new ECB(4, 122), new ECB(18, 123)), new ECBlocks(28, new ECB(13, 46), new ECB(32, 47)), new ECBlocks(30, new ECB(48, 24), new ECB(14, 25)), new ECBlocks(30, new ECB(42, 15), new ECB(32, 16))),
+  	new Version(39, [
+  		6,
+  		26,
+  		54,
+  		82,
+  		110,
+  		138,
+  		166
+  	], new ECBlocks(30, new ECB(20, 117), new ECB(4, 118)), new ECBlocks(28, new ECB(40, 47), new ECB(7, 48)), new ECBlocks(30, new ECB(43, 24), new ECB(22, 25)), new ECBlocks(30, new ECB(10, 15), new ECB(67, 16))),
+  	new Version(40, [
+  		6,
+  		30,
+  		58,
+  		86,
+  		114,
+  		142,
+  		170
+  	], new ECBlocks(30, new ECB(19, 118), new ECB(6, 119)), new ECBlocks(28, new ECB(18, 47), new ECB(31, 48)), new ECBlocks(30, new ECB(34, 24), new ECB(34, 25)), new ECBlocks(30, new ECB(20, 15), new ECB(61, 16)))
+  ];
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Polynomial
+  */
+  var Polynomial = (_field = /* @__PURE__ */ new WeakMap(), _coefficients = /* @__PURE__ */ new WeakMap(), class Polynomial {
+  	constructor(field, coefficients) {
+  		_classPrivateFieldInitSpec(this, _field, void 0);
+  		_classPrivateFieldInitSpec(this, _coefficients, void 0);
+  		const { length } = coefficients;
+  		if (length <= 0) throw new Error("polynomial coefficients cannot empty");
+  		_classPrivateFieldSet2(_field, this, field);
+  		if (length > 1 && coefficients[0] === 0) {
+  			let firstNonZero = 1;
+  			while (firstNonZero < length && coefficients[firstNonZero] === 0) firstNonZero++;
+  			if (firstNonZero === length) _classPrivateFieldSet2(_coefficients, this, new Int32Array([0]));
+  			else {
+  				const array = new Int32Array(length - firstNonZero);
+  				array.set(coefficients.subarray(firstNonZero));
+  				_classPrivateFieldSet2(_coefficients, this, array);
+  			}
+  		} else _classPrivateFieldSet2(_coefficients, this, coefficients);
+  	}
+  	get coefficients() {
+  		return _classPrivateFieldGet2(_coefficients, this);
+  	}
+  	isZero() {
+  		return _classPrivateFieldGet2(_coefficients, this)[0] === 0;
+  	}
+  	getDegree() {
+  		return _classPrivateFieldGet2(_coefficients, this).length - 1;
+  	}
+  	getCoefficient(degree) {
+  		const coefficients = _classPrivateFieldGet2(_coefficients, this);
+  		return coefficients[coefficients.length - 1 - degree];
+  	}
+  	evaluate(a) {
+  		if (a === 0) return this.getCoefficient(0);
+  		let result;
+  		const coefficients = _classPrivateFieldGet2(_coefficients, this);
+  		if (a === 1) {
+  			result = 0;
+  			for (const coefficient of coefficients) result ^= coefficient;
+  			return result;
   		}
-  	};
-  	/**
-  	* Returns the number of error correction codewords to use for the specified
-  	* version and error correction level.
-  	*
-  	* @param  {Number} version              QR Code version
-  	* @param  {Number} errorCorrectionLevel Error correction level
-  	* @return {Number}                      Number of error correction codewords
-  	*/
-  	exports.getTotalCodewordsCount = function getTotalCodewordsCount(version, errorCorrectionLevel) {
-  		switch (errorCorrectionLevel) {
-  			case ECLevel.L: return EC_CODEWORDS_TABLE[(version - 1) * 4 + 0];
-  			case ECLevel.M: return EC_CODEWORDS_TABLE[(version - 1) * 4 + 1];
-  			case ECLevel.Q: return EC_CODEWORDS_TABLE[(version - 1) * 4 + 2];
-  			case ECLevel.H: return EC_CODEWORDS_TABLE[(version - 1) * 4 + 3];
-  			default: return;
-  		}
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/galois-field.js
-  var require_galois_field = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var EXP_TABLE = /* @__PURE__ */ new Uint8Array(512);
-  	var LOG_TABLE = /* @__PURE__ */ new Uint8Array(256);
-  	(function initTables() {
-  		let x = 1;
-  		for (let i = 0; i < 255; i++) {
-  			EXP_TABLE[i] = x;
-  			LOG_TABLE[x] = i;
-  			x <<= 1;
-  			if (x & 256) x ^= 285;
-  		}
-  		for (let i = 255; i < 512; i++) EXP_TABLE[i] = EXP_TABLE[i - 255];
-  	})();
-  	/**
-  	* Returns log value of n inside Galois Field
-  	*
-  	* @param  {Number} n
-  	* @return {Number}
-  	*/
-  	exports.log = function log(n) {
-  		if (n < 1) throw new Error("log(" + n + ")");
-  		return LOG_TABLE[n];
-  	};
-  	/**
-  	* Returns anti-log value of n inside Galois Field
-  	*
-  	* @param  {Number} n
-  	* @return {Number}
-  	*/
-  	exports.exp = function exp(n) {
-  		return EXP_TABLE[n];
-  	};
-  	/**
-  	* Multiplies two number inside Galois Field
-  	*
-  	* @param  {Number} x
-  	* @param  {Number} y
-  	* @return {Number}
-  	*/
-  	exports.mul = function mul(x, y) {
-  		if (x === 0 || y === 0) return 0;
-  		return EXP_TABLE[LOG_TABLE[x] + LOG_TABLE[y]];
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/polynomial.js
-  var require_polynomial = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var GF = require_galois_field();
-  	/**
-  	* Multiplies two polynomials inside Galois Field
-  	*
-  	* @param  {Uint8Array} p1 Polynomial
-  	* @param  {Uint8Array} p2 Polynomial
-  	* @return {Uint8Array}    Product of p1 and p2
-  	*/
-  	exports.mul = function mul(p1, p2) {
-  		const coeff = new Uint8Array(p1.length + p2.length - 1);
-  		for (let i = 0; i < p1.length; i++) for (let j = 0; j < p2.length; j++) coeff[i + j] ^= GF.mul(p1[i], p2[j]);
-  		return coeff;
-  	};
-  	/**
-  	* Calculate the remainder of polynomials division
-  	*
-  	* @param  {Uint8Array} divident Polynomial
-  	* @param  {Uint8Array} divisor  Polynomial
-  	* @return {Uint8Array}          Remainder
-  	*/
-  	exports.mod = function mod(divident, divisor) {
-  		let result = new Uint8Array(divident);
-  		while (result.length - divisor.length >= 0) {
-  			const coeff = result[0];
-  			for (let i = 0; i < divisor.length; i++) result[i] ^= GF.mul(divisor[i], coeff);
-  			let offset = 0;
-  			while (offset < result.length && result[offset] === 0) offset++;
-  			result = result.slice(offset);
-  		}
+  		[result] = coefficients;
+  		const field = _classPrivateFieldGet2(_field, this);
+  		const { length } = coefficients;
+  		for (let i = 1; i < length; i++) result = field.multiply(a, result) ^ coefficients[i];
   		return result;
-  	};
-  	/**
-  	* Generate an irreducible generator polynomial of specified degree
-  	* (used by Reed-Solomon encoder)
-  	*
-  	* @param  {Number} degree Degree of the generator polynomial
-  	* @return {Uint8Array}    Buffer containing polynomial coefficients
-  	*/
-  	exports.generateECPolynomial = function generateECPolynomial(degree) {
-  		let poly = new Uint8Array([1]);
-  		for (let i = 0; i < degree; i++) poly = exports.mul(poly, new Uint8Array([1, GF.exp(i)]));
-  		return poly;
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/reed-solomon-encoder.js
-  var require_reed_solomon_encoder = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	var Polynomial = require_polynomial();
-  	function ReedSolomonEncoder(degree) {
-  		this.genPoly = void 0;
-  		this.degree = degree;
-  		if (this.degree) this.initialize(this.degree);
   	}
-  	/**
-  	* Initialize the encoder.
-  	* The input param should correspond to the number of error correction codewords.
-  	*
-  	* @param  {Number} degree
-  	*/
-  	ReedSolomonEncoder.prototype.initialize = function initialize(degree) {
-  		this.degree = degree;
-  		this.genPoly = Polynomial.generateECPolynomial(this.degree);
-  	};
-  	/**
-  	* Encodes a chunk of data
-  	*
-  	* @param  {Uint8Array} data Buffer containing input data
-  	* @return {Uint8Array}      Buffer containing encoded data
-  	*/
-  	ReedSolomonEncoder.prototype.encode = function encode(data) {
-  		if (!this.genPoly) throw new Error("Encoder not initialized");
-  		const paddedData = new Uint8Array(data.length + this.degree);
-  		paddedData.set(data);
-  		const remainder = Polynomial.mod(paddedData, this.genPoly);
-  		const start = this.degree - remainder.length;
-  		if (start > 0) {
-  			const buff = new Uint8Array(this.degree);
-  			buff.set(remainder, start);
-  			return buff;
+  	multiply(other) {
+  		const field = _classPrivateFieldGet2(_field, this);
+  		const coefficients = _classPrivateFieldGet2(_coefficients, this);
+  		const { length } = coefficients;
+  		if (other instanceof Polynomial) {
+  			if (this.isZero() || other.isZero()) return field.zero;
+  			const otherCoefficients = _classPrivateFieldGet2(_coefficients, other);
+  			const otherLength = otherCoefficients.length;
+  			const product = new Int32Array(length + otherLength - 1);
+  			for (let i = 0; i < length; i++) {
+  				const coefficient = coefficients[i];
+  				for (let j = 0; j < otherLength; j++) product[i + j] ^= field.multiply(coefficient, otherCoefficients[j]);
+  			}
+  			return new Polynomial(field, product);
   		}
-  		return remainder;
-  	};
-  	module.exports = ReedSolomonEncoder;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/version-check.js
-  var require_version_check = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	/**
-  	* Check if QR Code version is valid
-  	*
-  	* @param  {Number}  version QR Code version
-  	* @return {Boolean}         true if valid version, false otherwise
-  	*/
-  	exports.isValid = function isValid(version) {
-  		return !isNaN(version) && version >= 1 && version <= 40;
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/regex.js
-  var require_regex = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var numeric = "[0-9]+";
-  	var alphanumeric = "[A-Z $%*+\\-./:]+";
-  	var kanji = "(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+";
-  	kanji = kanji.replace(/u/g, "\\u");
-  	var byte = "(?:(?![A-Z0-9 $%*+\\-./:]|" + kanji + ")(?:.|[\r\n]))+";
-  	exports.KANJI = new RegExp(kanji, "g");
-  	exports.BYTE_KANJI = /* @__PURE__ */ new RegExp("[^A-Z0-9 $%*+\\-./:]+", "g");
-  	exports.BYTE = new RegExp(byte, "g");
-  	exports.NUMERIC = new RegExp(numeric, "g");
-  	exports.ALPHANUMERIC = new RegExp(alphanumeric, "g");
-  	var TEST_KANJI = new RegExp("^" + kanji + "$");
-  	var TEST_NUMERIC = /* @__PURE__ */ new RegExp("^[0-9]+$");
-  	var TEST_ALPHANUMERIC = /* @__PURE__ */ new RegExp("^[A-Z0-9 $%*+\\-./:]+$");
-  	exports.testKanji = function testKanji(str) {
-  		return TEST_KANJI.test(str);
-  	};
-  	exports.testNumeric = function testNumeric(str) {
-  		return TEST_NUMERIC.test(str);
-  	};
-  	exports.testAlphanumeric = function testAlphanumeric(str) {
-  		return TEST_ALPHANUMERIC.test(str);
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/mode.js
-  var require_mode = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var VersionCheck = require_version_check();
-  	var Regex = require_regex();
-  	/**
-  	* Numeric mode encodes data from the decimal digit set (0 - 9)
-  	* (byte values 30HEX to 39HEX).
-  	* Normally, 3 data characters are represented by 10 bits.
-  	*
-  	* @type {Object}
-  	*/
-  	exports.NUMERIC = {
-  		id: "Numeric",
-  		bit: 1,
-  		ccBits: [
-  			10,
-  			12,
-  			14
-  		]
-  	};
-  	/**
-  	* Alphanumeric mode encodes data from a set of 45 characters,
-  	* i.e. 10 numeric digits (0 - 9),
-  	*      26 alphabetic characters (A - Z),
-  	*   and 9 symbols (SP, $, %, *, +, -, ., /, :).
-  	* Normally, two input characters are represented by 11 bits.
-  	*
-  	* @type {Object}
-  	*/
-  	exports.ALPHANUMERIC = {
-  		id: "Alphanumeric",
-  		bit: 2,
-  		ccBits: [
-  			9,
-  			11,
-  			13
-  		]
-  	};
-  	/**
-  	* In byte mode, data is encoded at 8 bits per character.
-  	*
-  	* @type {Object}
-  	*/
-  	exports.BYTE = {
-  		id: "Byte",
-  		bit: 4,
-  		ccBits: [
-  			8,
-  			16,
-  			16
-  		]
-  	};
-  	/**
-  	* The Kanji mode efficiently encodes Kanji characters in accordance with
-  	* the Shift JIS system based on JIS X 0208.
-  	* The Shift JIS values are shifted from the JIS X 0208 values.
-  	* JIS X 0208 gives details of the shift coded representation.
-  	* Each two-byte character value is compacted to a 13-bit binary codeword.
-  	*
-  	* @type {Object}
-  	*/
-  	exports.KANJI = {
-  		id: "Kanji",
-  		bit: 8,
-  		ccBits: [
-  			8,
-  			10,
-  			12
-  		]
-  	};
-  	/**
-  	* Mixed mode will contain a sequences of data in a combination of any of
-  	* the modes described above
-  	*
-  	* @type {Object}
-  	*/
-  	exports.MIXED = { bit: -1 };
-  	/**
-  	* Returns the number of bits needed to store the data length
-  	* according to QR Code specifications.
-  	*
-  	* @param  {Mode}   mode    Data mode
-  	* @param  {Number} version QR Code version
-  	* @return {Number}         Number of bits
-  	*/
-  	exports.getCharCountIndicator = function getCharCountIndicator(mode, version) {
-  		if (!mode.ccBits) throw new Error("Invalid mode: " + mode);
-  		if (!VersionCheck.isValid(version)) throw new Error("Invalid version: " + version);
-  		if (version >= 1 && version < 10) return mode.ccBits[0];
-  		else if (version < 27) return mode.ccBits[1];
-  		return mode.ccBits[2];
-  	};
-  	/**
-  	* Returns the most efficient mode to store the specified data
-  	*
-  	* @param  {String} dataStr Input data string
-  	* @return {Mode}           Best mode
-  	*/
-  	exports.getBestModeForData = function getBestModeForData(dataStr) {
-  		if (Regex.testNumeric(dataStr)) return exports.NUMERIC;
-  		else if (Regex.testAlphanumeric(dataStr)) return exports.ALPHANUMERIC;
-  		else if (Regex.testKanji(dataStr)) return exports.KANJI;
-  		else return exports.BYTE;
-  	};
-  	/**
-  	* Return mode name as string
-  	*
-  	* @param {Mode} mode Mode object
-  	* @returns {String}  Mode name
-  	*/
-  	exports.toString = function toString(mode) {
-  		if (mode && mode.id) return mode.id;
-  		throw new Error("Invalid mode");
-  	};
-  	/**
-  	* Check if input param is a valid mode object
-  	*
-  	* @param   {Mode}    mode Mode object
-  	* @returns {Boolean} True if valid mode, false otherwise
-  	*/
-  	exports.isValid = function isValid(mode) {
-  		return mode && mode.bit && mode.ccBits;
-  	};
-  	/**
-  	* Get mode object from its name
-  	*
-  	* @param   {String} string Mode name
-  	* @returns {Mode}          Mode object
-  	*/
-  	function fromString(string) {
-  		if (typeof string !== "string") throw new Error("Param is not a string");
-  		switch (string.toLowerCase()) {
-  			case "numeric": return exports.NUMERIC;
-  			case "alphanumeric": return exports.ALPHANUMERIC;
-  			case "kanji": return exports.KANJI;
-  			case "byte": return exports.BYTE;
-  			default: throw new Error("Unknown mode: " + string);
+  		if (other === 0) return field.zero;
+  		if (other === 1) return this;
+  		const product = new Int32Array(length);
+  		for (let i = 0; i < length; i++) product[i] = field.multiply(coefficients[i], other);
+  		return new Polynomial(field, product);
+  	}
+  	multiplyByMonomial(degree, coefficient) {
+  		const field = _classPrivateFieldGet2(_field, this);
+  		if (coefficient === 0) return field.zero;
+  		const coefficients = _classPrivateFieldGet2(_coefficients, this);
+  		const { length } = coefficients;
+  		const product = new Int32Array(length + degree);
+  		for (let i = 0; i < length; i++) product[i] = field.multiply(coefficients[i], coefficient);
+  		return new Polynomial(field, product);
+  	}
+  	addOrSubtract(other) {
+  		if (this.isZero()) return other;
+  		if (other.isZero()) return this;
+  		let largerCoefficients = _classPrivateFieldGet2(_coefficients, other);
+  		let largerLength = largerCoefficients.length;
+  		let smallerCoefficients = _classPrivateFieldGet2(_coefficients, this);
+  		let smallerLength = smallerCoefficients.length;
+  		if (largerLength < smallerLength) {
+  			[largerLength, smallerLength] = [smallerLength, largerLength];
+  			[largerCoefficients, smallerCoefficients] = [smallerCoefficients, largerCoefficients];
+  		}
+  		const offset = largerLength - smallerLength;
+  		const coefficients = new Int32Array(largerLength);
+  		coefficients.set(largerCoefficients.subarray(0, offset));
+  		for (let i = offset; i < largerLength; i++) coefficients[i] = smallerCoefficients[i - offset] ^ largerCoefficients[i];
+  		return new Polynomial(_classPrivateFieldGet2(_field, this), coefficients);
+  	}
+  	divide(other) {
+  		const field = _classPrivateFieldGet2(_field, this);
+  		let quotient = field.zero;
+  		let remainder = this;
+  		const denominatorLeadingTerm = other.getCoefficient(other.getDegree());
+  		const invertDenominatorLeadingTerm = field.invert(denominatorLeadingTerm);
+  		while (remainder.getDegree() >= other.getDegree() && !remainder.isZero()) {
+  			const remainderDegree = remainder.getDegree();
+  			const degreeDiff = remainderDegree - other.getDegree();
+  			const scale = field.multiply(remainder.getCoefficient(remainderDegree), invertDenominatorLeadingTerm);
+  			const term = other.multiplyByMonomial(degreeDiff, scale);
+  			const iterationQuotient = field.buildPolynomial(degreeDiff, scale);
+  			quotient = quotient.addOrSubtract(iterationQuotient);
+  			remainder = remainder.addOrSubtract(term);
+  		}
+  		return [quotient, remainder];
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  var QR_CODE_FIELD_256 = new (_size2 = /* @__PURE__ */ new WeakMap(), _one = /* @__PURE__ */ new WeakMap(), _zero = /* @__PURE__ */ new WeakMap(), _generator = /* @__PURE__ */ new WeakMap(), _expTable = /* @__PURE__ */ new WeakMap(), _logTable = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(primitive, size, generator) {
+  		_classPrivateFieldInitSpec(this, _size2, void 0);
+  		_classPrivateFieldInitSpec(this, _one, void 0);
+  		_classPrivateFieldInitSpec(this, _zero, void 0);
+  		_classPrivateFieldInitSpec(this, _generator, void 0);
+  		_classPrivateFieldInitSpec(this, _expTable, void 0);
+  		_classPrivateFieldInitSpec(this, _logTable, void 0);
+  		let x = 1;
+  		const expTable = new Int32Array(size);
+  		for (let i = 0; i < size; i++) {
+  			expTable[i] = x;
+  			x *= 2;
+  			if (x >= size) {
+  				x ^= primitive;
+  				x &= size - 1;
+  			}
+  		}
+  		const logTable = new Int32Array(size);
+  		for (let i = 0, length = size - 1; i < length; i++) logTable[expTable[i]] = i;
+  		_classPrivateFieldSet2(_size2, this, size);
+  		_classPrivateFieldSet2(_expTable, this, expTable);
+  		_classPrivateFieldSet2(_logTable, this, logTable);
+  		_classPrivateFieldSet2(_generator, this, generator);
+  		_classPrivateFieldSet2(_one, this, new Polynomial(this, new Int32Array([1])));
+  		_classPrivateFieldSet2(_zero, this, new Polynomial(this, new Int32Array([0])));
+  	}
+  	get size() {
+  		return _classPrivateFieldGet2(_size2, this);
+  	}
+  	get one() {
+  		return _classPrivateFieldGet2(_one, this);
+  	}
+  	get zero() {
+  		return _classPrivateFieldGet2(_zero, this);
+  	}
+  	get generator() {
+  		return _classPrivateFieldGet2(_generator, this);
+  	}
+  	exp(a) {
+  		return _classPrivateFieldGet2(_expTable, this)[a];
+  	}
+  	log(a) {
+  		return _classPrivateFieldGet2(_logTable, this)[a];
+  	}
+  	invert(a) {
+  		return _classPrivateFieldGet2(_expTable, this)[_classPrivateFieldGet2(_size2, this) - _classPrivateFieldGet2(_logTable, this)[a] - 1];
+  	}
+  	multiply(a, b) {
+  		if (a === 0 || b === 0) return 0;
+  		const logTable = _classPrivateFieldGet2(_logTable, this);
+  		return _classPrivateFieldGet2(_expTable, this)[(logTable[a] + logTable[b]) % (_classPrivateFieldGet2(_size2, this) - 1)];
+  	}
+  	buildPolynomial(degree, coefficient) {
+  		if (coefficient === 0) return _classPrivateFieldGet2(_zero, this);
+  		const coefficients = new Int32Array(degree + 1);
+  		coefficients[0] = coefficient;
+  		return new Polynomial(this, coefficients);
+  	}
+  })(285, 256, 0);
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module index
+  */
+  function getUnicodeCodes(content, maxCode) {
+  	const bytes = [];
+  	for (const character of content) {
+  		const code = character.codePointAt(0);
+  		bytes.push(code == null || code > maxCode ? 63 : code);
+  	}
+  	return new Uint8Array(bytes);
+  }
+  function encode$1(content, charset) {
+  	switch (charset) {
+  		case Charset.ASCII: return getUnicodeCodes(content, 127);
+  		case Charset.ISO_8859_1: return getUnicodeCodes(content, 255);
+  		case Charset.UTF_8: return new TextEncoder().encode(content);
+  		default: throw new Error(`built-in encode not support charset: ${charset.label}`);
+  	}
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module BitArray
+  */
+  var LOAD_FACTOR = .75;
+  function offset(index) {
+  	return index >>> 5;
+  }
+  function makeArray(length) {
+  	return new Int32Array(length + 31 >>> 5);
+  }
+  var BitArray = (_length = /* @__PURE__ */ new WeakMap(), _bits3 = /* @__PURE__ */ new WeakMap(), _BitArray_brand = /* @__PURE__ */ new WeakSet(), class BitArray {
+  	constructor(length = 0) {
+  		_classPrivateMethodInitSpec(this, _BitArray_brand);
+  		_classPrivateFieldInitSpec(this, _length, void 0);
+  		_classPrivateFieldInitSpec(this, _bits3, void 0);
+  		_classPrivateFieldSet2(_length, this, length);
+  		_classPrivateFieldSet2(_bits3, this, makeArray(length));
+  	}
+  	get length() {
+  		return _classPrivateFieldGet2(_length, this);
+  	}
+  	get byteLength() {
+  		return _classPrivateFieldGet2(_length, this) + 7 >>> 3;
+  	}
+  	set(index) {
+  		_classPrivateFieldGet2(_bits3, this)[offset(index)] |= getBitMask(index);
+  	}
+  	get(index) {
+  		return toBit(_classPrivateFieldGet2(_bits3, this)[offset(index)] >>> getBitOffset(index));
+  	}
+  	xor(mask) {
+  		const bits = _classPrivateFieldGet2(_bits3, this);
+  		const maskBits = _classPrivateFieldGet2(_bits3, mask);
+  		const length = Math.min(_classPrivateFieldGet2(_length, this), _classPrivateFieldGet2(_length, mask));
+  		for (let i = 0; i < length; i++) bits[i] ^= maskBits[i];
+  	}
+  	append(value, length = 1) {
+  		let index = _classPrivateFieldGet2(_length, this);
+  		if (value instanceof BitArray) {
+  			length = _classPrivateFieldGet2(_length, value);
+  			_assertClassBrand(_BitArray_brand, this, _alloc).call(this, index + length);
+  			for (let i = 0; i < length; i++) {
+  				if (value.get(i) !== 0) this.set(index);
+  				index++;
+  			}
+  		} else {
+  			_assertClassBrand(_BitArray_brand, this, _alloc).call(this, index + length);
+  			for (let i = length - 1; i >= 0; i--) {
+  				if (toBit(value >>> i) !== 0) this.set(index);
+  				index++;
+  			}
   		}
   	}
-  	/**
-  	* Returns mode from a value.
-  	* If value is not a valid mode, returns defaultValue
-  	*
-  	* @param  {Mode|String} value        Encoding mode
-  	* @param  {Mode}        defaultValue Fallback value
-  	* @return {Mode}                     Encoding mode
-  	*/
-  	exports.from = function from(value, defaultValue) {
-  		if (exports.isValid(value)) return value;
-  		try {
-  			return fromString(value);
-  		} catch (e) {
-  			return defaultValue;
+  	copyTo(bitOffset, target, byteOffset, byteLength) {
+  		for (let i = 0; i < byteLength; i++) {
+  			let byte = 0;
+  			for (let j = 0; j < 8; j++) if (this.get(bitOffset++) !== 0) byte |= 1 << 7 - j;
+  			target[byteOffset + i] = byte;
   		}
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/version.js
-  var require_version = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var Utils = require_utils$1();
-  	var ECCode = require_error_correction_code();
-  	var ECLevel = require_error_correction_level();
-  	var Mode = require_mode();
-  	var VersionCheck = require_version_check();
-  	var G18 = 7973;
-  	var G18_BCH = Utils.getBCHDigit(G18);
-  	function getBestVersionForDataLength(mode, length, errorCorrectionLevel) {
-  		for (let currentVersion = 1; currentVersion <= 40; currentVersion++) if (length <= exports.getCapacity(currentVersion, errorCorrectionLevel, mode)) return currentVersion;
   	}
-  	function getReservedBitsCount(mode, version) {
-  		return Mode.getCharCountIndicator(mode, version) + 4;
+  	clear() {
+  		_classPrivateFieldGet2(_bits3, this).fill(0);
   	}
-  	function getTotalBitsFromDataArray(segments, version) {
-  		let totalBits = 0;
-  		segments.forEach(function(data) {
-  			const reservedBits = getReservedBitsCount(data.mode, version);
-  			totalBits += reservedBits + data.getBitsLength();
-  		});
-  		return totalBits;
+  });
+  function _alloc(length) {
+  	const bits = _classPrivateFieldGet2(_bits3, this);
+  	if (length > bits.length * 32) {
+  		const array = makeArray(Math.ceil(length / LOAD_FACTOR));
+  		array.set(bits);
+  		_classPrivateFieldSet2(_bits3, this, array);
   	}
-  	function getBestVersionForMixedData(segments, errorCorrectionLevel) {
-  		for (let currentVersion = 1; currentVersion <= 40; currentVersion++) if (getTotalBitsFromDataArray(segments, currentVersion) <= exports.getCapacity(currentVersion, errorCorrectionLevel, Mode.MIXED)) return currentVersion;
+  	_classPrivateFieldSet2(_length, this, length);
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module ByteMatrix
+  */
+  var ByteMatrix = (_size3 = /* @__PURE__ */ new WeakMap(), _bytes = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(size) {
+  		_classPrivateFieldInitSpec(this, _size3, void 0);
+  		_classPrivateFieldInitSpec(this, _bytes, void 0);
+  		_classPrivateFieldSet2(_size3, this, size);
+  		_classPrivateFieldSet2(_bytes, this, new Int8Array(size * size));
   	}
-  	/**
-  	* Returns version number from a value.
-  	* If value is not a valid version, returns defaultValue
-  	*
-  	* @param  {Number|String} value        QR Code version
-  	* @param  {Number}        defaultValue Fallback value
-  	* @return {Number}                     QR Code version number
-  	*/
-  	exports.from = function from(value, defaultValue) {
-  		if (VersionCheck.isValid(value)) return parseInt(value, 10);
-  		return defaultValue;
-  	};
-  	/**
-  	* Returns how much data can be stored with the specified QR code version
-  	* and error correction level
-  	*
-  	* @param  {Number} version              QR Code version (1-40)
-  	* @param  {Number} errorCorrectionLevel Error correction level
-  	* @param  {Mode}   mode                 Data mode
-  	* @return {Number}                      Quantity of storable data
-  	*/
-  	exports.getCapacity = function getCapacity(version, errorCorrectionLevel, mode) {
-  		if (!VersionCheck.isValid(version)) throw new Error("Invalid QR Code version");
-  		if (typeof mode === "undefined") mode = Mode.BYTE;
-  		const dataTotalCodewordsBits = (Utils.getSymbolTotalCodewords(version) - ECCode.getTotalCodewordsCount(version, errorCorrectionLevel)) * 8;
-  		if (mode === Mode.MIXED) return dataTotalCodewordsBits;
-  		const usableBits = dataTotalCodewordsBits - getReservedBitsCount(mode, version);
-  		switch (mode) {
-  			case Mode.NUMERIC: return Math.floor(usableBits / 10 * 3);
-  			case Mode.ALPHANUMERIC: return Math.floor(usableBits / 11 * 2);
-  			case Mode.KANJI: return Math.floor(usableBits / 13);
-  			case Mode.BYTE:
-  			default: return Math.floor(usableBits / 8);
+  	get size() {
+  		return _classPrivateFieldGet2(_size3, this);
+  	}
+  	set(x, y, value) {
+  		_classPrivateFieldGet2(_bytes, this)[y * _classPrivateFieldGet2(_size3, this) + x] = value;
+  	}
+  	get(x, y) {
+  		return _classPrivateFieldGet2(_bytes, this)[y * _classPrivateFieldGet2(_size3, this) + x];
+  	}
+  	clear(value) {
+  		_classPrivateFieldGet2(_bytes, this).fill(value);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module matrix
+  */
+  var FORMAT_INFO_POLY = 1335;
+  var FORMAT_INFO_MASK = 21522;
+  var VERSION_INFO_POLY = 7973;
+  var FINDER_PATTERN_SHAPE = [
+  	[
+  		1,
+  		1,
+  		1,
+  		1,
+  		1,
+  		1,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		0,
+  		0,
+  		0,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		1,
+  		1,
+  		1,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		1,
+  		1,
+  		1,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		1,
+  		1,
+  		1,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		0,
+  		0,
+  		0,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		1,
+  		1,
+  		1,
+  		1,
+  		1,
+  		1
+  	]
+  ];
+  var ALIGNMENT_PATTERN_SHAPE = [
+  	[
+  		1,
+  		1,
+  		1,
+  		1,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		0,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		1,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		0,
+  		0,
+  		0,
+  		1
+  	],
+  	[
+  		1,
+  		1,
+  		1,
+  		1,
+  		1
+  	]
+  ];
+  var FORMAT_INFO_COORDINATES = [
+  	[8, 0],
+  	[8, 1],
+  	[8, 2],
+  	[8, 3],
+  	[8, 4],
+  	[8, 5],
+  	[8, 7],
+  	[8, 8],
+  	[7, 8],
+  	[5, 8],
+  	[4, 8],
+  	[3, 8],
+  	[2, 8],
+  	[1, 8],
+  	[0, 8]
+  ];
+  function isEmpty(matrix, x, y) {
+  	return matrix.get(x, y) === -1;
+  }
+  function embedFinderPattern(matrix, x, y) {
+  	for (let i = 0; i < 7; i++) {
+  		const pattern = FINDER_PATTERN_SHAPE[i];
+  		for (let j = 0; j < 7; j++) matrix.set(x + j, y + i, pattern[j]);
+  	}
+  }
+  function embedHorizontalSeparator(matrix, x, y) {
+  	for (let j = 0; j < 8; j++) matrix.set(x + j, y, 0);
+  }
+  function embedVerticalSeparator(matrix, x, y) {
+  	for (let i = 0; i < 7; i++) matrix.set(x, y + i, 0);
+  }
+  function embedFinderPatternsAndSeparators(matrix) {
+  	const pdpWidth = 7;
+  	const hspWidth = 8;
+  	const vspHeight = 7;
+  	const { size } = matrix;
+  	embedFinderPattern(matrix, 0, 0);
+  	embedFinderPattern(matrix, size - pdpWidth, 0);
+  	embedFinderPattern(matrix, 0, size - pdpWidth);
+  	embedHorizontalSeparator(matrix, 0, 7);
+  	embedHorizontalSeparator(matrix, size - hspWidth, 7);
+  	embedHorizontalSeparator(matrix, 0, size - hspWidth);
+  	embedVerticalSeparator(matrix, vspHeight, 0);
+  	embedVerticalSeparator(matrix, size - vspHeight - 1, 0);
+  	embedVerticalSeparator(matrix, vspHeight, size - vspHeight);
+  }
+  function embedTimingPatterns(matrix) {
+  	const size = matrix.size - 8;
+  	for (let x = 8; x < size; x++) {
+  		const bit = x + 1 & 1;
+  		if (isEmpty(matrix, x, 6)) matrix.set(x, 6, bit);
+  	}
+  	for (let y = 8; y < size; y++) {
+  		const bit = y + 1 & 1;
+  		if (isEmpty(matrix, 6, y)) matrix.set(6, y, bit);
+  	}
+  }
+  function embedAlignmentPattern(matrix, x, y) {
+  	for (let i = 0; i < 5; i++) {
+  		const pattern = ALIGNMENT_PATTERN_SHAPE[i];
+  		for (let j = 0; j < 5; j++) matrix.set(x + j, y + i, pattern[j]);
+  	}
+  }
+  function embedAlignmentPatterns(matrix, { version }) {
+  	if (version >= 2) {
+  		const { alignmentPatterns } = VERSIONS[version - 1];
+  		const { length } = alignmentPatterns;
+  		for (let i = 0; i < length; i++) {
+  			const y = alignmentPatterns[i];
+  			for (let j = 0; j < length; j++) {
+  				const x = alignmentPatterns[j];
+  				if (isEmpty(matrix, x, y)) embedAlignmentPattern(matrix, x - 2, y - 2);
+  			}
   		}
-  	};
-  	/**
-  	* Returns the minimum version needed to contain the amount of data
-  	*
-  	* @param  {Segment} data                    Segment of data
-  	* @param  {Number} [errorCorrectionLevel=H] Error correction level
-  	* @param  {Mode} mode                       Data mode
-  	* @return {Number}                          QR Code version
-  	*/
-  	exports.getBestVersionForData = function getBestVersionForData(data, errorCorrectionLevel) {
-  		let seg;
-  		const ecl = ECLevel.from(errorCorrectionLevel, ECLevel.M);
-  		if (Array.isArray(data)) {
-  			if (data.length > 1) return getBestVersionForMixedData(data, ecl);
-  			if (data.length === 0) return 1;
-  			seg = data[0];
-  		} else seg = data;
-  		return getBestVersionForDataLength(seg.mode, seg.getLength(), ecl);
-  	};
-  	/**
-  	* Returns version information with relative error correction bits
-  	*
-  	* The version information is included in QR Code symbols of version 7 or larger.
-  	* It consists of an 18-bit sequence containing 6 data bits,
-  	* with 12 error correction bits calculated using the (18, 6) Golay code.
-  	*
-  	* @param  {Number} version QR Code version
-  	* @return {Number}         Encoded version info bits
-  	*/
-  	exports.getEncodedBits = function getEncodedBits(version) {
-  		if (!VersionCheck.isValid(version) || version < 7) throw new Error("Invalid QR Code version");
-  		let d = version << 12;
-  		while (Utils.getBCHDigit(d) - G18_BCH >= 0) d ^= G18 << Utils.getBCHDigit(d) - G18_BCH;
-  		return version << 12 | d;
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/format-info.js
-  var require_format_info = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var Utils = require_utils$1();
-  	var G15 = 1335;
-  	var G15_MASK = 21522;
-  	var G15_BCH = Utils.getBCHDigit(G15);
-  	/**
-  	* Returns format information with relative error correction bits
-  	*
-  	* The format information is a 15-bit sequence containing 5 data bits,
-  	* with 10 error correction bits calculated using the (15, 5) BCH code.
-  	*
-  	* @param  {Number} errorCorrectionLevel Error correction level
-  	* @param  {Number} mask                 Mask pattern
-  	* @return {Number}                      Encoded format information bits
-  	*/
-  	exports.getEncodedBits = function getEncodedBits(errorCorrectionLevel, mask) {
-  		const data = errorCorrectionLevel.bit << 3 | mask;
-  		let d = data << 10;
-  		while (Utils.getBCHDigit(d) - G15_BCH >= 0) d ^= G15 << Utils.getBCHDigit(d) - G15_BCH;
-  		return (data << 10 | d) ^ G15_MASK;
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/numeric-data.js
-  var require_numeric_data = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	var Mode = require_mode();
-  	function NumericData(data) {
-  		this.mode = Mode.NUMERIC;
-  		this.data = data.toString();
   	}
-  	NumericData.getBitsLength = function getBitsLength(length) {
-  		return 10 * Math.floor(length / 3) + (length % 3 ? length % 3 * 3 + 1 : 0);
-  	};
-  	NumericData.prototype.getLength = function getLength() {
-  		return this.data.length;
-  	};
-  	NumericData.prototype.getBitsLength = function getBitsLength() {
-  		return NumericData.getBitsLength(this.data.length);
-  	};
-  	NumericData.prototype.write = function write(bitBuffer) {
-  		let i, group, value;
-  		for (i = 0; i + 3 <= this.data.length; i += 3) {
-  			group = this.data.substr(i, 3);
-  			value = parseInt(group, 10);
-  			bitBuffer.put(value, 10);
+  }
+  function embedDarkModule(matrix) {
+  	matrix.set(8, matrix.size - 8, 1);
+  }
+  function makeFormatInfoBits(bits, ecLevel, mask) {
+  	const formatInfo = ecLevel.bits << 3 | mask;
+  	bits.append(formatInfo, 5);
+  	const bchCode = calculateBCHCode(formatInfo, FORMAT_INFO_POLY);
+  	bits.append(bchCode, 10);
+  	const maskBits = new BitArray();
+  	maskBits.append(FORMAT_INFO_MASK, 15);
+  	bits.xor(maskBits);
+  }
+  function embedFormatInfo(matrix, ecLevel, mask) {
+  	const formatInfoBits = new BitArray();
+  	makeFormatInfoBits(formatInfoBits, ecLevel, mask);
+  	const { size } = matrix;
+  	const { length } = formatInfoBits;
+  	for (let i = 0; i < length; i++) {
+  		const [x, y] = FORMAT_INFO_COORDINATES[i];
+  		const bit = formatInfoBits.get(length - 1 - i);
+  		matrix.set(x, y, bit);
+  		if (i < 8) matrix.set(size - i - 1, 8, bit);
+  		else matrix.set(8, size - 7 + (i - 8), bit);
+  	}
+  	embedDarkModule(matrix);
+  }
+  function makeVersionInfoBits(bits, version) {
+  	bits.append(version, 6);
+  	const bchCode = calculateBCHCode(version, VERSION_INFO_POLY);
+  	bits.append(bchCode, 12);
+  }
+  function embedVersionInfo(matrix, { version }) {
+  	if (version >= 7) {
+  		const versionInfoBits = new BitArray();
+  		makeVersionInfoBits(versionInfoBits, version);
+  		let bitIndex = 17;
+  		const { size } = matrix;
+  		for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) {
+  			const bit = versionInfoBits.get(bitIndex--);
+  			matrix.set(i, size - 11 + j, bit);
+  			matrix.set(size - 11 + j, i, bit);
   		}
-  		const remainingNum = this.data.length - i;
-  		if (remainingNum > 0) {
-  			group = this.data.substr(i);
-  			value = parseInt(group, 10);
-  			bitBuffer.put(value, remainingNum * 3 + 1);
+  	}
+  }
+  function embedCodewords(matrix, codewords, mask) {
+  	let bitIndex = 0;
+  	const { size } = matrix;
+  	const { length } = codewords;
+  	for (let x = size - 1; x >= 1; x -= 2) {
+  		if (x === 6) x = 5;
+  		for (let y = 0; y < size; y++) for (let i = 0; i < 2; i++) {
+  			const offsetX = x - i;
+  			const offsetY = (x + 1 & 2) === 0 ? size - 1 - y : y;
+  			if (isEmpty(matrix, offsetX, offsetY)) {
+  				let bit = 0;
+  				if (bitIndex < length) bit = codewords.get(bitIndex++);
+  				if (isApplyMask(mask, offsetX, offsetY)) bit ^= 1;
+  				matrix.set(offsetX, offsetY, bit);
+  			}
   		}
-  	};
-  	module.exports = NumericData;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/alphanumeric-data.js
-  var require_alphanumeric_data = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	var Mode = require_mode();
+  	}
+  }
+  function embedFunctionPatterns(matrix, version) {
+  	embedFinderPatternsAndSeparators(matrix);
+  	embedAlignmentPatterns(matrix, version);
+  	embedTimingPatterns(matrix);
+  }
+  function embedEncodingRegion(matrix, codewords, version, ecLevel, mask) {
+  	embedFormatInfo(matrix, ecLevel, mask);
+  	embedVersionInfo(matrix, version);
+  	embedCodewords(matrix, codewords, mask);
+  }
+  function buildMatrix(codewords, version, ecLevel, mask) {
+  	const matrix = new ByteMatrix(version.size);
+  	matrix.clear(-1);
+  	embedFunctionPatterns(matrix, version);
+  	embedEncodingRegion(matrix, codewords, version, ecLevel, mask);
+  	return matrix;
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module BlockPair
+  */
+  var BlockPair = (_ecCodewords = /* @__PURE__ */ new WeakMap(), _dataCodewords = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(dataCodewords, ecCodewords) {
+  		_classPrivateFieldInitSpec(this, _ecCodewords, void 0);
+  		_classPrivateFieldInitSpec(this, _dataCodewords, void 0);
+  		_classPrivateFieldSet2(_ecCodewords, this, ecCodewords);
+  		_classPrivateFieldSet2(_dataCodewords, this, dataCodewords);
+  	}
+  	get ecCodewords() {
+  		return _classPrivateFieldGet2(_ecCodewords, this);
+  	}
+  	get dataCodewords() {
+  		return _classPrivateFieldGet2(_dataCodewords, this);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Encoder
+  */
+  function buildGenerator(field, generators, degree) {
+  	const { length } = generators;
+  	if (degree >= length) {
+  		const { generator } = field;
+  		let lastGenerator = generators[length - 1];
+  		for (let i = length; i <= degree; i++) {
+  			const coefficients = new Int32Array([1, field.exp(i - 1 + generator)]);
+  			const nextGenerator = lastGenerator.multiply(new Polynomial(field, coefficients));
+  			generators.push(nextGenerator);
+  			lastGenerator = nextGenerator;
+  		}
+  	}
+  	return generators[degree];
+  }
+  var Encoder$1 = (_field2 = /* @__PURE__ */ new WeakMap(), _generators = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(field = QR_CODE_FIELD_256) {
+  		_classPrivateFieldInitSpec(this, _field2, void 0);
+  		_classPrivateFieldInitSpec(this, _generators, void 0);
+  		_classPrivateFieldSet2(_field2, this, field);
+  		_classPrivateFieldSet2(_generators, this, [new Polynomial(field, new Int32Array([1]))]);
+  	}
+  	encode(received, ecLength) {
+  		const dataBytes = received.length - ecLength;
+  		const infoCoefficients = new Int32Array(dataBytes);
+  		const generator = buildGenerator(_classPrivateFieldGet2(_field2, this), _classPrivateFieldGet2(_generators, this), ecLength);
+  		infoCoefficients.set(received.subarray(0, dataBytes));
+  		const [, remainder] = new Polynomial(_classPrivateFieldGet2(_field2, this), infoCoefficients).multiplyByMonomial(ecLength, 1).divide(generator);
+  		const { coefficients } = remainder;
+  		const zeroCoefficientsOffset = dataBytes + (ecLength - coefficients.length);
+  		received.fill(0, dataBytes, zeroCoefficientsOffset);
+  		received.set(coefficients, zeroCoefficientsOffset);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module encoder
+  */
+  function generateECCodewords(codewords, numECCodewords) {
+  	const numDataCodewords = codewords.length;
+  	const buffer = new Int32Array(numDataCodewords + numECCodewords);
+  	buffer.set(codewords);
+  	new Encoder$1().encode(buffer, numECCodewords);
+  	return new Uint8Array(buffer.subarray(numDataCodewords));
+  }
+  function injectECCodewords(bits, { ecBlocks, numECCodewordsPerBlock }) {
+  	let maxNumECCodewords = 0;
+  	let maxNumDataCodewords = 0;
+  	let dataCodewordsOffset = 0;
+  	const blocks = [];
+  	for (const { count, numDataCodewords } of ecBlocks) for (let i = 0; i < count; i++) {
+  		const dataCodewords = new Uint8Array(numDataCodewords);
+  		bits.copyTo(dataCodewordsOffset * 8, dataCodewords, 0, numDataCodewords);
+  		const ecCodewords = generateECCodewords(dataCodewords, numECCodewordsPerBlock);
+  		blocks.push(new BlockPair(dataCodewords, ecCodewords));
+  		dataCodewordsOffset += numDataCodewords;
+  		maxNumECCodewords = Math.max(maxNumECCodewords, ecCodewords.length);
+  		maxNumDataCodewords = Math.max(maxNumDataCodewords, numDataCodewords);
+  	}
+  	const codewords = new BitArray();
+  	for (let i = 0; i < maxNumDataCodewords; i++) for (const { dataCodewords } of blocks) if (i < dataCodewords.length) codewords.append(dataCodewords[i], 8);
+  	for (let i = 0; i < maxNumECCodewords; i++) for (const { ecCodewords } of blocks) if (i < ecCodewords.length) codewords.append(ecCodewords[i], 8);
+  	return codewords;
+  }
+  function appendTerminator(bits, numDataCodewords) {
+  	const capacity = numDataCodewords * 8;
+  	for (let i = 0; i < 4 && bits.length < capacity; i++) bits.append(0);
+  	const numBitsInLastByte = bits.length & 7;
+  	if (numBitsInLastByte > 0) for (let i = numBitsInLastByte; i < 8; i++) bits.append(0);
+  	const numPaddingCodewords = numDataCodewords - bits.byteLength;
+  	for (let i = 0; i < numPaddingCodewords; i++) bits.append(i & 1 ? 17 : 236, 8);
+  }
+  function isByteMode(segment) {
+  	return segment.mode === Mode.BYTE;
+  }
+  function isHanziMode(segment) {
+  	return segment.mode === Mode.HANZI;
+  }
+  function appendModeInfo(bits, mode) {
+  	bits.append(mode.bits, 4);
+  }
+  function appendECI(bits, segment, currentECIValue) {
+  	if (isByteMode(segment)) {
+  		const [value] = segment.charset.values;
+  		if (value !== currentECIValue) {
+  			bits.append(Mode.ECI.bits, 4);
+  			if (value <= 127) bits.append(value, 8);
+  			else if (value <= 16383) bits.append(32768 | value, 16);
+  			else bits.append(12582912 | value, 24);
+  			return value;
+  		}
+  	}
+  	return currentECIValue;
+  }
+  function appendFNC1Info(bits, fnc1) {
+  	const [mode, indicator] = fnc1;
+  	switch (mode) {
+  		case "GS1":
+  			appendModeInfo(bits, Mode.FNC1_FIRST_POSITION);
+  			break;
+  		case "AIM":
+  			appendModeInfo(bits, Mode.FNC1_SECOND_POSITION);
+  			bits.append(indicator, 8);
+  	}
+  }
+  function getSegmentLength(segment, bits) {
+  	if (isByteMode(segment)) return bits.byteLength;
+  	return segment.content.length;
+  }
+  function appendLengthInfo(bits, mode, version, numLetters) {
+  	bits.append(numLetters, mode.getCharacterCountBits(version));
+  }
+  function willFit(numInputBits, version, ecLevel) {
+  	const ecBlocks = version.getECBlocks(ecLevel);
+  	const numInputCodewords = numInputBits + 7 >>> 3;
+  	return ecBlocks.numTotalDataCodewords >= numInputCodewords;
+  }
+  function chooseVersion(numInputBits, ecLevel) {
+  	for (const version of VERSIONS) if (willFit(numInputBits, version, ecLevel)) return version;
+  	throw new Error("data too big for all versions");
+  }
+  function calculateBitsNeeded(segmentBlocks, version) {
+  	let bitsNeeded = 0;
+  	for (const { mode, head, body } of segmentBlocks) bitsNeeded += head.length + mode.getCharacterCountBits(version) + body.length;
+  	return bitsNeeded;
+  }
+  function chooseRecommendVersion(segmentBlocks, ecLevel) {
+  	return chooseVersion(calculateBitsNeeded(segmentBlocks, chooseVersion(calculateBitsNeeded(segmentBlocks, VERSIONS[0]), ecLevel)), ecLevel);
+  }
+  function chooseBestMaskAndMatrix(codewords, version, ecLevel) {
+  	let bestMask = 0;
+  	let bestMatrix = buildMatrix(codewords, version, ecLevel, bestMask);
+  	let minPenalty = calculateMaskPenalty(bestMatrix);
+  	for (let mask = 1; mask < 8; mask++) {
+  		const matrix = buildMatrix(codewords, version, ecLevel, mask);
+  		const penalty = calculateMaskPenalty(matrix);
+  		if (penalty < minPenalty) {
+  			bestMask = mask;
+  			bestMatrix = matrix;
+  			minPenalty = penalty;
+  		}
+  	}
+  	return [bestMask, bestMatrix];
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Dict
+  * @see https://github.com/google/dart-gif-encoder
+  */
+  var MAX_CODE = 4095;
+  /**
+  * A dict contains codes defined during LZW compression. It's a mapping from a string
+  * of pixels to the code that represents it. The codes are stored in a trie which is
+  * represented as a map. Codes may be up to 12 bits. The size of the codebook is always
+  * the minimum power of 2 needed to represent all the codes and automatically increases
+  * as new codes are defined.
+  */
+  var Dict = (_bof = /* @__PURE__ */ new WeakMap(), _eof = /* @__PURE__ */ new WeakMap(), _bits4 = /* @__PURE__ */ new WeakMap(), _depth = /* @__PURE__ */ new WeakMap(), _size4 = /* @__PURE__ */ new WeakMap(), _unused = /* @__PURE__ */ new WeakMap(), _codes = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(depth) {
+  		_classPrivateFieldInitSpec(this, _bof, void 0);
+  		_classPrivateFieldInitSpec(this, _eof, void 0);
+  		_classPrivateFieldInitSpec(this, _bits4, void 0);
+  		_classPrivateFieldInitSpec(this, _depth, void 0);
+  		_classPrivateFieldInitSpec(this, _size4, void 0);
+  		_classPrivateFieldInitSpec(this, _unused, void 0);
+  		_classPrivateFieldInitSpec(this, _codes, void 0);
+  		const bof = 1 << depth;
+  		const eof = bof + 1;
+  		_classPrivateFieldSet2(_bof, this, bof);
+  		_classPrivateFieldSet2(_eof, this, eof);
+  		_classPrivateFieldSet2(_depth, this, depth);
+  		this.reset();
+  	}
+  	get bof() {
+  		return _classPrivateFieldGet2(_bof, this);
+  	}
+  	get eof() {
+  		return _classPrivateFieldGet2(_eof, this);
+  	}
+  	get bits() {
+  		return _classPrivateFieldGet2(_bits4, this);
+  	}
+  	get depth() {
+  		return _classPrivateFieldGet2(_depth, this);
+  	}
+  	reset() {
+  		const bits = _classPrivateFieldGet2(_depth, this) + 1;
+  		_classPrivateFieldSet2(_bits4, this, bits);
+  		_classPrivateFieldSet2(_size4, this, 1 << bits);
+  		_classPrivateFieldSet2(_codes, this, /* @__PURE__ */ new Map());
+  		_classPrivateFieldSet2(_unused, this, _classPrivateFieldGet2(_eof, this) + 1);
+  	}
+  	add(code, index) {
+  		let unused = _classPrivateFieldGet2(_unused, this);
+  		if (unused > MAX_CODE) return false;
+  		_classPrivateFieldGet2(_codes, this).set(code << 8 | index, unused++);
+  		let bits = _classPrivateFieldGet2(_bits4, this);
+  		let size = _classPrivateFieldGet2(_size4, this);
+  		if (unused > size) size = 1 << ++bits;
+  		_classPrivateFieldSet2(_bits4, this, bits);
+  		_classPrivateFieldSet2(_size4, this, size);
+  		_classPrivateFieldSet2(_unused, this, unused);
+  		return true;
+  	}
+  	get(code, index) {
+  		return _classPrivateFieldGet2(_codes, this).get(code << 8 | index);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module DictStream
+  * @see https://github.com/google/dart-gif-encoder
+  */
+  var DictStream = (_bits5 = /* @__PURE__ */ new WeakMap(), _dict = /* @__PURE__ */ new WeakMap(), _buffer = /* @__PURE__ */ new WeakMap(), _bytes2 = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(dict) {
+  		_classPrivateFieldInitSpec(this, _bits5, 0);
+  		_classPrivateFieldInitSpec(this, _dict, void 0);
+  		_classPrivateFieldInitSpec(this, _buffer, 0);
+  		_classPrivateFieldInitSpec(this, _bytes2, []);
+  		_classPrivateFieldSet2(_dict, this, dict);
+  	}
+  	write(code) {
+  		let bits = _classPrivateFieldGet2(_bits5, this);
+  		let buffer = _classPrivateFieldGet2(_buffer, this) | code << bits;
+  		bits += _classPrivateFieldGet2(_dict, this).bits;
+  		const bytes = _classPrivateFieldGet2(_bytes2, this);
+  		while (bits >= 8) {
+  			bytes.push(buffer & 255);
+  			buffer >>= 8;
+  			bits -= 8;
+  		}
+  		_classPrivateFieldSet2(_bits5, this, bits);
+  		_classPrivateFieldSet2(_buffer, this, buffer);
+  	}
+  	pipe(stream) {
+  		const bytes = _classPrivateFieldGet2(_bytes2, this);
+  		if (_classPrivateFieldGet2(_bits5, this) > 0) bytes.push(_classPrivateFieldGet2(_buffer, this));
+  		stream.writeByte(_classPrivateFieldGet2(_dict, this).depth);
+  		const { length } = bytes;
+  		for (let i = 0; i < length;) {
+  			const remain = length - i;
+  			if (remain >= 255) {
+  				stream.writeByte(255);
+  				stream.writeBytes(bytes, i, 255);
+  				i += 255;
+  			} else {
+  				stream.writeByte(remain);
+  				stream.writeBytes(bytes, i, remain);
+  				i = length;
+  			}
+  		}
+  		stream.writeByte(0);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module index
+  * @see https://github.com/google/dart-gif-encoder
+  */
+  function compress(pixels, depth, stream) {
+  	const dict = new Dict(depth);
+  	const buffer = new DictStream(dict);
+  	buffer.write(dict.bof);
+  	if (pixels.length > 0) {
+  		let code = pixels[0];
+  		const { length } = pixels;
+  		for (let i = 1; i < length; i++) {
+  			const pixelIndex = pixels[i];
+  			const nextCode = dict.get(code, pixelIndex);
+  			if (nextCode != null) code = nextCode;
+  			else {
+  				buffer.write(code);
+  				if (!dict.add(code, pixelIndex)) {
+  					buffer.write(dict.bof);
+  					dict.reset();
+  				}
+  				code = pixelIndex;
+  			}
+  		}
+  		buffer.write(code);
+  	}
+  	buffer.write(dict.eof);
+  	buffer.pipe(stream);
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module ByteStream
+  */
+  var ByteStream = (_bytes3 = /* @__PURE__ */ new WeakMap(), class {
+  	constructor() {
+  		_classPrivateFieldInitSpec(this, _bytes3, []);
+  	}
+  	get bytes() {
+  		return _classPrivateFieldGet2(_bytes3, this);
+  	}
+  	writeByte(value) {
+  		_classPrivateFieldGet2(_bytes3, this).push(value & 255);
+  	}
+  	writeInt16(value) {
+  		_classPrivateFieldGet2(_bytes3, this).push(value & 255, value >> 8 & 255);
+  	}
+  	writeBytes(bytes, offset = 0, length = bytes.length) {
+  		const buffer = _classPrivateFieldGet2(_bytes3, this);
+  		for (let i = 0; i < length; i++) buffer.push(bytes[offset + i] & 255);
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Base64Stream
+  */
+  var { fromCharCode } = String;
+  function encode(byte) {
+  	byte &= 63;
+  	if (byte >= 0) {
+  		if (byte < 26) return 65 + byte;
+  		else if (byte < 52) return 97 + (byte - 26);
+  		else if (byte < 62) return 48 + (byte - 52);
+  		else if (byte === 62) return 43;
+  		else if (byte === 63) return 47;
+  	}
+  	throw new Error(`illegal char: ${fromCharCode(byte)}`);
+  }
+  var Base64Stream = (_bits6 = /* @__PURE__ */ new WeakMap(), _buffer2 = /* @__PURE__ */ new WeakMap(), _length2 = /* @__PURE__ */ new WeakMap(), _stream = /* @__PURE__ */ new WeakMap(), class {
+  	constructor() {
+  		_classPrivateFieldInitSpec(this, _bits6, 0);
+  		_classPrivateFieldInitSpec(this, _buffer2, 0);
+  		_classPrivateFieldInitSpec(this, _length2, 0);
+  		_classPrivateFieldInitSpec(this, _stream, new ByteStream());
+  	}
+  	get bytes() {
+  		return _classPrivateFieldGet2(_stream, this).bytes;
+  	}
+  	write(byte) {
+  		var _this$length;
+  		let bits = _classPrivateFieldGet2(_bits6, this) + 8;
+  		const stream = _classPrivateFieldGet2(_stream, this);
+  		const buffer = _classPrivateFieldGet2(_buffer2, this) << 8 | byte & 255;
+  		while (bits >= 6) {
+  			stream.writeByte(encode(buffer >>> bits - 6));
+  			bits -= 6;
+  		}
+  		_classPrivateFieldSet2(_length2, this, (_this$length = _classPrivateFieldGet2(_length2, this), _this$length++, _this$length));
+  		_classPrivateFieldSet2(_bits6, this, bits);
+  		_classPrivateFieldSet2(_buffer2, this, buffer);
+  	}
+  	close() {
+  		const bits = _classPrivateFieldGet2(_bits6, this);
+  		const stream = _classPrivateFieldGet2(_stream, this);
+  		if (bits > 0) {
+  			stream.writeByte(encode(_classPrivateFieldGet2(_buffer2, this) << 6 - bits));
+  			_classPrivateFieldSet2(_bits6, this, 0);
+  			_classPrivateFieldSet2(_buffer2, this, 0);
+  		}
+  		const length = _classPrivateFieldGet2(_length2, this);
+  		if (length % 3 != 0) {
+  			const pad = 3 - length % 3;
+  			for (let i = 0; i < pad; i++) stream.writeByte(61);
+  		}
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module GIFImage
+  */
+  var GIFImage = (_width = /* @__PURE__ */ new WeakMap(), _height = /* @__PURE__ */ new WeakMap(), _foreground = /* @__PURE__ */ new WeakMap(), _background = /* @__PURE__ */ new WeakMap(), _pixels = /* @__PURE__ */ new WeakMap(), _Class_brand = /* @__PURE__ */ new WeakSet(), class {
+  	constructor(width, height, { foreground = [
+  		0,
+  		0,
+  		0
+  	], background = [
+  		255,
+  		255,
+  		255
+  	] } = {}) {
+  		_classPrivateMethodInitSpec(this, _Class_brand);
+  		_classPrivateFieldInitSpec(this, _width, void 0);
+  		_classPrivateFieldInitSpec(this, _height, void 0);
+  		_classPrivateFieldInitSpec(this, _foreground, void 0);
+  		_classPrivateFieldInitSpec(this, _background, void 0);
+  		_classPrivateFieldInitSpec(this, _pixels, []);
+  		_classPrivateFieldSet2(_width, this, width);
+  		_classPrivateFieldSet2(_height, this, height);
+  		_classPrivateFieldSet2(_foreground, this, foreground);
+  		_classPrivateFieldSet2(_background, this, background);
+  	}
+  	set(x, y, color) {
+  		_classPrivateFieldGet2(_pixels, this)[y * _classPrivateFieldGet2(_width, this) + x] = color;
+  	}
+  	toDataURL() {
+  		const bytes = _assertClassBrand(_Class_brand, this, _encode).call(this);
+  		const stream = new Base64Stream();
+  		for (const byte of bytes) stream.write(byte);
+  		stream.close();
+  		const base64 = stream.bytes;
+  		let url = "data:image/gif;base64,";
+  		for (const byte of base64) url += fromCharCode(byte);
+  		return url;
+  	}
+  });
+  function _encode() {
+  	const width = _classPrivateFieldGet2(_width, this);
+  	const height = _classPrivateFieldGet2(_height, this);
+  	const stream = new ByteStream();
+  	const background = _classPrivateFieldGet2(_background, this);
+  	const foreground = _classPrivateFieldGet2(_foreground, this);
+  	stream.writeBytes([
+  		71,
+  		73,
+  		70,
+  		56,
+  		57,
+  		97
+  	]);
+  	stream.writeInt16(width);
+  	stream.writeInt16(height);
+  	stream.writeBytes([
+  		128,
+  		0,
+  		0
+  	]);
+  	stream.writeBytes([
+  		background[0],
+  		background[1],
+  		background[2]
+  	]);
+  	stream.writeBytes([
+  		foreground[0],
+  		foreground[1],
+  		foreground[2]
+  	]);
+  	stream.writeByte(44);
+  	stream.writeInt16(0);
+  	stream.writeInt16(0);
+  	stream.writeInt16(width);
+  	stream.writeInt16(height);
+  	stream.writeByte(0);
+  	compress(_classPrivateFieldGet2(_pixels, this), 2, stream);
+  	stream.writeByte(59);
+  	return stream.bytes;
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Encoded
+  */
+  var Encoded = (_mask = /* @__PURE__ */ new WeakMap(), _level2 = /* @__PURE__ */ new WeakMap(), _version2 = /* @__PURE__ */ new WeakMap(), _matrix = /* @__PURE__ */ new WeakMap(), class {
+  	constructor(matrix, version, level, mask) {
+  		_classPrivateFieldInitSpec(this, _mask, void 0);
+  		_classPrivateFieldInitSpec(this, _level2, void 0);
+  		_classPrivateFieldInitSpec(this, _version2, void 0);
+  		_classPrivateFieldInitSpec(this, _matrix, void 0);
+  		_classPrivateFieldSet2(_mask, this, mask);
+  		_classPrivateFieldSet2(_level2, this, level);
+  		_classPrivateFieldSet2(_matrix, this, matrix);
+  		_classPrivateFieldSet2(_version2, this, version);
+  	}
   	/**
-  	* Array of characters available in alphanumeric mode
-  	*
-  	* As per QR Code specification, to each character
-  	* is assigned a value from 0 to 44 which in this case coincides
-  	* with the array index
-  	*
-  	* @type {Array}
+  	* @property matrix
+  	* @description Get the size of qrcode.
   	*/
-  	var ALPHA_NUM_CHARS = [
-  		"0",
-  		"1",
-  		"2",
-  		"3",
-  		"4",
-  		"5",
-  		"6",
-  		"7",
-  		"8",
-  		"9",
-  		"A",
-  		"B",
-  		"C",
-  		"D",
-  		"E",
-  		"F",
-  		"G",
-  		"H",
-  		"I",
-  		"J",
-  		"K",
+  	get size() {
+  		return _classPrivateFieldGet2(_matrix, this).size;
+  	}
+  	/**
+  	* @property mask
+  	* @description Get the mask of qrcode.
+  	*/
+  	get mask() {
+  		return _classPrivateFieldGet2(_mask, this);
+  	}
+  	/**
+  	* @property level
+  	* @description Get the error correction level of qrcode.
+  	*/
+  	get level() {
+  		return _classPrivateFieldGet2(_level2, this).name;
+  	}
+  	/**
+  	* @property version
+  	* @description Get the version of qrcode.
+  	*/
+  	get version() {
+  		return _classPrivateFieldGet2(_version2, this).version;
+  	}
+  	/**
+  	* @method get
+  	* @description Get the bit value of the specified coordinate of qrcode.
+  	*/
+  	get(x, y) {
+  		const { size } = _classPrivateFieldGet2(_matrix, this);
+  		if (x < 0 || y < 0 || x >= size || y >= size) throw new Error(`illegal coordinate: [${x}, ${y}]`);
+  		return _classPrivateFieldGet2(_matrix, this).get(x, y);
+  	}
+  	/**
+  	* @method toDataURL
+  	* @param moduleSize The size of one qrcode module
+  	* @param options Set rest options of gif, like margin, foreground and background.
+  	*/
+  	toDataURL(moduleSize = 2, { margin = moduleSize * 4, ...colors } = {}) {
+  		moduleSize = Math.max(1, moduleSize >> 0);
+  		margin = Math.max(0, margin >> 0);
+  		const matrix = _classPrivateFieldGet2(_matrix, this);
+  		const matrixSize = matrix.size;
+  		const size = moduleSize * matrixSize + margin * 2;
+  		const gif = new GIFImage(size, size, colors);
+  		const max = size - margin;
+  		for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (x >= margin && x < max && y >= margin && y < max) {
+  			const offsetX = toInt32((x - margin) / moduleSize);
+  			const offsetY = toInt32((y - margin) / moduleSize);
+  			gif.set(x, y, matrix.get(offsetX, offsetY));
+  		} else gif.set(x, y, 0);
+  		return gif.toDataURL();
+  	}
+  });
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module asserts
+  */
+  function assertContent(content) {
+  	if (content === "") throw new Error("segment content should be at least 1 character");
+  }
+  function assertCharset(charset) {
+  	if (!(charset instanceof Charset)) throw new Error("illegal charset");
+  }
+  function assertHints(hints) {
+  	const { fnc1, structured } = hints;
+  	if (fnc1 != null) {
+  		const [mode] = fnc1;
+  		if (mode !== "GS1" && mode !== "AIM") throw new Error("illegal fnc1 hint");
+  		if (mode === "AIM") {
+  			const [, indicator] = fnc1;
+  			if (indicator < 0 || indicator > 255 || !Number.isInteger(indicator)) throw new Error("illegal fnc1 application indicator");
+  		}
+  	}
+  	if (structured != null) {
+  		const { index, count, parity } = structured;
+  		if (!Number.isInteger(count) || count < 1 || count > 16) throw new Error("illegal structured append count");
+  		if (!Number.isInteger(index) || index < 0 || index >= count) throw new Error("illegal structured append index");
+  		if (!Number.isInteger(parity) || parity < 0 || parity > 255) throw new Error("illegal structured append parity");
+  	}
+  }
+  function assertLevel(level) {
+  	if ([
   		"L",
   		"M",
-  		"N",
-  		"O",
-  		"P",
   		"Q",
-  		"R",
-  		"S",
-  		"T",
-  		"U",
-  		"V",
-  		"W",
-  		"X",
-  		"Y",
-  		"Z",
-  		" ",
-  		"$",
-  		"%",
-  		"*",
-  		"+",
-  		"-",
-  		".",
-  		"/",
-  		":"
-  	];
-  	function AlphanumericData(data) {
-  		this.mode = Mode.ALPHANUMERIC;
-  		this.data = data;
+  		"H"
+  	].indexOf(level) < 0) throw new Error("illegal error correction level");
+  }
+  function assertVersion(version) {
+  	if (version !== "Auto") {
+  		if (version < 1 || version > 40 || !Number.isInteger(version)) throw new Error("illegal version");
   	}
-  	AlphanumericData.getBitsLength = function getBitsLength(length) {
-  		return 11 * Math.floor(length / 2) + 6 * (length % 2);
-  	};
-  	AlphanumericData.prototype.getLength = function getLength() {
-  		return this.data.length;
-  	};
-  	AlphanumericData.prototype.getBitsLength = function getBitsLength() {
-  		return AlphanumericData.getBitsLength(this.data.length);
-  	};
-  	AlphanumericData.prototype.write = function write(bitBuffer) {
-  		let i = 0;
-  		for (; i + 2 <= this.data.length; i += 2) {
-  			let value = ALPHA_NUM_CHARS.indexOf(this.data[i]) * 45;
-  			value += ALPHA_NUM_CHARS.indexOf(this.data[i + 1]);
-  			bitBuffer.put(value, 11);
-  		}
-  		if (this.data.length % 2) bitBuffer.put(ALPHA_NUM_CHARS.indexOf(this.data[i]), 6);
-  	};
-  	module.exports = AlphanumericData;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/byte-data.js
-  var require_byte_data = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	var Mode = require_mode();
-  	function ByteData(data) {
-  		this.mode = Mode.BYTE;
-  		if (typeof data === "string") this.data = new TextEncoder().encode(data);
-  		else this.data = new Uint8Array(data);
+  }
+  /**
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * Structured Append header (ISO/IEC 18004): mode indicator 0011, the 4-bit symbol position,
+  * the 4-bit count minus one, and the 8-bit parity of the whole message. It precedes every other bit,
+  * so it is written once, at the head of the first segment.
+  */
+  function appendStructuredAppendInfo(bits, { index, count, parity }) {
+  	bits.append(3, 4);
+  	bits.append(index, 4);
+  	bits.append(count - 1, 4);
+  	bits.append(parity, 8);
+  }
+  /**
+  * @module Encoder
+  */
+  var Encoder = (_hints = /* @__PURE__ */ new WeakMap(), _level3 = /* @__PURE__ */ new WeakMap(), _encode2 = /* @__PURE__ */ new WeakMap(), _version3 = /* @__PURE__ */ new WeakMap(), class {
+  	/**
+  	* @constructor
+  	* @param options The options of encoder.
+  	*/
+  	constructor({ hints = {}, level = "L", version = "Auto", encode: encode$1$1 = encode$1 } = {}) {
+  		_classPrivateFieldInitSpec(this, _hints, void 0);
+  		_classPrivateFieldInitSpec(this, _level3, void 0);
+  		_classPrivateFieldInitSpec(this, _encode2, void 0);
+  		_classPrivateFieldInitSpec(this, _version3, void 0);
+  		assertHints(hints);
+  		assertLevel(level);
+  		assertVersion(version);
+  		_classPrivateFieldSet2(_hints, this, hints);
+  		_classPrivateFieldSet2(_encode2, this, encode$1$1);
+  		_classPrivateFieldSet2(_version3, this, version);
+  		_classPrivateFieldSet2(_level3, this, ECLevel[level]);
   	}
-  	ByteData.getBitsLength = function getBitsLength(length) {
-  		return length * 8;
-  	};
-  	ByteData.prototype.getLength = function getLength() {
-  		return this.data.length;
-  	};
-  	ByteData.prototype.getBitsLength = function getBitsLength() {
-  		return ByteData.getBitsLength(this.data.length);
-  	};
-  	ByteData.prototype.write = function(bitBuffer) {
-  		for (let i = 0, l = this.data.length; i < l; i++) bitBuffer.put(this.data[i], 8);
-  	};
-  	module.exports = ByteData;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/kanji-data.js
-  var require_kanji_data = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	var Mode = require_mode();
-  	var Utils = require_utils$1();
-  	function KanjiData(data) {
-  		this.mode = Mode.KANJI;
-  		this.data = data;
-  	}
-  	KanjiData.getBitsLength = function getBitsLength(length) {
-  		return length * 13;
-  	};
-  	KanjiData.prototype.getLength = function getLength() {
-  		return this.data.length;
-  	};
-  	KanjiData.prototype.getBitsLength = function getBitsLength() {
-  		return KanjiData.getBitsLength(this.data.length);
-  	};
-  	KanjiData.prototype.write = function(bitBuffer) {
-  		let i = 0;
-  		for (; i < this.data.length; i++) {
-  			let value = Utils.toSJIS(this.data[i]);
-  			if (value >= 33088 && value <= 40956) value -= 33088;
-  			else if (value >= 57408 && value <= 60351) value -= 49472;
-  			else throw new Error("Invalid SJIS character: " + this.data[i] + "\nMake sure your charset is UTF-8");
-  			value = (value >>> 8 & 255) * 192 + (value & 255);
-  			bitBuffer.put(value, 13);
-  		}
-  	};
-  	module.exports = KanjiData;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/dijkstrajs@1.0.3/node_modules/dijkstrajs/dijkstra.js
-  var require_dijkstra = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-  	/******************************************************************************
-  	* Created 2008-08-19.
-  	*
-  	* Dijkstra path-finding functions. Adapted from the Dijkstar Python project.
-  	*
-  	* Copyright (C) 2008
-  	*   Wyatt Baldwin <self@wyattbaldwin.com>
-  	*   All rights reserved
-  	*
-  	* Licensed under the MIT license.
-  	*
-  	*   http://www.opensource.org/licenses/mit-license.php
-  	*
-  	* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  	* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  	* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  	* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  	* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  	* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  	* THE SOFTWARE.
-  	*****************************************************************************/
-  	var dijkstra = {
-  		single_source_shortest_paths: function(graph, s, d) {
-  			var predecessors = {};
-  			var costs = {};
-  			costs[s] = 0;
-  			var open = dijkstra.PriorityQueue.make();
-  			open.push(s, 0);
-  			var closest, u, v, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
-  			while (!open.empty()) {
-  				closest = open.pop();
-  				u = closest.value;
-  				cost_of_s_to_u = closest.cost;
-  				adjacent_nodes = graph[u] || {};
-  				for (v in adjacent_nodes) if (adjacent_nodes.hasOwnProperty(v)) {
-  					cost_of_e = adjacent_nodes[v];
-  					cost_of_s_to_u_plus_cost_of_e = cost_of_s_to_u + cost_of_e;
-  					cost_of_s_to_v = costs[v];
-  					first_visit = typeof costs[v] === "undefined";
-  					if (first_visit || cost_of_s_to_v > cost_of_s_to_u_plus_cost_of_e) {
-  						costs[v] = cost_of_s_to_u_plus_cost_of_e;
-  						open.push(v, cost_of_s_to_u_plus_cost_of_e);
-  						predecessors[v] = u;
-  					}
-  				}
+  	/**
+  	* @method encode
+  	* @description Encode the segments.
+  	* @param segments The segments.
+  	*/
+  	encode(...segments) {
+  		const ecLevel = _classPrivateFieldGet2(_level3, this);
+  		const encode = _classPrivateFieldGet2(_encode2, this);
+  		const { fnc1, structured } = _classPrivateFieldGet2(_hints, this);
+  		let isStructuredAppended = false;
+  		const versionNumber = _classPrivateFieldGet2(_version3, this);
+  		const segmentBlocks = [];
+  		let isFNC1Appended = false;
+  		let [currentECIValue] = Charset.ISO_8859_1.values;
+  		for (const segment of segments) {
+  			const { mode } = segment;
+  			const head = new BitArray();
+  			if (structured != null && !isStructuredAppended) {
+  				isStructuredAppended = true;
+  				appendStructuredAppendInfo(head, structured);
   			}
-  			if (typeof d !== "undefined" && typeof costs[d] === "undefined") {
-  				var msg = [
-  					"Could not find a path from ",
-  					s,
-  					" to ",
-  					d,
-  					"."
-  				].join("");
-  				throw new Error(msg);
+  			const body = segment.encode(encode);
+  			const length = getSegmentLength(segment, body);
+  			currentECIValue = appendECI(head, segment, currentECIValue);
+  			if (fnc1 != null && !isFNC1Appended) {
+  				isFNC1Appended = true;
+  				appendFNC1Info(head, fnc1);
   			}
-  			return predecessors;
-  		},
-  		extract_shortest_path_from_predecessor_list: function(predecessors, d) {
-  			var nodes = [];
-  			var u = d;
-  			while (u) {
-  				nodes.push(u);
-  				predecessors[u];
-  				u = predecessors[u];
-  			}
-  			nodes.reverse();
-  			return nodes;
-  		},
-  		find_path: function(graph, s, d) {
-  			var predecessors = dijkstra.single_source_shortest_paths(graph, s, d);
-  			return dijkstra.extract_shortest_path_from_predecessor_list(predecessors, d);
-  		},
-  		/**
-  		* A very naive priority queue implementation.
-  		*/
-  		PriorityQueue: {
-  			make: function(opts) {
-  				var T = dijkstra.PriorityQueue, t = {}, key;
-  				opts = opts || {};
-  				for (key in T) if (T.hasOwnProperty(key)) t[key] = T[key];
-  				t.queue = [];
-  				t.sorter = opts.sorter || T.default_sorter;
-  				return t;
-  			},
-  			default_sorter: function(a, b) {
-  				return a.cost - b.cost;
-  			},
-  			/**
-  			* Add a new item to the queue and ensure the highest priority element
-  			* is at the front of the queue.
-  			*/
-  			push: function(value, cost) {
-  				var item = {
-  					value,
-  					cost
-  				};
-  				this.queue.push(item);
-  				this.queue.sort(this.sorter);
-  			},
-  			/**
-  			* Return the highest priority element in the queue.
-  			*/
-  			pop: function() {
-  				return this.queue.shift();
-  			},
-  			empty: function() {
-  				return this.queue.length === 0;
-  			}
-  		}
-  	};
-  	if (typeof module !== "undefined") module.exports = dijkstra;
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/segments.js
-  var require_segments = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var Mode = require_mode();
-  	var NumericData = require_numeric_data();
-  	var AlphanumericData = require_alphanumeric_data();
-  	var ByteData = require_byte_data();
-  	var KanjiData = require_kanji_data();
-  	var Regex = require_regex();
-  	var Utils = require_utils$1();
-  	var dijkstra = require_dijkstra();
-  	/**
-  	* Returns UTF8 byte length
-  	*
-  	* @param  {String} str Input string
-  	* @return {Number}     Number of byte
-  	*/
-  	function getStringByteLength(str) {
-  		return unescape(encodeURIComponent(str)).length;
-  	}
-  	/**
-  	* Get a list of segments of the specified mode
-  	* from a string
-  	*
-  	* @param  {Mode}   mode Segment mode
-  	* @param  {String} str  String to process
-  	* @return {Array}       Array of object with segments data
-  	*/
-  	function getSegments(regex, mode, str) {
-  		const segments = [];
-  		let result;
-  		while ((result = regex.exec(str)) !== null) segments.push({
-  			data: result[0],
-  			index: result.index,
-  			mode,
-  			length: result[0].length
-  		});
-  		return segments;
-  	}
-  	/**
-  	* Extracts a series of segments with the appropriate
-  	* modes from a string
-  	*
-  	* @param  {String} dataStr Input string
-  	* @return {Array}          Array of object with segments data
-  	*/
-  	function getSegmentsFromString(dataStr) {
-  		const numSegs = getSegments(Regex.NUMERIC, Mode.NUMERIC, dataStr);
-  		const alphaNumSegs = getSegments(Regex.ALPHANUMERIC, Mode.ALPHANUMERIC, dataStr);
-  		let byteSegs;
-  		let kanjiSegs;
-  		if (Utils.isKanjiModeEnabled()) {
-  			byteSegs = getSegments(Regex.BYTE, Mode.BYTE, dataStr);
-  			kanjiSegs = getSegments(Regex.KANJI, Mode.KANJI, dataStr);
-  		} else {
-  			byteSegs = getSegments(Regex.BYTE_KANJI, Mode.BYTE, dataStr);
-  			kanjiSegs = [];
-  		}
-  		return numSegs.concat(alphaNumSegs, byteSegs, kanjiSegs).sort(function(s1, s2) {
-  			return s1.index - s2.index;
-  		}).map(function(obj) {
-  			return {
-  				data: obj.data,
-  				mode: obj.mode,
-  				length: obj.length
-  			};
-  		});
-  	}
-  	/**
-  	* Returns how many bits are needed to encode a string of
-  	* specified length with the specified mode
-  	*
-  	* @param  {Number} length String length
-  	* @param  {Mode} mode     Segment mode
-  	* @return {Number}        Bit length
-  	*/
-  	function getSegmentBitsLength(length, mode) {
-  		switch (mode) {
-  			case Mode.NUMERIC: return NumericData.getBitsLength(length);
-  			case Mode.ALPHANUMERIC: return AlphanumericData.getBitsLength(length);
-  			case Mode.KANJI: return KanjiData.getBitsLength(length);
-  			case Mode.BYTE: return ByteData.getBitsLength(length);
-  		}
-  	}
-  	/**
-  	* Merges adjacent segments which have the same mode
-  	*
-  	* @param  {Array} segs Array of object with segments data
-  	* @return {Array}      Array of object with segments data
-  	*/
-  	function mergeSegments(segs) {
-  		return segs.reduce(function(acc, curr) {
-  			const prevSeg = acc.length - 1 >= 0 ? acc[acc.length - 1] : null;
-  			if (prevSeg && prevSeg.mode === curr.mode) {
-  				acc[acc.length - 1].data += curr.data;
-  				return acc;
-  			}
-  			acc.push(curr);
-  			return acc;
-  		}, []);
-  	}
-  	/**
-  	* Generates a list of all possible nodes combination which
-  	* will be used to build a segments graph.
-  	*
-  	* Nodes are divided by groups. Each group will contain a list of all the modes
-  	* in which is possible to encode the given text.
-  	*
-  	* For example the text '12345' can be encoded as Numeric, Alphanumeric or Byte.
-  	* The group for '12345' will contain then 3 objects, one for each
-  	* possible encoding mode.
-  	*
-  	* Each node represents a possible segment.
-  	*
-  	* @param  {Array} segs Array of object with segments data
-  	* @return {Array}      Array of object with segments data
-  	*/
-  	function buildNodes(segs) {
-  		const nodes = [];
-  		for (let i = 0; i < segs.length; i++) {
-  			const seg = segs[i];
-  			switch (seg.mode) {
-  				case Mode.NUMERIC:
-  					nodes.push([
-  						seg,
-  						{
-  							data: seg.data,
-  							mode: Mode.ALPHANUMERIC,
-  							length: seg.length
-  						},
-  						{
-  							data: seg.data,
-  							mode: Mode.BYTE,
-  							length: seg.length
-  						}
-  					]);
-  					break;
-  				case Mode.ALPHANUMERIC:
-  					nodes.push([seg, {
-  						data: seg.data,
-  						mode: Mode.BYTE,
-  						length: seg.length
-  					}]);
-  					break;
-  				case Mode.KANJI:
-  					nodes.push([seg, {
-  						data: seg.data,
-  						mode: Mode.BYTE,
-  						length: getStringByteLength(seg.data)
-  					}]);
-  					break;
-  				case Mode.BYTE: nodes.push([{
-  					data: seg.data,
-  					mode: Mode.BYTE,
-  					length: getStringByteLength(seg.data)
-  				}]);
-  			}
-  		}
-  		return nodes;
-  	}
-  	/**
-  	* Builds a graph from a list of nodes.
-  	* All segments in each node group will be connected with all the segments of
-  	* the next group and so on.
-  	*
-  	* At each connection will be assigned a weight depending on the
-  	* segment's byte length.
-  	*
-  	* @param  {Array} nodes    Array of object with segments data
-  	* @param  {Number} version QR Code version
-  	* @return {Object}         Graph of all possible segments
-  	*/
-  	function buildGraph(nodes, version) {
-  		const table = {};
-  		const graph = { start: {} };
-  		let prevNodeIds = ["start"];
-  		for (let i = 0; i < nodes.length; i++) {
-  			const nodeGroup = nodes[i];
-  			const currentNodeIds = [];
-  			for (let j = 0; j < nodeGroup.length; j++) {
-  				const node = nodeGroup[j];
-  				const key = "" + i + j;
-  				currentNodeIds.push(key);
-  				table[key] = {
-  					node,
-  					lastCount: 0
-  				};
-  				graph[key] = {};
-  				for (let n = 0; n < prevNodeIds.length; n++) {
-  					const prevNodeId = prevNodeIds[n];
-  					if (table[prevNodeId] && table[prevNodeId].node.mode === node.mode) {
-  						graph[prevNodeId][key] = getSegmentBitsLength(table[prevNodeId].lastCount + node.length, node.mode) - getSegmentBitsLength(table[prevNodeId].lastCount, node.mode);
-  						table[prevNodeId].lastCount += node.length;
-  					} else {
-  						if (table[prevNodeId]) table[prevNodeId].lastCount = node.length;
-  						graph[prevNodeId][key] = getSegmentBitsLength(node.length, node.mode) + 4 + Mode.getCharCountIndicator(node.mode, version);
-  					}
-  				}
-  			}
-  			prevNodeIds = currentNodeIds;
-  		}
-  		for (let n = 0; n < prevNodeIds.length; n++) graph[prevNodeIds[n]].end = 0;
-  		return {
-  			map: graph,
-  			table
-  		};
-  	}
-  	/**
-  	* Builds a segment from a specified data and mode.
-  	* If a mode is not specified, the more suitable will be used.
-  	*
-  	* @param  {String} data             Input data
-  	* @param  {Mode | String} modesHint Data mode
-  	* @return {Segment}                 Segment
-  	*/
-  	function buildSingleSegment(data, modesHint) {
-  		let mode;
-  		const bestMode = Mode.getBestModeForData(data);
-  		mode = Mode.from(modesHint, bestMode);
-  		if (mode !== Mode.BYTE && mode.bit < bestMode.bit) throw new Error("\"" + data + "\" cannot be encoded with mode " + Mode.toString(mode) + ".\n Suggested mode is: " + Mode.toString(bestMode));
-  		if (mode === Mode.KANJI && !Utils.isKanjiModeEnabled()) mode = Mode.BYTE;
-  		switch (mode) {
-  			case Mode.NUMERIC: return new NumericData(data);
-  			case Mode.ALPHANUMERIC: return new AlphanumericData(data);
-  			case Mode.KANJI: return new KanjiData(data);
-  			case Mode.BYTE: return new ByteData(data);
-  		}
-  	}
-  	/**
-  	* Builds a list of segments from an array.
-  	* Array can contain Strings or Objects with segment's info.
-  	*
-  	* For each item which is a string, will be generated a segment with the given
-  	* string and the more appropriate encoding mode.
-  	*
-  	* For each item which is an object, will be generated a segment with the given
-  	* data and mode.
-  	* Objects must contain at least the property "data".
-  	* If property "mode" is not present, the more suitable mode will be used.
-  	*
-  	* @param  {Array} array Array of objects with segments data
-  	* @return {Array}       Array of Segments
-  	*/
-  	exports.fromArray = function fromArray(array) {
-  		return array.reduce(function(acc, seg) {
-  			if (typeof seg === "string") acc.push(buildSingleSegment(seg, null));
-  			else if (seg.data) acc.push(buildSingleSegment(seg.data, seg.mode));
-  			return acc;
-  		}, []);
-  	};
-  	/**
-  	* Builds an optimized sequence of segments from a string,
-  	* which will produce the shortest possible bitstream.
-  	*
-  	* @param  {String} data    Input string
-  	* @param  {Number} version QR Code version
-  	* @return {Array}          Array of segments
-  	*/
-  	exports.fromString = function fromString(data, version) {
-  		const graph = buildGraph(buildNodes(getSegmentsFromString(data, Utils.isKanjiModeEnabled())), version);
-  		const path = dijkstra.find_path(graph.map, "start", "end");
-  		const optimizedSegs = [];
-  		for (let i = 1; i < path.length - 1; i++) optimizedSegs.push(graph.table[path[i]].node);
-  		return exports.fromArray(mergeSegments(optimizedSegs));
-  	};
-  	/**
-  	* Splits a string in various segments with the modes which
-  	* best represent their content.
-  	* The produced segments are far from being optimized.
-  	* The output of this function is only used to estimate a QR Code version
-  	* which may contain the data.
-  	*
-  	* @param  {string} data Input string
-  	* @return {Array}       Array of segments
-  	*/
-  	exports.rawSplit = function rawSplit(data) {
-  		return exports.fromArray(getSegmentsFromString(data, Utils.isKanjiModeEnabled()));
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/core/qrcode.js
-  var require_qrcode = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var Utils = require_utils$1();
-  	var ECLevel = require_error_correction_level();
-  	var BitBuffer = require_bit_buffer();
-  	var BitMatrix = require_bit_matrix();
-  	var AlignmentPattern = require_alignment_pattern();
-  	var FinderPattern = require_finder_pattern();
-  	var MaskPattern = require_mask_pattern();
-  	var ECCode = require_error_correction_code();
-  	var ReedSolomonEncoder = require_reed_solomon_encoder();
-  	var Version = require_version();
-  	var FormatInfo = require_format_info();
-  	var Mode = require_mode();
-  	var Segments = require_segments();
-  	/**
-  	* QRCode for JavaScript
-  	*
-  	* modified by Ryan Day for nodejs support
-  	* Copyright (c) 2011 Ryan Day
-  	*
-  	* Licensed under the MIT license:
-  	*   http://www.opensource.org/licenses/mit-license.php
-  	*
-  	//---------------------------------------------------------------------
-  	// QRCode for JavaScript
-  	//
-  	// Copyright (c) 2009 Kazuhiko Arase
-  	//
-  	// URL: http://www.d-project.com/
-  	//
-  	// Licensed under the MIT license:
-  	//   http://www.opensource.org/licenses/mit-license.php
-  	//
-  	// The word "QR Code" is registered trademark of
-  	// DENSO WAVE INCORPORATED
-  	//   http://www.denso-wave.com/qrcode/faqpatent-e.html
-  	//
-  	//---------------------------------------------------------------------
-  	*/
-  	/**
-  	* Add finder patterns bits to matrix
-  	*
-  	* @param  {BitMatrix} matrix  Modules matrix
-  	* @param  {Number}    version QR Code version
-  	*/
-  	function setupFinderPattern(matrix, version) {
-  		const size = matrix.size;
-  		const pos = FinderPattern.getPositions(version);
-  		for (let i = 0; i < pos.length; i++) {
-  			const row = pos[i][0];
-  			const col = pos[i][1];
-  			for (let r = -1; r <= 7; r++) {
-  				if (row + r <= -1 || size <= row + r) continue;
-  				for (let c = -1; c <= 7; c++) {
-  					if (col + c <= -1 || size <= col + c) continue;
-  					if (r >= 0 && r <= 6 && (c === 0 || c === 6) || c >= 0 && c <= 6 && (r === 0 || r === 6) || r >= 2 && r <= 4 && c >= 2 && c <= 4) matrix.set(row + r, col + c, true, true);
-  					else matrix.set(row + r, col + c, false, true);
-  				}
-  			}
-  		}
-  	}
-  	/**
-  	* Add timing pattern bits to matrix
-  	*
-  	* Note: this function must be called before {@link setupAlignmentPattern}
-  	*
-  	* @param  {BitMatrix} matrix Modules matrix
-  	*/
-  	function setupTimingPattern(matrix) {
-  		const size = matrix.size;
-  		for (let r = 8; r < size - 8; r++) {
-  			const value = r % 2 === 0;
-  			matrix.set(r, 6, value, true);
-  			matrix.set(6, r, value, true);
-  		}
-  	}
-  	/**
-  	* Add alignment patterns bits to matrix
-  	*
-  	* Note: this function must be called after {@link setupTimingPattern}
-  	*
-  	* @param  {BitMatrix} matrix  Modules matrix
-  	* @param  {Number}    version QR Code version
-  	*/
-  	function setupAlignmentPattern(matrix, version) {
-  		const pos = AlignmentPattern.getPositions(version);
-  		for (let i = 0; i < pos.length; i++) {
-  			const row = pos[i][0];
-  			const col = pos[i][1];
-  			for (let r = -2; r <= 2; r++) for (let c = -2; c <= 2; c++) if (r === -2 || r === 2 || c === -2 || c === 2 || r === 0 && c === 0) matrix.set(row + r, col + c, true, true);
-  			else matrix.set(row + r, col + c, false, true);
-  		}
-  	}
-  	/**
-  	* Add version info bits to matrix
-  	*
-  	* @param  {BitMatrix} matrix  Modules matrix
-  	* @param  {Number}    version QR Code version
-  	*/
-  	function setupVersionInfo(matrix, version) {
-  		const size = matrix.size;
-  		const bits = Version.getEncodedBits(version);
-  		let row, col, mod;
-  		for (let i = 0; i < 18; i++) {
-  			row = Math.floor(i / 3);
-  			col = i % 3 + size - 8 - 3;
-  			mod = (bits >> i & 1) === 1;
-  			matrix.set(row, col, mod, true);
-  			matrix.set(col, row, mod, true);
-  		}
-  	}
-  	/**
-  	* Add format info bits to matrix
-  	*
-  	* @param  {BitMatrix} matrix               Modules matrix
-  	* @param  {ErrorCorrectionLevel}    errorCorrectionLevel Error correction level
-  	* @param  {Number}    maskPattern          Mask pattern reference value
-  	*/
-  	function setupFormatInfo(matrix, errorCorrectionLevel, maskPattern) {
-  		const size = matrix.size;
-  		const bits = FormatInfo.getEncodedBits(errorCorrectionLevel, maskPattern);
-  		let i, mod;
-  		for (i = 0; i < 15; i++) {
-  			mod = (bits >> i & 1) === 1;
-  			if (i < 6) matrix.set(i, 8, mod, true);
-  			else if (i < 8) matrix.set(i + 1, 8, mod, true);
-  			else matrix.set(size - 15 + i, 8, mod, true);
-  			if (i < 8) matrix.set(8, size - i - 1, mod, true);
-  			else if (i < 9) matrix.set(8, 15 - i - 1 + 1, mod, true);
-  			else matrix.set(8, 15 - i - 1, mod, true);
-  		}
-  		matrix.set(size - 8, 8, 1, true);
-  	}
-  	/**
-  	* Add encoded data bits to matrix
-  	*
-  	* @param  {BitMatrix}  matrix Modules matrix
-  	* @param  {Uint8Array} data   Data codewords
-  	*/
-  	function setupData(matrix, data) {
-  		const size = matrix.size;
-  		let inc = -1;
-  		let row = size - 1;
-  		let bitIndex = 7;
-  		let byteIndex = 0;
-  		for (let col = size - 1; col > 0; col -= 2) {
-  			if (col === 6) col--;
-  			while (true) {
-  				for (let c = 0; c < 2; c++) if (!matrix.isReserved(row, col - c)) {
-  					let dark = false;
-  					if (byteIndex < data.length) dark = (data[byteIndex] >>> bitIndex & 1) === 1;
-  					matrix.set(row, col - c, dark);
-  					bitIndex--;
-  					if (bitIndex === -1) {
-  						byteIndex++;
-  						bitIndex = 7;
-  					}
-  				}
-  				row += inc;
-  				if (row < 0 || size <= row) {
-  					row -= inc;
-  					inc = -inc;
-  					break;
-  				}
-  			}
-  		}
-  	}
-  	/**
-  	* Create encoded codewords from data input
-  	*
-  	* @param  {Number}   version              QR Code version
-  	* @param  {ErrorCorrectionLevel}   errorCorrectionLevel Error correction level
-  	* @param  {ByteData} data                 Data input
-  	* @return {Uint8Array}                    Buffer containing encoded codewords
-  	*/
-  	function createData(version, errorCorrectionLevel, segments) {
-  		const buffer = new BitBuffer();
-  		segments.forEach(function(data) {
-  			buffer.put(data.mode.bit, 4);
-  			buffer.put(data.getLength(), Mode.getCharCountIndicator(data.mode, version));
-  			data.write(buffer);
-  		});
-  		const dataTotalCodewordsBits = (Utils.getSymbolTotalCodewords(version) - ECCode.getTotalCodewordsCount(version, errorCorrectionLevel)) * 8;
-  		if (buffer.getLengthInBits() + 4 <= dataTotalCodewordsBits) buffer.put(0, 4);
-  		while (buffer.getLengthInBits() % 8 !== 0) buffer.putBit(0);
-  		const remainingByte = (dataTotalCodewordsBits - buffer.getLengthInBits()) / 8;
-  		for (let i = 0; i < remainingByte; i++) buffer.put(i % 2 ? 17 : 236, 8);
-  		return createCodewords(buffer, version, errorCorrectionLevel);
-  	}
-  	/**
-  	* Encode input data with Reed-Solomon and return codewords with
-  	* relative error correction bits
-  	*
-  	* @param  {BitBuffer} bitBuffer            Data to encode
-  	* @param  {Number}    version              QR Code version
-  	* @param  {ErrorCorrectionLevel} errorCorrectionLevel Error correction level
-  	* @return {Uint8Array}                     Buffer containing encoded codewords
-  	*/
-  	function createCodewords(bitBuffer, version, errorCorrectionLevel) {
-  		const totalCodewords = Utils.getSymbolTotalCodewords(version);
-  		const dataTotalCodewords = totalCodewords - ECCode.getTotalCodewordsCount(version, errorCorrectionLevel);
-  		const ecTotalBlocks = ECCode.getBlocksCount(version, errorCorrectionLevel);
-  		const blocksInGroup1 = ecTotalBlocks - totalCodewords % ecTotalBlocks;
-  		const totalCodewordsInGroup1 = Math.floor(totalCodewords / ecTotalBlocks);
-  		const dataCodewordsInGroup1 = Math.floor(dataTotalCodewords / ecTotalBlocks);
-  		const dataCodewordsInGroup2 = dataCodewordsInGroup1 + 1;
-  		const ecCount = totalCodewordsInGroup1 - dataCodewordsInGroup1;
-  		const rs = new ReedSolomonEncoder(ecCount);
-  		let offset = 0;
-  		const dcData = new Array(ecTotalBlocks);
-  		const ecData = new Array(ecTotalBlocks);
-  		let maxDataSize = 0;
-  		const buffer = new Uint8Array(bitBuffer.buffer);
-  		for (let b = 0; b < ecTotalBlocks; b++) {
-  			const dataSize = b < blocksInGroup1 ? dataCodewordsInGroup1 : dataCodewordsInGroup2;
-  			dcData[b] = buffer.slice(offset, offset + dataSize);
-  			ecData[b] = rs.encode(dcData[b]);
-  			offset += dataSize;
-  			maxDataSize = Math.max(maxDataSize, dataSize);
-  		}
-  		const data = new Uint8Array(totalCodewords);
-  		let index = 0;
-  		let i, r;
-  		for (i = 0; i < maxDataSize; i++) for (r = 0; r < ecTotalBlocks; r++) if (i < dcData[r].length) data[index++] = dcData[r][i];
-  		for (i = 0; i < ecCount; i++) for (r = 0; r < ecTotalBlocks; r++) data[index++] = ecData[r][i];
-  		return data;
-  	}
-  	/**
-  	* Build QR Code symbol
-  	*
-  	* @param  {String} data                 Input string
-  	* @param  {Number} version              QR Code version
-  	* @param  {ErrorCorretionLevel} errorCorrectionLevel Error level
-  	* @param  {MaskPattern} maskPattern     Mask pattern
-  	* @return {Object}                      Object containing symbol data
-  	*/
-  	function createSymbol(data, version, errorCorrectionLevel, maskPattern) {
-  		let segments;
-  		if (Array.isArray(data)) segments = Segments.fromArray(data);
-  		else if (typeof data === "string") {
-  			let estimatedVersion = version;
-  			if (!estimatedVersion) {
-  				const rawSegments = Segments.rawSplit(data);
-  				estimatedVersion = Version.getBestVersionForData(rawSegments, errorCorrectionLevel);
-  			}
-  			segments = Segments.fromString(data, estimatedVersion || 40);
-  		} else throw new Error("Invalid data");
-  		const bestVersion = Version.getBestVersionForData(segments, errorCorrectionLevel);
-  		if (!bestVersion) throw new Error("The amount of data is too big to be stored in a QR Code");
-  		if (!version) version = bestVersion;
-  		else if (version < bestVersion) throw new Error("\nThe chosen QR Code version cannot contain this amount of data.\nMinimum version required to store current data is: " + bestVersion + ".\n");
-  		const dataBits = createData(version, errorCorrectionLevel, segments);
-  		const modules = new BitMatrix(Utils.getSymbolSize(version));
-  		setupFinderPattern(modules, version);
-  		setupTimingPattern(modules);
-  		setupAlignmentPattern(modules, version);
-  		setupFormatInfo(modules, errorCorrectionLevel, 0);
-  		if (version >= 7) setupVersionInfo(modules, version);
-  		setupData(modules, dataBits);
-  		if (isNaN(maskPattern)) maskPattern = MaskPattern.getBestMask(modules, setupFormatInfo.bind(null, modules, errorCorrectionLevel));
-  		MaskPattern.applyMask(maskPattern, modules);
-  		setupFormatInfo(modules, errorCorrectionLevel, maskPattern);
-  		return {
-  			modules,
-  			version,
-  			errorCorrectionLevel,
-  			maskPattern,
-  			segments
-  		};
-  	}
-  	/**
-  	* QR Code
-  	*
-  	* @param {String | Array} data                 Input data
-  	* @param {Object} options                      Optional configurations
-  	* @param {Number} options.version              QR Code version
-  	* @param {String} options.errorCorrectionLevel Error correction level
-  	* @param {Function} options.toSJISFunc         Helper func to convert utf8 to sjis
-  	*/
-  	exports.create = function create(data, options) {
-  		if (typeof data === "undefined" || data === "") throw new Error("No input text");
-  		let errorCorrectionLevel = ECLevel.M;
-  		let version;
-  		let mask;
-  		if (typeof options !== "undefined") {
-  			errorCorrectionLevel = ECLevel.from(options.errorCorrectionLevel, ECLevel.M);
-  			version = Version.from(options.version);
-  			mask = MaskPattern.from(options.maskPattern);
-  			if (options.toSJISFunc) Utils.setToSJISFunction(options.toSJISFunc);
-  		}
-  		return createSymbol(data, version, errorCorrectionLevel, mask);
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/renderer/utils.js
-  var require_utils = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	function hex2rgba(hex) {
-  		if (typeof hex === "number") hex = hex.toString();
-  		if (typeof hex !== "string") throw new Error("Color should be defined as hex string");
-  		let hexCode = hex.slice().replace("#", "").split("");
-  		if (hexCode.length < 3 || hexCode.length === 5 || hexCode.length > 8) throw new Error("Invalid hex color: " + hex);
-  		if (hexCode.length === 3 || hexCode.length === 4) hexCode = Array.prototype.concat.apply([], hexCode.map(function(c) {
-  			return [c, c];
-  		}));
-  		if (hexCode.length === 6) hexCode.push("F", "F");
-  		const hexValue = parseInt(hexCode.join(""), 16);
-  		return {
-  			r: hexValue >> 24 & 255,
-  			g: hexValue >> 16 & 255,
-  			b: hexValue >> 8 & 255,
-  			a: hexValue & 255,
-  			hex: "#" + hexCode.slice(0, 6).join("")
-  		};
-  	}
-  	exports.getOptions = function getOptions(options) {
-  		if (!options) options = {};
-  		if (!options.color) options.color = {};
-  		const margin = typeof options.margin === "undefined" || options.margin === null || options.margin < 0 ? 4 : options.margin;
-  		const width = options.width && options.width >= 21 ? options.width : void 0;
-  		const scale = options.scale || 4;
-  		return {
-  			width,
-  			scale: width ? 4 : scale,
-  			margin,
-  			color: {
-  				dark: hex2rgba(options.color.dark || "#000000ff"),
-  				light: hex2rgba(options.color.light || "#ffffffff")
-  			},
-  			type: options.type,
-  			rendererOpts: options.rendererOpts || {}
-  		};
-  	};
-  	exports.getScale = function getScale(qrSize, opts) {
-  		return opts.width && opts.width >= qrSize + opts.margin * 2 ? opts.width / (qrSize + opts.margin * 2) : opts.scale;
-  	};
-  	exports.getImageWidth = function getImageWidth(qrSize, opts) {
-  		const scale = exports.getScale(qrSize, opts);
-  		return Math.floor((qrSize + opts.margin * 2) * scale);
-  	};
-  	exports.qrToImageData = function qrToImageData(imgData, qr, opts) {
-  		const size = qr.modules.size;
-  		const data = qr.modules.data;
-  		const scale = exports.getScale(size, opts);
-  		const symbolSize = Math.floor((size + opts.margin * 2) * scale);
-  		const scaledMargin = opts.margin * scale;
-  		const palette = [opts.color.light, opts.color.dark];
-  		for (let i = 0; i < symbolSize; i++) for (let j = 0; j < symbolSize; j++) {
-  			let posDst = (i * symbolSize + j) * 4;
-  			let pxColor = opts.color.light;
-  			if (i >= scaledMargin && j >= scaledMargin && i < symbolSize - scaledMargin && j < symbolSize - scaledMargin) {
-  				const iSrc = Math.floor((i - scaledMargin) / scale);
-  				const jSrc = Math.floor((j - scaledMargin) / scale);
-  				pxColor = palette[data[iSrc * size + jSrc] ? 1 : 0];
-  			}
-  			imgData[posDst++] = pxColor.r;
-  			imgData[posDst++] = pxColor.g;
-  			imgData[posDst++] = pxColor.b;
-  			imgData[posDst] = pxColor.a;
-  		}
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/renderer/canvas.js
-  var require_canvas = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var Utils = require_utils();
-  	function clearCanvas(ctx, canvas, size) {
-  		ctx.clearRect(0, 0, canvas.width, canvas.height);
-  		if (!canvas.style) canvas.style = {};
-  		canvas.height = size;
-  		canvas.width = size;
-  		canvas.style.height = size + "px";
-  		canvas.style.width = size + "px";
-  	}
-  	function getCanvasElement() {
-  		try {
-  			return document.createElement("canvas");
-  		} catch (e) {
-  			throw new Error("You need to specify a canvas element");
-  		}
-  	}
-  	exports.render = function render(qrData, canvas, options) {
-  		let opts = options;
-  		let canvasEl = canvas;
-  		if (typeof opts === "undefined" && (!canvas || !canvas.getContext)) {
-  			opts = canvas;
-  			canvas = void 0;
-  		}
-  		if (!canvas) canvasEl = getCanvasElement();
-  		opts = Utils.getOptions(opts);
-  		const size = Utils.getImageWidth(qrData.modules.size, opts);
-  		const ctx = canvasEl.getContext("2d");
-  		const image = ctx.createImageData(size, size);
-  		Utils.qrToImageData(image.data, qrData, opts);
-  		clearCanvas(ctx, canvasEl, size);
-  		ctx.putImageData(image, 0, 0);
-  		return canvasEl;
-  	};
-  	exports.renderToDataURL = function renderToDataURL(qrData, canvas, options) {
-  		let opts = options;
-  		if (typeof opts === "undefined" && (!canvas || !canvas.getContext)) {
-  			opts = canvas;
-  			canvas = void 0;
-  		}
-  		if (!opts) opts = {};
-  		const canvasEl = exports.render(qrData, canvas, opts);
-  		const type = opts.type || "image/png";
-  		const rendererOpts = opts.rendererOpts || {};
-  		return canvasEl.toDataURL(type, rendererOpts.quality);
-  	};
-  }));
-  //#endregion
-  //#region node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode/lib/renderer/svg-tag.js
-  var require_svg_tag = /* @__PURE__ */ __commonJSMin(((exports) => {
-  	var Utils = require_utils();
-  	function getColorAttrib(color, attrib) {
-  		const alpha = color.a / 255;
-  		const str = attrib + "=\"" + color.hex + "\"";
-  		return alpha < 1 ? str + " " + attrib + "-opacity=\"" + alpha.toFixed(2).slice(1) + "\"" : str;
-  	}
-  	function svgCmd(cmd, x, y) {
-  		let str = cmd + x;
-  		if (typeof y !== "undefined") str += " " + y;
-  		return str;
-  	}
-  	function qrToPath(data, size, margin) {
-  		let path = "";
-  		let moveBy = 0;
-  		let newRow = false;
-  		let lineLength = 0;
-  		for (let i = 0; i < data.length; i++) {
-  			const col = Math.floor(i % size);
-  			const row = Math.floor(i / size);
-  			if (!col && !newRow) newRow = true;
-  			if (data[i]) {
-  				lineLength++;
-  				if (!(i > 0 && col > 0 && data[i - 1])) {
-  					path += newRow ? svgCmd("M", col + margin, .5 + row + margin) : svgCmd("m", moveBy, 0);
-  					moveBy = 0;
-  					newRow = false;
-  				}
-  				if (!(col + 1 < size && data[i + 1])) {
-  					path += svgCmd("h", lineLength);
-  					lineLength = 0;
-  				}
-  			} else moveBy++;
-  		}
-  		return path;
-  	}
-  	exports.render = function render(qrData, options, cb) {
-  		const opts = Utils.getOptions(options);
-  		const size = qrData.modules.size;
-  		const data = qrData.modules.data;
-  		const qrcodesize = size + opts.margin * 2;
-  		const bg = !opts.color.light.a ? "" : "<path " + getColorAttrib(opts.color.light, "fill") + " d=\"M0 0h" + qrcodesize + "v" + qrcodesize + "H0z\"/>";
-  		const path = "<path " + getColorAttrib(opts.color.dark, "stroke") + " d=\"" + qrToPath(data, size, opts.margin) + "\"/>";
-  		const viewBox = "viewBox=\"0 0 " + qrcodesize + " " + qrcodesize + "\"";
-  		const svgTag = "<svg xmlns=\"http://www.w3.org/2000/svg\" " + (!opts.width ? "" : "width=\"" + opts.width + "\" height=\"" + opts.width + "\" ") + viewBox + " shape-rendering=\"crispEdges\">" + bg + path + "</svg>\n";
-  		if (typeof cb === "function") cb(null, svgTag);
-  		return svgTag;
-  	};
-  }));
-  //#endregion
-  //#region src/qr/envelope.ts
-  var import_browser = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports) => {
-  	var canPromise = require_can_promise();
-  	var QRCode = require_qrcode();
-  	var CanvasRenderer = require_canvas();
-  	var SvgRenderer = require_svg_tag();
-  	function renderCanvas(renderFunc, canvas, text, opts, cb) {
-  		const args = [].slice.call(arguments, 1);
-  		const argsNum = args.length;
-  		const isLastArgCb = typeof args[argsNum - 1] === "function";
-  		if (!isLastArgCb && !canPromise()) throw new Error("Callback required as last argument");
-  		if (isLastArgCb) {
-  			if (argsNum < 2) throw new Error("Too few arguments provided");
-  			if (argsNum === 2) {
-  				cb = text;
-  				text = canvas;
-  				canvas = opts = void 0;
-  			} else if (argsNum === 3) {
-  				if (canvas.getContext && typeof cb === "undefined") {
-  					cb = opts;
-  					opts = void 0;
-  				} else {
-  					cb = opts;
-  					opts = text;
-  					text = canvas;
-  					canvas = void 0;
-  				}
-  			}
-  		} else {
-  			if (argsNum < 1) throw new Error("Too few arguments provided");
-  			if (argsNum === 1) {
-  				text = canvas;
-  				canvas = opts = void 0;
-  			} else if (argsNum === 2 && !canvas.getContext) {
-  				opts = text;
-  				text = canvas;
-  				canvas = void 0;
-  			}
-  			return new Promise(function(resolve, reject) {
-  				try {
-  					resolve(renderFunc(QRCode.create(text, opts), canvas, opts));
-  				} catch (e) {
-  					reject(e);
-  				}
+  			appendModeInfo(head, mode);
+  			if (isHanziMode(segment)) head.append(1, 4);
+  			segmentBlocks.push({
+  				mode,
+  				head,
+  				body,
+  				length
   			});
   		}
-  		try {
-  			const data = QRCode.create(text, opts);
-  			cb(null, renderFunc(data, canvas, opts));
-  		} catch (e) {
-  			cb(e);
+  		let version;
+  		if (versionNumber === "Auto") version = chooseRecommendVersion(segmentBlocks, ecLevel);
+  		else {
+  			version = VERSIONS[versionNumber - 1];
+  			if (!willFit(calculateBitsNeeded(segmentBlocks, version), version, ecLevel)) throw new Error("data too big for requested version");
   		}
+  		const buffer = new BitArray();
+  		for (const { mode, head, body, length } of segmentBlocks) {
+  			buffer.append(head);
+  			appendLengthInfo(buffer, mode, version, length);
+  			buffer.append(body);
+  		}
+  		const ecBlocks = version.getECBlocks(ecLevel);
+  		appendTerminator(buffer, ecBlocks.numTotalDataCodewords);
+  		const [mask, matrix] = chooseBestMaskAndMatrix(injectECCodewords(buffer, ecBlocks), version, ecLevel);
+  		return new Encoded(matrix, version, ecLevel, mask);
   	}
-  	exports.create = QRCode.create;
-  	exports.toCanvas = renderCanvas.bind(null, CanvasRenderer.render);
-  	exports.toDataURL = renderCanvas.bind(null, CanvasRenderer.renderToDataURL);
-  	exports.toString = renderCanvas.bind(null, function(data, _, opts) {
-  		return SvgRenderer.render(data, opts);
-  	});
-  })))(), 1);
+  });
   /**
-  * Transport format identifier.
+  * @module QRCode
+  * @package @nuintun/qrcode
+  * @license MIT
+  * @version 5.0.3
+  * @author nuintun <nuintun@qq.com>
+  * @description A pure JavaScript QRCode encode and decode library.
+  * @see https://github.com/nuintun/qrcode#readme
+  */
+  /**
+  * @module Byte
+  */
+  var Byte = (_content = /* @__PURE__ */ new WeakMap(), _charset = /* @__PURE__ */ new WeakMap(), class {
+  	/**
+  	* @constructor
+  	* @param content The content to encode.
+  	* @param charset The charset of the content.
+  	*/
+  	constructor(content, charset = Charset.ISO_8859_1) {
+  		_classPrivateFieldInitSpec(this, _content, void 0);
+  		_classPrivateFieldInitSpec(this, _charset, void 0);
+  		assertContent(content);
+  		assertCharset(charset);
+  		_classPrivateFieldSet2(_content, this, content);
+  		_classPrivateFieldSet2(_charset, this, charset);
+  	}
+  	/**
+  	* @property mode
+  	* @description The mode of the segment.
+  	*/
+  	get mode() {
+  		return Mode.BYTE;
+  	}
+  	/**
+  	* @property content
+  	* @description The content of the segment.
+  	*/
+  	get content() {
+  		return _classPrivateFieldGet2(_content, this);
+  	}
+  	/**
+  	* @property charset
+  	* @description The charset of the content.
+  	*/
+  	get charset() {
+  		return _classPrivateFieldGet2(_charset, this);
+  	}
+  	/**
+  	* @method encode
+  	* @description Encode the segment.
+  	* @param encode The text encode function.
+  	*/
+  	encode(encode) {
+  		const bits = new BitArray();
+  		const bytes = encode(_classPrivateFieldGet2(_content, this), _classPrivateFieldGet2(_charset, this));
+  		for (const byte of bytes) bits.append(byte, 8);
+  		return bits;
+  	}
+  });
+  /** A failure this library can name, so callers can tell a bad read from a bad message. */
+  var StructuredAppendError = class extends Error {
+  	constructor(code, message) {
+  		super(message);
+  		this.name = "StructuredAppendError";
+  		this.code = code;
+  	}
+  };
+  /**
+  * The Structured Append parity: every byte of the whole message XORed together.
   *
-  * `twmp-qr/1` from turbowarp-realtime-motion-capture is the starting point, but
-  * this format adds three required fields (`senderPeerId`, `targetPeerId`, and
-  * `replyTo`) that the older one cannot express, so it gets its own namespace
-  * and version. `twmp-qr/1` is rejected with `unsupported-protocol` rather than
-  * accepted in a compatibility mode: an explicit failure is safer than an
-  * ambiguous acceptance that could pair the wrong peers.
+  * It is what marks symbols as belonging to one message, and all it can do: eight bits, so two
+  * unrelated messages share a parity one time in 256. A caller that needs to know which message it has,
+  * or that it arrived intact, carries its own identifier and hash inside the message.
   */
-  var QR_PROTOCOL = "twqr/1";
-  /** Printable ASCII. Pairing codes are base64url, so this never rejects a valid payload. */
-  var printableAscii$1 = /^[ -~]+$/u;
-  var base64Url = /^[A-Za-z0-9_-]+$/u;
-  /** Separator for identity keys. Cannot occur in printable-ASCII fields. */
-  var identitySeparator = "\0";
-  function serializeEnvelope(envelope) {
-  	validateEnvelope(envelope);
-  	return JSON.stringify(envelope);
+  function parityOf(bytes) {
+  	let parity = 0;
+  	for (const byte of bytes) parity ^= byte;
+  	return parity;
   }
-  function parseEnvelope(text) {
-  	if (typeof text !== "string") throw new QrPairingError("invalid-json", "QR part must be text.");
-  	if (text.length > 8192) throw new QrPairingError("part-too-large", `QR part text must be at most ${MAX_PART_TEXT_LENGTH} characters.`);
-  	let parsed;
-  	try {
-  		parsed = JSON.parse(text);
-  	} catch (error) {
-  		throw new QrPairingError("invalid-json", "QR part is not valid JSON.", { cause: error });
+  var encoder = new TextEncoder();
+  /**
+  * Splits a message into the fewest Structured Append symbols that each fit the version cap.
+  *
+  * Text is carried as its UTF-8 bytes in byte mode, with no ECI, so a symbol boundary may fall inside
+  * a character: the bytes are joined before they are decoded as text again. The share of each symbol
+  * is balanced rather than filled in order, so no symbol is much denser than the rest.
+  */
+  function createStructuredAppend(message, options = {}) {
+  	const bytes = typeof message === "string" ? encoder.encode(message) : message;
+  	if (bytes.length === 0) throw new StructuredAppendError("empty-message", "A message needs at least one byte.");
+  	const level = options.level ?? "M";
+  	if (![
+  		"L",
+  		"M",
+  		"Q",
+  		"H"
+  	].includes(level)) throw new StructuredAppendError("invalid-option", `Unknown error correction level ${level}.`);
+  	const maxVersion = options.maxVersion ?? 40;
+  	if (!Number.isInteger(maxVersion) || maxVersion < 1 || maxVersion > 40) throw new StructuredAppendError("invalid-option", `A version cap is a whole number from 1 to 40, not ${String(maxVersion)}.`);
+  	const parity = parityOf(bytes);
+  	const perSymbol = capacity(level, maxVersion);
+  	const count = Math.ceil(bytes.length / perSymbol);
+  	if (count > 16) throw new StructuredAppendError("too-many-symbols", `The message needs ${count} symbols at version ${maxVersion}, more than the 16 the standard allows.`);
+  	const share = Math.ceil(bytes.length / count);
+  	return Array.from({ length: count }, (_, index) => {
+  		const part = bytes.slice(index * share, (index + 1) * share);
+  		const encoded = new Encoder({
+  			level,
+  			hints: { structured: {
+  				index,
+  				count,
+  				parity
+  			} }
+  		}).encode(new Byte(latin1$1(part), Charset.ISO_8859_1));
+  		return symbol(index, count, parity, part, encoded);
+  	});
+  }
+  /** How many bytes one symbol carries at the cap, found by asking the encoder. */
+  function capacity(level, version) {
+  	const fits = (length) => {
+  		try {
+  			new Encoder({
+  				level,
+  				version,
+  				hints: { structured: {
+  					index: 15,
+  					count: 16,
+  					parity: 0
+  				} }
+  			}).encode(new Byte("A".repeat(length), Charset.ISO_8859_1));
+  			return true;
+  		} catch {
+  			return false;
+  		}
+  	};
+  	let low = 0;
+  	let high = 3e3;
+  	while (low < high) {
+  		const middle = Math.ceil((low + high) / 2);
+  		if (fits(middle)) low = middle;
+  		else high = middle - 1;
   	}
-  	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new QrPairingError("invalid-envelope", "QR part must be an object.");
-  	const envelope = parsed;
-  	validateEnvelope(envelope);
-  	return envelope;
+  	if (low < 1) throw new StructuredAppendError("invalid-option", `Version ${version} at level ${level} has no room for data after the Structured Append header.`);
+  	return low;
   }
-  function validateEnvelope(envelope) {
-  	if (envelope.protocol !== "twqr/1") throw new QrPairingError("unsupported-protocol", `QR part protocol must be ${QR_PROTOCOL}.`);
-  	requireIdentifier(envelope.sessionId, "session ID");
-  	requireIdentifier(envelope.senderPeerId, "sender peer ID");
-  	requireIdentifier(envelope.targetPeerId, "target peer ID");
-  	requireIdentifier(envelope.messageId, "message ID");
-  	if (envelope.kind !== "offer" && envelope.kind !== "answer") throw new QrPairingError("invalid-envelope", "QR message kind must be offer or answer.");
-  	if (envelope.kind === "answer") requireIdentifier(envelope.replyTo, "reply-to message ID");
-  	else if (envelope.replyTo !== "") throw new QrPairingError("invalid-envelope", "An offer QR part must not set reply-to.");
-  	if (!Number.isSafeInteger(envelope.createdAt) || envelope.createdAt < 0) throw new QrPairingError("invalid-envelope", "QR creation timestamp is invalid.");
-  	if (!Number.isInteger(envelope.partCount) || envelope.partCount < 1 || envelope.partCount > 64) throw new QrPairingError("invalid-envelope", `QR part count must be between 1 and 64.`);
-  	if (!Number.isInteger(envelope.partIndex) || envelope.partIndex < 0 || envelope.partIndex >= envelope.partCount) throw new QrPairingError("index-out-of-range", "QR part index must be within the declared part count.");
-  	if (!Number.isInteger(envelope.messageLength) || envelope.messageLength < 1) throw new QrPairingError("invalid-envelope", "QR message length must be a positive integer.");
-  	if (envelope.messageLength > 131072) throw new QrPairingError("message-too-large", `QR message length must be at most ${MAX_MESSAGE_LENGTH} characters.`);
-  	if (typeof envelope.messageHash !== "string" || envelope.messageHash.length !== 43 || !base64Url.test(envelope.messageHash)) throw new QrPairingError("invalid-envelope", "QR message hash is malformed.");
-  	if (typeof envelope.payload !== "string" || envelope.payload.length > 4096) throw new QrPairingError("invalid-envelope", `QR part payload must be at most ${MAX_CHUNK_LENGTH} characters.`);
-  	if (envelope.payload.length > 0 && !printableAscii$1.test(envelope.payload)) throw new QrPairingError("invalid-envelope", "QR part payload must be printable ASCII.");
+  /** Bytes as the ISO-8859-1 string the byte-mode segment takes: one character per byte. */
+  function latin1$1(bytes) {
+  	let text = "";
+  	for (const byte of bytes) text += String.fromCharCode(byte);
+  	return text;
+  }
+  function symbol(index, count, parity, bytes, encoded) {
+  	const isDark = (x, y) => encoded.get(x, y) === 1;
+  	const toSvg = (svg = {}) => {
+  		const quiet = svg.quietZone ?? 4;
+  		const total = encoded.size + quiet * 2;
+  		const runs = [];
+  		for (let y = 0; y < encoded.size; y += 1) {
+  			let x = 0;
+  			while (x < encoded.size) {
+  				if (!isDark(x, y)) {
+  					x += 1;
+  					continue;
+  				}
+  				const start = x;
+  				while (x < encoded.size && isDark(x, y)) x += 1;
+  				runs.push(`M${start + quiet} ${y + quiet}h${x - start}v1h-${x - start}z`);
+  			}
+  		}
+  		return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges"><rect width="${total}" height="${total}" fill="${svg.light ?? "#ffffff"}"/><path fill="${svg.dark ?? "#000000"}" d="${runs.join("")}"/></svg>`;
+  	};
+  	return {
+  		index,
+  		count,
+  		parity,
+  		bytes,
+  		version: encoded.version,
+  		size: encoded.size,
+  		isDark,
+  		toSvg,
+  		toDataUri: (svg) => `data:image/svg+xml,${encodeURIComponent(toSvg(svg))}`
+  	};
   }
   /**
-  * Everything that must agree across the parts of one message. `partIndex` and
-  * `payload` are the only fields allowed to differ.
+  * Collects the symbols of one message, in any order, from any decoder.
+  *
+  * The first symbol read decides the message — its count and parity. A symbol of a different message
+  * is reported and left out, rather than failing the message, because a camera also sees whatever else
+  * is in front of it. A symbol whose position is already filled with different content is damage to
+  * this message, and throws.
   */
-  function envelopeIdentity(envelope) {
-  	return [
-  		envelope.protocol,
-  		envelope.sessionId,
-  		envelope.senderPeerId,
-  		envelope.targetPeerId,
-  		envelope.kind,
-  		envelope.messageId,
-  		envelope.replyTo,
-  		envelope.createdAt,
-  		envelope.partCount,
-  		envelope.messageLength,
-  		envelope.messageHash
-  	].join(identitySeparator);
+  var StructuredAppendAssembler = class {
+  	constructor() {
+  		this.symbols = /* @__PURE__ */ new Map();
+  		this.expectedCount = 0;
+  		this.expectedParity = -1;
+  	}
+  	add(read) {
+  		requireRead(read);
+  		if (this.expectedCount === 0) {
+  			this.expectedCount = read.count;
+  			this.expectedParity = read.parity;
+  		}
+  		if (read.count !== this.expectedCount || read.parity !== this.expectedParity) return this.outcome("foreign", read.index);
+  		const existing = this.symbols.get(read.index);
+  		if (existing) {
+  			if (!sameBytes(existing, read.bytes)) throw new StructuredAppendError("conflicting-symbol", `Symbol ${read.index + 1} of ${read.count} arrived twice with different content.`);
+  			return this.outcome("duplicate", read.index);
+  		}
+  		this.symbols.set(read.index, read.bytes.slice());
+  		return this.outcome("accepted", read.index);
+  	}
+  	received() {
+  		return this.symbols.size;
+  	}
+  	/** Symbols in the message, or 0 before the first read. */
+  	count() {
+  		return this.expectedCount;
+  	}
+  	/** 0-based positions still missing, in order. */
+  	missing() {
+  		const missing = [];
+  		for (let index = 0; index < this.expectedCount; index += 1) if (!this.symbols.has(index)) missing.push(index);
+  		return missing;
+  	}
+  	isComplete() {
+  		return this.expectedCount > 0 && this.symbols.size === this.expectedCount;
+  	}
+  	/** The message, joined in order and checked against its parity. */
+  	bytes() {
+  		if (!this.isComplete()) throw new StructuredAppendError("incomplete", `The message is missing ${this.expectedCount - this.symbols.size} of ${this.expectedCount} symbols.`);
+  		const parts = Array.from({ length: this.expectedCount }, (_, index) => this.symbols.get(index));
+  		const joined = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+  		let offset = 0;
+  		for (const part of parts) {
+  			joined.set(part, offset);
+  			offset += part.length;
+  		}
+  		if (parityOf(joined) !== this.expectedParity) throw new StructuredAppendError("parity-mismatch", "The joined message does not match the parity its symbols carry.");
+  		return joined;
+  	}
+  	/** The message as UTF-8 text. */
+  	text() {
+  		return new TextDecoder().decode(this.bytes());
+  	}
+  	clear() {
+  		this.symbols.clear();
+  		this.expectedCount = 0;
+  		this.expectedParity = -1;
+  	}
+  	outcome(result, index) {
+  		return {
+  			result,
+  			index,
+  			received: this.symbols.size,
+  			count: this.expectedCount
+  		};
+  	}
+  };
+  function requireRead(read) {
+  	const whole = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
+  	if (!whole(read.count, 1, 16) || !whole(read.index, 0, read.count - 1) || !whole(read.parity, 0, 255) || !(read.bytes instanceof Uint8Array)) throw new StructuredAppendError("invalid-read", "A Structured Append read needs a position below its count (1 to 16), a parity byte and bytes.");
   }
-  function requireIdentifier(value, label) {
-  	if (typeof value !== "string" || value.length < 1 || value.length > 128 || !printableAscii$1.test(value)) throw new QrPairingError("invalid-envelope", `Invalid ${label}.`);
-  	return value;
+  function sameBytes(left, right) {
+  	if (left.length !== right.length) return false;
+  	for (let index = 0; index < left.length; index += 1) if (left[index] !== right[index]) return false;
+  	return true;
   }
   //#endregion
   //#region src/qr/hash.ts
@@ -2979,34 +2868,123 @@
   	return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
   }
   //#endregion
-  //#region src/qr/courier.ts
-  var printableAscii = /^[ -~]+$/u;
+  //#region src/qr/message.ts
   /**
-  * Splits a pairing code into parts that each fit one QR symbol of at most the
-  * given version.
+  * Transport format identifier.
   *
-  * The chunk length depends on the envelope header, which in turn depends on the
-  * part count, so the loop repeats until the two agree.
+  * `twqr/1` put a JSON envelope into every QR code. `twqr/2` puts one message
+  * into a Structured Append sequence (ISO/IEC 18004), so the split is the
+  * standard's, and a reader that knows the standard knows which code is which.
+  * The two are not compatible, and `twqr/1` is rejected with
+  * `unsupported-protocol`.
   */
-  async function createParts(message, options) {
-  	requireMessage(message);
-  	const senderPeerId = requireIdentifier(options.senderPeerId, "sender peer ID");
-  	const targetPeerId = requireIdentifier(options.targetPeerId, "target peer ID");
+  var QR_PROTOCOL = "twqr/2";
+  /** Printable ASCII. Pairing codes are base64url, so this never rejects a valid payload. */
+  var printableAscii = /^[ -~]+$/u;
+  var base64Url = /^[A-Za-z0-9_-]+$/u;
+  var headerKeys = [
+  	"sessionId",
+  	"senderPeerId",
+  	"targetPeerId",
+  	"kind",
+  	"messageId",
+  	"replyTo",
+  	"createdAt",
+  	"messageLength",
+  	"messageHash"
+  ];
+  /**
+  * The text a message is carried as: the protocol, the header as JSON, and the
+  * pairing code, one per line. The header comes first so that the first QR code
+  * of a sequence tells a reader whether the sequence is for it.
+  */
+  function formatMessage(message) {
+  	validateHeader(message.header);
+  	requirePayload(message.payload, "invalid-argument");
+  	const header = {};
+  	for (const key of headerKeys) header[key] = message.header[key];
+  	return `${QR_PROTOCOL}\n${JSON.stringify(header)}\n${message.payload}`;
+  }
+  /** Reads a whole message. The hash is checked separately, because it is asynchronous. */
+  function parseMessage(text) {
+  	if (typeof text !== "string") throw new QrPairingError("invalid-envelope", "Pairing message must be text.");
+  	if (text.length > 34816) throw new QrPairingError("message-too-large", "Pairing message is too long.");
+  	const header = parseHeader(text);
+  	if (!header) throw new QrPairingError("invalid-envelope", "Pairing message has no pairing code.");
+  	const payload = text.slice(text.indexOf("\n", 7) + 1);
+  	requirePayload(payload, "invalid-envelope");
+  	if (payload.length !== header.messageLength) throw new QrPairingError("length-mismatch", "Pairing code has the wrong length.");
+  	return {
+  		header,
+  		payload
+  	};
+  }
+  /**
+  * Reads the header from the start of a message, such as the first code of a
+  * sequence. Returns undefined while the header line has not ended yet; throws
+  * as soon as the text cannot be a pairing message.
+  */
+  function parseHeader(prefix) {
+  	const protocolEnd = prefix.indexOf("\n");
+  	const protocol = protocolEnd < 0 ? prefix : prefix.slice(0, protocolEnd);
+  	if (protocolEnd < 0 ? !"twqr/2".startsWith(protocol) : protocol !== "twqr/2") throw new QrPairingError("unsupported-protocol", `Pairing message protocol must be ${QR_PROTOCOL}.`);
+  	if (protocolEnd < 0) return void 0;
+  	const headerEnd = prefix.indexOf("\n", protocolEnd + 1);
+  	if (headerEnd < 0) {
+  		if (prefix.length - protocolEnd > 2048) throw new QrPairingError("invalid-envelope", "Pairing message header is too long.");
+  		return;
+  	}
+  	let parsed;
+  	try {
+  		parsed = JSON.parse(prefix.slice(protocolEnd + 1, headerEnd));
+  	} catch (error) {
+  		throw new QrPairingError("invalid-json", "Pairing message header is not valid JSON.", { cause: error });
+  	}
+  	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new QrPairingError("invalid-envelope", "Pairing message header must be an object.");
+  	const header = parsed;
+  	validateHeader(header);
+  	return header;
+  }
+  function validateHeader(header) {
+  	requireIdentifier(header.sessionId, "session ID");
+  	requireIdentifier(header.senderPeerId, "sender peer ID");
+  	requireIdentifier(header.targetPeerId, "target peer ID");
+  	requireIdentifier(header.messageId, "message ID");
+  	if (header.kind !== "offer" && header.kind !== "answer") throw new QrPairingError("invalid-envelope", "Pairing message kind must be offer or answer.");
+  	if (header.kind === "answer") requireIdentifier(header.replyTo, "reply-to message ID");
+  	else if (header.replyTo !== "") throw new QrPairingError("invalid-envelope", "An offer must not set reply-to.");
+  	if (!Number.isSafeInteger(header.createdAt) || header.createdAt < 0) throw new QrPairingError("invalid-envelope", "Pairing message timestamp is invalid.");
+  	if (!Number.isInteger(header.messageLength) || header.messageLength < 1) throw new QrPairingError("invalid-envelope", "Pairing code length must be a positive integer.");
+  	if (header.messageLength > 32768) throw new QrPairingError("message-too-large", `Pairing code must be at most ${MAX_MESSAGE_LENGTH} characters.`);
+  	if (typeof header.messageHash !== "string" || header.messageHash.length !== 43 || !base64Url.test(header.messageHash)) throw new QrPairingError("invalid-envelope", "Pairing message hash is malformed.");
+  }
+  function requireIdentifier(value, label) {
+  	if (typeof value !== "string" || value.length < 1 || value.length > 128 || !printableAscii.test(value)) throw new QrPairingError("invalid-envelope", `Invalid ${label}.`);
+  	return value;
+  }
+  function requirePayload(value, code) {
+  	if (typeof value !== "string" || value.length < 1) throw new QrPairingError(code, "Pairing code is empty.");
+  	if (value.length > 32768) throw new QrPairingError("message-too-large", `Pairing code must be at most ${MAX_MESSAGE_LENGTH} characters.`);
+  	if (!printableAscii.test(value)) throw new QrPairingError(code, "Pairing code must be printable ASCII.");
+  }
+  //#endregion
+  //#region src/qr/courier.ts
+  /** Wraps a pairing code in its header and splits it into a Structured Append sequence. */
+  async function createPairingCodes(payload, options) {
+  	const senderPeerId = requireArgument(options.senderPeerId, "sender peer ID");
+  	const targetPeerId = requireArgument(options.targetPeerId, "target peer ID");
   	if (options.kind !== "offer" && options.kind !== "answer") throw new QrPairingError("invalid-argument", "QR message kind must be offer or answer.");
-  	const replyTo = options.kind === "answer" ? requireIdentifier(options.replyTo ?? "", "reply-to message ID") : "";
+  	const replyTo = options.kind === "answer" ? requireArgument(options.replyTo ?? "", "reply-to message ID") : "";
   	if (options.kind === "offer" && (options.replyTo ?? "") !== "") throw new QrPairingError("invalid-argument", "An offer must not set reply-to.");
-  	const sessionId = requireIdentifier(options.sessionId ?? crypto.randomUUID(), "session ID");
+  	const sessionId = requireArgument(options.sessionId ?? crypto.randomUUID(), "session ID");
   	const createdAt = options.createdAt ?? Date.now();
   	if (!Number.isSafeInteger(createdAt) || createdAt < 0) throw new QrPairingError("invalid-argument", "QR creation timestamp is invalid.");
-  	const errorCorrectionLevel = options.errorCorrectionLevel ?? "M";
-  	const maxVersion = requireVersion(options.maxVersion ?? 20);
-  	const messageHash = await sha256Base64Url(message);
+  	const maxVersion = requireVersion(options.maxVersion ?? 15);
+  	if (typeof payload !== "string" || payload.length < 1) throw new QrPairingError("invalid-argument", "Pairing code is empty.");
+  	const messageHash = await sha256Base64Url(payload);
   	const messageId = `${sessionId}.${messageHash.slice(0, 12)}`;
-  	let partCount = 1;
-  	let chunkLength = 0;
-  	for (;;) {
-  		chunkLength = maximumPayloadLength({
-  			protocol: QR_PROTOCOL,
+  	const text = formatMessage({
+  		header: {
   			sessionId,
   			senderPeerId,
   			targetPeerId,
@@ -3014,154 +2992,115 @@
   			messageId,
   			replyTo,
   			createdAt,
-  			partIndex: partCount - 1,
-  			partCount,
-  			messageLength: message.length,
-  			messageHash,
-  			payload: ""
-  		}, errorCorrectionLevel, maxVersion);
-  		if (chunkLength < 1) throw new QrPairingError("invalid-envelope", `QR version ${maxVersion} at level ${errorCorrectionLevel} is too small for the part envelope.`);
-  		const required = Math.ceil(message.length / chunkLength);
-  		if (required > 64) throw new QrPairingError("too-many-parts", `Splitting needs ${required} parts, which exceeds the limit of 64.`);
-  		if (required === partCount) break;
-  		partCount = required;
-  	}
-  	const parts = Array.from({ length: partCount }, (_unused, partIndex) => ({
-  		protocol: QR_PROTOCOL,
-  		sessionId,
-  		senderPeerId,
-  		targetPeerId,
-  		kind: options.kind,
-  		messageId,
-  		replyTo,
-  		createdAt,
-  		partIndex,
-  		partCount,
-  		messageLength: message.length,
-  		messageHash,
-  		payload: message.slice(partIndex * chunkLength, (partIndex + 1) * chunkLength)
-  	}));
-  	const texts = parts.map(serializeEnvelope);
-  	for (const text of texts) import_browser.create(text, {
-  		errorCorrectionLevel,
-  		version: maxVersion
+  			messageLength: payload.length,
+  			messageHash
+  		},
+  		payload
   	});
+  	let symbols;
+  	try {
+  		symbols = createStructuredAppend(text, {
+  			level: options.errorCorrectionLevel ?? "M",
+  			maxVersion
+  		});
+  	} catch (error) {
+  		if (error instanceof StructuredAppendError && error.code === "too-many-symbols") throw new QrPairingError("too-many-parts", `The pairing code needs more than 16 QR codes at version ${maxVersion}.`, { cause: error });
+  		throw new QrPairingError("invalid-argument", "The pairing code cannot be made into QR codes.", { cause: error });
+  	}
   	return {
-  		parts,
-  		texts,
+  		symbols,
+  		svgs: symbols.map((symbol) => symbol.toSvg()),
+  		text,
   		sessionId,
   		messageId
   	};
   }
-  /** Collects the parts of exactly one message and verifies the result. */
-  var PartAssembler = class {
-  	constructor() {
-  		this.parts = /* @__PURE__ */ new Map();
-  	}
-  	add(envelope) {
-  		const identity = envelopeIdentity(envelope);
-  		if (this.identity !== void 0 && this.identity !== identity) throw new QrPairingError("message-mismatch", "QR part does not belong to the message being assembled.");
-  		this.identity = identity;
-  		const existing = this.parts.get(envelope.partIndex);
-  		if (existing && existing.payload !== envelope.payload) throw new QrPairingError("conflicting-part", `QR part ${envelope.partIndex + 1} arrived twice with different content.`);
-  		this.parts.set(envelope.partIndex, envelope);
-  		return {
-  			received: this.parts.size,
-  			total: envelope.partCount,
-  			duplicate: existing !== void 0
-  		};
-  	}
-  	receivedCount() {
-  		return this.parts.size;
-  	}
-  	/** Zero until the first part arrives, because the part count is carried by the parts. */
-  	requiredCount() {
-  		return this.first()?.partCount ?? 0;
-  	}
-  	/** Zero-based indices that have not arrived yet, in ascending order. */
-  	missingParts() {
-  		const total = this.requiredCount();
-  		const missing = [];
-  		for (let index = 0; index < total; index += 1) if (!this.parts.has(index)) missing.push(index);
-  		return missing;
-  	}
-  	isComplete() {
-  		const total = this.requiredCount();
-  		return total > 0 && this.parts.size === total;
-  	}
-  	/** Joins the parts and verifies length and hash before returning anything. */
-  	async assemble() {
-  		const first = this.first();
-  		if (!first) throw new QrPairingError("missing-parts", "No QR parts have been received.");
-  		if (this.parts.size !== first.partCount) throw new QrPairingError("missing-parts", `QR message is missing ${first.partCount - this.parts.size} of ${first.partCount} parts.`);
-  		const message = Array.from({ length: first.partCount }, (_unused, index) => {
-  			const part = this.parts.get(index);
-  			if (!part) throw new QrPairingError("missing-parts", `QR message is missing part ${index + 1}.`);
-  			return part.payload;
-  		}).join("");
-  		if (message.length !== first.messageLength) throw new QrPairingError("length-mismatch", "Reassembled QR message has the wrong length.");
-  		if (await sha256Base64Url(message) !== first.messageHash) throw new QrPairingError("hash-mismatch", "Reassembled QR message failed its hash check.");
-  		return message;
-  	}
-  	clear() {
-  		this.parts.clear();
-  		this.identity = void 0;
-  	}
-  	first() {
-  		return this.parts.values().next().value;
-  	}
-  };
+  /** Reads the whole message the codes carry, and checks it against its hash. */
+  async function readPairingMessage(text) {
+  	const message = parseMessage(text);
+  	if (await sha256Base64Url(message.payload) !== message.header.messageHash) throw new QrPairingError("hash-mismatch", "The pairing code failed its hash check.");
+  	return message;
+  }
+  /** The header, if the given first code of a sequence holds all of it. */
+  function headerOfFirstCode(read) {
+  	return parseHeader(latin1(read.bytes));
+  }
   /**
-  * Largest payload that still lets the whole envelope fit a symbol of the given
-  * version at the given error correction level.
+  * Collects the codes of one pairing message, in any order.
+  *
+  * The first code read decides the sequence. Until the first code of that
+  * sequence has shown whose message it is, another sequence whose first code
+  * does belong to this exchange may take its place: a camera may well see an
+  * old projection before the right one.
   */
-  function maximumPayloadLength(base, errorCorrectionLevel, version) {
-  	let low = 0;
-  	let high = MAX_CHUNK_LENGTH;
-  	while (low < high) {
-  		const middle = Math.ceil((low + high) / 2);
-  		const text = JSON.stringify({
-  			...base,
-  			payload: "A".repeat(middle)
-  		});
+  var PairingAssembler = class {
+  	constructor() {
+  		this.inner = new StructuredAppendAssembler();
+  		this.headerVerified = false;
+  	}
+  	/** Throws `conflicting-part` for a position that arrives twice with different content. */
+  	add(read) {
   		try {
-  			import_browser.create([{
-  				data: new TextEncoder().encode(text),
-  				mode: "byte"
-  			}], {
-  				version,
-  				errorCorrectionLevel
-  			});
-  			low = middle;
-  		} catch {
-  			high = middle - 1;
+  			return this.inner.add(read);
+  		} catch (error) {
+  			throw translate(error);
   		}
   	}
-  	return low;
-  }
+  	receivedCount() {
+  		return this.inner.received();
+  	}
+  	/** Zero until the first code arrives, because the count is carried by the codes. */
+  	requiredCount() {
+  		return this.inner.count();
+  	}
+  	/** Zero-based positions that have not arrived yet, in ascending order. */
+  	missingParts() {
+  		return this.inner.missing();
+  	}
+  	isComplete() {
+  		return this.inner.isComplete();
+  	}
+  	/** Joins the codes and checks the result before returning anything. */
+  	async assemble() {
+  		let text;
+  		try {
+  			text = this.inner.text();
+  		} catch (error) {
+  			throw translate(error);
+  		}
+  		return readPairingMessage(text);
+  	}
+  	clear() {
+  		this.inner.clear();
+  		this.headerVerified = false;
+  	}
+  };
   /** A QR version is a whole number from 1 to 40. */
   function requireVersion(value) {
   	if (!Number.isInteger(value) || value < 1 || value > 40) throw new QrPairingError("invalid-argument", `QR version cap must be a whole number from 1 to 40, not ${String(value)}.`);
   	return value;
   }
-  function requireMessage(value) {
-  	if (typeof value !== "string" || value.length < 1) throw new QrPairingError("invalid-argument", "Pairing code is empty.");
-  	if (value.length > 131072) throw new QrPairingError("message-too-large", `Pairing code must be at most ${MAX_MESSAGE_LENGTH} characters.`);
-  	if (!printableAscii.test(value)) throw new QrPairingError("invalid-argument", "Pairing code must be printable ASCII.");
+  function requireArgument(value, label) {
+  	try {
+  		return requireIdentifier(value, label);
+  	} catch (error) {
+  		throw new QrPairingError("invalid-argument", `Invalid ${label}.`, { cause: error });
+  	}
   }
-  //#endregion
-  //#region src/qr/svg.ts
-  var QUIET_ZONE_MODULES = 4;
-  function createQrSvg(text, errorCorrectionLevel = "M") {
-  	const qr = import_browser.create([{
-  		data: new TextEncoder().encode(text),
-  		mode: "byte"
-  	}], { errorCorrectionLevel });
-  	const size = qr.modules.size;
-  	const viewSize = size + 8;
-  	const commands = [];
-  	for (let row = 0; row < size; row += 1) for (let column = 0; column < size; column += 1) if (qr.modules.get(row, column)) commands.push(`M${column + QUIET_ZONE_MODULES} ${row + QUIET_ZONE_MODULES}h1v1h-1z`);
-  	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewSize} ${viewSize}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${commands.join("")}" fill="#000"/></svg>`;
+  function translate(error) {
+  	if (!(error instanceof StructuredAppendError)) return error;
+  	switch (error.code) {
+  		case "conflicting-symbol": return new QrPairingError("conflicting-part", error.message, { cause: error });
+  		case "incomplete": return new QrPairingError("missing-parts", error.message, { cause: error });
+  		case "parity-mismatch": return new QrPairingError("hash-mismatch", error.message, { cause: error });
+  		default: return new QrPairingError("invalid-envelope", error.message, { cause: error });
+  	}
+  }
+  /** Pairing messages are ASCII, so each byte of a code is one character. */
+  function latin1(bytes) {
+  	let text = "";
+  	for (const byte of bytes) text += String.fromCharCode(byte);
+  	return text;
   }
   //#endregion
   //#region src/pairing/limits.ts
@@ -3255,7 +3194,7 @@
   var QR_DECODER_KEY = "ext_kubohiroyajsqr";
   var CAMERA_SOURCE_KEY = "ext_kubohiroyacamerasource";
   /**
-  * Reads QR texts from a camera for the length of a pairing session.
+  * Reads QR codes from a camera for the length of a pairing session.
   *
   * The jsQR extension's own `waitForQrText` acquires and releases a camera lease
   * per call, which would restart the camera between every part. This holds one
@@ -3277,7 +3216,9 @@
   		const interval = Math.max(50, options.intervalMilliseconds ?? 150);
   		return new Promise((resolve, reject) => {
   			let timer;
+  			let settled = false;
   			const cleanup = () => {
+  				settled = true;
   				if (timer !== void 0) clearTimeout(timer);
   				options.signal.removeEventListener("abort", onAbort);
   			};
@@ -3285,24 +3226,29 @@
   				cleanup();
   				reject(cancelled());
   			};
-  			const tick = () => {
+  			const tick = async () => {
+  				timer = void 0;
+  				if (settled) return;
   				if (options.signal.aborted) {
   					onAbort();
   					return;
   				}
+  				let read;
   				try {
-  					const text = decoder.scanFrame(lease.getFrameSource());
-  					if (text !== null) {
-  						cleanup();
-  						resolve(text);
-  						return;
-  					}
+  					read = await decoder.readFrame(lease.getFrameSource());
   				} catch (error) {
+  					if (settled) return;
   					cleanup();
   					reject(new QrPairingError("camera-unavailable", "Reading the camera frame failed.", { cause: error }));
   					return;
   				}
-  				timer = setTimeout(tick, interval);
+  				if (settled) return;
+  				if (read !== null) {
+  					cleanup();
+  					resolve(read);
+  					return;
+  				}
+  				timer = setTimeout(() => void tick(), interval);
   			};
   			options.signal.addEventListener("abort", onAbort, { once: true });
   			tick();
@@ -3327,7 +3273,9 @@
   	}
   	decoder() {
   		const candidate = this.runtime[QR_DECODER_KEY];
-  		if (!isRecord(candidate) || typeof candidate.scanFrame !== "function") throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr.");
+  		if (!isRecord(candidate) || typeof candidate.readFrame !== "function") throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later.");
+  		const version = candidate.capabilityVersion;
+  		if (typeof version !== "number" || version < 2) throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later, which reads Structured Append codes.");
   		return candidate;
   	}
   	cameraSource() {
@@ -3369,34 +3317,40 @@
   }
   //#endregion
   //#region src/pairing/controller.ts
-  /**
-  * Errors that only mean "that was not our QR code".
-  *
-  * A camera pointed at a projection also sees posters, other sessions, and the
-  * previous exchange's codes, so scanning skips these and keeps looking. Damage
-  * to a code that does belong to this exchange is not in this set: that is
-  * reported, because silently retrying would hide a real problem.
-  */
-  var skippableWhileScanning = /* @__PURE__ */ new Set([
+  /** Errors that mean the text is not a pairing message at all. They are not reported as reads. */
+  var unreportedCodes = /* @__PURE__ */ new Set([
   	"invalid-json",
   	"unsupported-protocol",
   	"invalid-envelope",
-  	"part-too-large",
-  	"index-out-of-range",
-  	"message-too-large",
+  	"message-too-large"
+  ]);
+  /**
+  * Errors that only mean "that was not a code this exchange can use".
+  *
+  * A camera pointed at a projection also sees posters, other sessions, and the
+  * previous exchange's codes, so scanning skips these and keeps looking. A
+  * sequence that arrives damaged is in this set too: it has been dropped and
+  * reported, and the codes are still being shown, so reading on collects it
+  * again.
+  */
+  var skippableWhileScanning = /* @__PURE__ */ new Set([
+  	...unreportedCodes,
   	"unexpected-kind",
   	"stale-exchange",
   	"peer-mismatch",
   	"reply-mismatch",
-  	"message-mismatch"
+  	"message-mismatch",
+  	"conflicting-part",
+  	"length-mismatch",
+  	"hash-mismatch"
   ]);
   var idlePhase = "idle";
   /**
   * Drives one QR-carried offer/answer exchange per session key.
   *
-  * The controller owns no display and no camera: it turns pairing codes into QR
-  * texts, accepts decoded texts back, and hands verified codes to WebRTC exactly
-  * once. Display and scanning adapters build on top of it.
+  * The controller owns no display and no camera: it turns pairing codes into
+  * Structured Append QR sequences, accepts decoded codes back in any order, and
+  * hands verified pairing codes to WebRTC exactly once. Display and scanning adapters build on top of it.
   */
   var PairingController = class {
   	constructor(options = {}) {
@@ -3405,14 +3359,15 @@
   		this.runtime = options.runtime ?? Scratch.vm?.runtime ?? {};
   		this.enabled = options.enabled ?? featureFlags.qrCodePairing;
   		this.errorCorrectionLevel = options.errorCorrectionLevel ?? qrConfig.errorCorrectionLevel;
-  		this.maxVersion = options.maxVersion ?? qrConfig.maxVersion;
+  		this.offerMaxVersion = options.offerMaxVersion ?? qrConfig.offerMaxVersion;
+  		this.answerMaxVersion = options.answerMaxVersion ?? qrConfig.answerMaxVersion;
   		this.injectedWebRtc = options.webrtc;
   		this.injectedDisplay = options.display;
   		this.injectedScan = options.scan;
   		this.clock = options.clock ?? systemMonotonicClock;
   		this.now = options.now ?? (() => Date.now());
   	}
-  	/** Hub side: create an offer and prepare its QR parts. */
+  	/** Hub side: create an offer and prepare its pairing messages. */
   	async startOfferPairing(input) {
   		this.requireEnabled();
   		const sessionKey = requireSessionKey(input.sessionKey);
@@ -3456,50 +3411,132 @@
   		this.scheduleTick(session);
   	}
   	/**
-  	* Accepts one decoded QR text. When the last part arrives, the reassembled
-  	* code is verified and handed to WebRTC once.
+  	* Accepts one decoded QR code. The codes of a Structured Append sequence may
+  	* arrive in any order and any number of times; when the last one arrives,
+  	* the message is checked and its pairing code handed to WebRTC once.
+  	*
+  	* A lone code — one that is not part of a sequence — is read as a whole
+  	* message, the way `ingestQrText` reads one.
+  	*/
+  	async ingestQrRead(sessionKey, read) {
+  		this.requireEnabled();
+  		const session = this.requireReceiving(sessionKey);
+  		const position = read.structuredAppend;
+  		if (position === null) {
+  			await this.ingestQrText(sessionKey, read.text);
+  			return;
+  		}
+  		const symbol = {
+  			...position,
+  			bytes: read.bytes
+  		};
+  		const part = `${symbol.index + 1} / ${symbol.count}`;
+  		const assembler = session.assembler;
+  		let outcome;
+  		try {
+  			outcome = assembler.add(symbol);
+  			if (outcome.result === "foreign" && this.replacesUnverifiedSequence(session, symbol)) {
+  				assembler.clear();
+  				outcome = assembler.add(symbol);
+  			}
+  		} catch (error) {
+  			assembler.clear();
+  			this.noteRead(session, "foreign", codeOf(error));
+  			throw error;
+  		}
+  		if (outcome.result === "foreign") {
+  			this.noteRead(session, "foreign", "message-mismatch");
+  			throw new QrPairingError("message-mismatch", "QR code belongs to another sequence than the one being collected.");
+  		}
+  		if (session.delivered) {
+  			this.noteRead(session, "duplicate", part);
+  			throw alreadyAccepted();
+  		}
+  		if (outcome.result === "accepted" && symbol.index === 0) try {
+  			const header = headerOfFirstCode(symbol);
+  			if (header) {
+  				this.verifyHeader(session, header);
+  				assembler.headerVerified = true;
+  			}
+  		} catch (error) {
+  			assembler.clear();
+  			if (error instanceof QrPairingError && unreportedCodes.has(error.code)) throw error;
+  			this.noteRead(session, "foreign", codeOf(error));
+  			throw error;
+  		}
+  		this.noteRead(session, outcome.result, part);
+  		session.phase = session.role === "hub" ? "awaiting-answer" : "receiving";
+  		if (!assembler.isComplete()) return;
+  		const epoch = session.epoch;
+  		let message;
+  		try {
+  			message = await assembler.assemble();
+  			if (this.isStale(session, epoch)) return;
+  			this.verifyHeader(session, message.header);
+  		} catch (error) {
+  			if (this.isStale(session, epoch)) return;
+  			assembler.clear();
+  			this.noteRead(session, "foreign", codeOf(error));
+  			throw error;
+  		}
+  		assembler.headerVerified = true;
+  		await this.deliver(session, message, epoch);
+  	}
+  	/**
+  	* Accepts a whole pairing message as text, the way it would arrive through
+  	* something other than a camera, or in one QR code.
   	*/
   	async ingestQrText(sessionKey, text) {
   		this.requireEnabled();
-  		const session = this.requireSession(sessionKey);
-  		if (isTerminalPhase(session.phase)) throw new QrPairingError(session.phase === "connected" ? "already-accepted" : "stale-exchange", `Pairing session ${session.sessionKey} is no longer receiving parts.`);
-  		const envelope = parseEnvelope(text);
-  		const part = `${envelope.partIndex + 1} / ${envelope.partCount}`;
+  		const session = this.requireReceiving(sessionKey);
+  		const epoch = session.epoch;
+  		const message = await readPairingMessage(text);
+  		if (this.isStale(session, epoch)) return;
   		try {
-  			this.verifyEnvelope(session, envelope);
+  			this.verifyHeader(session, message.header);
   		} catch (error) {
   			this.noteRead(session, "foreign", codeOf(error));
   			throw error;
   		}
   		if (session.delivered) {
-  			this.noteRead(session, "duplicate", part);
-  			throw new QrPairingError("already-accepted", "The pairing code for this exchange has already been accepted.");
+  			this.noteRead(session, "duplicate", "1 / 1");
+  			throw alreadyAccepted();
   		}
-  		if (session.role === "camera" && session.exchangeId === "") this.adoptOffer(session, envelope);
-  		let accepted;
+  		this.noteRead(session, "accepted", "1 / 1");
+  		await this.deliver(session, message, epoch);
+  	}
+  	/**
+  	* Whether a code of another sequence should replace the one being collected.
+  	*
+  	* Only while the sequence held has not shown whose it is, and only by the
+  	* first code of a sequence that shows it is this exchange's. A camera that
+  	* first catches a stray code of an old projection would otherwise wait for
+  	* the rest of that old sequence forever.
+  	*/
+  	replacesUnverifiedSequence(session, symbol) {
+  		if (symbol.index !== 0 || session.assembler.headerVerified || session.delivered) return false;
   		try {
-  			accepted = session.assembler.add(envelope);
-  		} catch (error) {
-  			if (codeOf(error) === "message-mismatch") this.noteRead(session, "foreign", "message-mismatch");
-  			throw error;
+  			const header = headerOfFirstCode(symbol);
+  			if (!header) return false;
+  			this.verifyHeader(session, header);
+  			return true;
+  		} catch {
+  			return false;
   		}
-  		this.noteRead(session, accepted.duplicate ? "duplicate" : "accepted", part);
-  		if (!isTerminalPhase(session.phase)) session.phase = session.role === "hub" ? "awaiting-answer" : "receiving";
-  		if (!session.assembler.isComplete()) return;
-  		const epoch = session.epoch;
-  		let message;
-  		try {
-  			message = await session.assembler.assemble();
-  		} catch (error) {
-  			if (!this.isStale(session, epoch)) this.failFrom(session, error);
-  			throw error;
-  		}
-  		if (this.isStale(session, epoch)) return;
-  		session.incomingMessageId = envelope.messageId;
+  	}
+  	/** Hands a checked pairing code to WebRTC, once per exchange. */
+  	async deliver(session, message, epoch) {
+  		if (session.role === "camera" && session.exchangeId === "") this.adoptOffer(session, message.header);
+  		session.incomingMessageId = message.header.messageId;
   		session.phase = session.role === "hub" ? "answer-received" : "offer-received";
   		session.delivered = true;
-  		if (session.role === "hub") await this.acceptAnswer(session, message, epoch);
-  		else await this.acceptOfferAndPrepareAnswer(session, message, epoch);
+  		if (session.role === "hub") await this.acceptAnswer(session, message.payload, epoch);
+  		else await this.acceptOfferAndPrepareAnswer(session, message.payload, epoch);
+  	}
+  	requireReceiving(sessionKey) {
+  		const session = this.requireSession(sessionKey);
+  		if (isTerminalPhase(session.phase)) throw new QrPairingError(session.phase === "connected" ? "already-accepted" : "stale-exchange", `Pairing session ${session.sessionKey} is no longer receiving codes.`);
+  		return session;
   	}
   	/** Records what a pairing code turned out to be, for the application to show. */
   	noteRead(session, result, detail) {
@@ -3511,8 +3548,8 @@
   	selectPart(sessionKey, oneBasedIndex) {
   		const session = this.requireSession(sessionKey);
   		const total = session.outgoingSvgs.length;
-  		if (total === 0) throw new QrPairingError("no-session", "No QR parts have been prepared yet.");
-  		if (!Number.isInteger(oneBasedIndex) || oneBasedIndex < 1 || oneBasedIndex > total) throw new QrPairingError("invalid-argument", `QR part index must be between 1 and ${total}.`);
+  		if (total === 0) throw new QrPairingError("no-session", "No pairing messages have been prepared yet.");
+  		if (!Number.isInteger(oneBasedIndex) || oneBasedIndex < 1 || oneBasedIndex > total) throw new QrPairingError("invalid-argument", `pairing message index must be between 1 and ${total}.`);
   		session.outgoingCurrentIndex = oneBasedIndex - 1;
   		return session.outgoingSvgs[session.outgoingCurrentIndex] ?? "";
   	}
@@ -3520,14 +3557,19 @@
   	selectNextPart(sessionKey) {
   		const session = this.requireSession(sessionKey);
   		const total = session.outgoingSvgs.length;
-  		if (total === 0) throw new QrPairingError("no-session", "No QR parts have been prepared yet.");
+  		if (total === 0) throw new QrPairingError("no-session", "No pairing messages have been prepared yet.");
   		return this.selectPart(sessionKey, (session.outgoingCurrentIndex + 1) % total + 1);
   	}
   	partSvg(sessionKey, oneBasedIndex) {
   		return this.requireSession(sessionKey).outgoingSvgs[oneBasedIndex - 1] ?? "";
   	}
-  	partText(sessionKey, oneBasedIndex) {
-  		return this.requireSession(sessionKey).outgoing?.texts[oneBasedIndex - 1] ?? "";
+  	/** The outgoing Structured Append sequence, in order. Empty until one is prepared. */
+  	outgoingSymbols(sessionKey) {
+  		return this.requireSession(sessionKey).outgoing?.symbols ?? [];
+  	}
+  	/** The whole outgoing message as text, which `ingestQrText` accepts. */
+  	messageText(sessionKey) {
+  		return this.requireSession(sessionKey).outgoing?.text ?? "";
   	}
   	/** Shows the one-based part on the supplied sprite, keeping its original skin. */
   	showPart(sessionKey, oneBasedIndex, target) {
@@ -3570,13 +3612,13 @@
   		try {
   			while (!this.isStale(session, epoch) && !isTerminalPhase(session.phase)) {
   				if (session.delivered) return;
-  				const text = await scan.scanOnce({
+  				const read = await scan.scanOnce({
   					cameraId: camera,
   					signal: abort.signal
   				});
   				if (this.isStale(session, epoch)) return;
   				try {
-  					await this.ingestQrText(sessionKey, text);
+  					await this.ingestQrRead(sessionKey, read);
   				} catch (error) {
   					if (!(error instanceof QrPairingError) || !skippableWhileScanning.has(error.code)) throw error;
   				}
@@ -3710,7 +3752,7 @@
   			session.peerCreated = true;
   			const code = created || webrtc.getOffer(session.remotePeerId);
   			if (!code) throw new QrPairingError("webrtc-rejected", "TurboWarp WebRTC did not return an offer pairing code.");
-  			const parts = await createParts(code, this.partOptions(session, "offer"));
+  			const parts = await createPairingCodes(code, this.codeOptions(session, "offer"));
   			if (this.isStale(session, epoch)) return;
   			this.attachOutgoing(session, parts);
   			session.phase = "offer-ready";
@@ -3739,7 +3781,7 @@
   			session.peerCreated = true;
   			const code = created || webrtc.getAnswer(session.remotePeerId);
   			if (!code) throw new QrPairingError("webrtc-rejected", "TurboWarp WebRTC did not return an answer pairing code.");
-  			const parts = await createParts(code, this.partOptions(session, "answer"));
+  			const parts = await createPairingCodes(code, this.codeOptions(session, "answer"));
   			if (this.isStale(session, epoch)) return;
   			this.attachOutgoing(session, parts);
   			session.phase = "answer-ready";
@@ -3749,12 +3791,12 @@
   			throw error;
   		}
   	}
-  	partOptions(session, kind) {
+  	codeOptions(session, kind) {
   		const common = {
   			senderPeerId: session.localPeerId,
   			targetPeerId: session.remotePeerId,
   			errorCorrectionLevel: this.errorCorrectionLevel,
-  			maxVersion: this.maxVersion,
+  			maxVersion: kind === "offer" ? this.offerMaxVersion : this.answerMaxVersion,
   			createdAt: this.now()
   		};
   		return kind === "offer" ? {
@@ -3769,37 +3811,37 @@
   	}
   	attachOutgoing(session, parts) {
   		session.outgoing = parts;
-  		session.outgoingSvgs = parts.texts.map((text) => createQrSvg(text, this.errorCorrectionLevel));
+  		session.outgoingSvgs = parts.svgs;
   		session.outgoingCurrentIndex = -1;
   		session.exchangeId = parts.sessionId;
   		session.outgoingMessageId = parts.messageId;
   	}
   	/**
-  	* Checks that a part belongs to this exchange, this role, and this peer pair
-  	* before any of it reaches the assembler.
+  	* Checks that a message belongs to this exchange, this role, and this peer
+  	* pair before its pairing code reaches WebRTC.
   	*/
-  	verifyEnvelope(session, envelope) {
+  	verifyHeader(session, header) {
   		const expectedKind = session.role === "hub" ? "answer" : "offer";
-  		if (envelope.kind !== expectedKind) throw new QrPairingError("unexpected-kind", `This session expects ${expectedKind} parts.`);
+  		if (header.kind !== expectedKind) throw new QrPairingError("unexpected-kind", `This session expects an ${expectedKind}.`);
   		if (session.role === "hub") {
-  			if (envelope.sessionId !== session.exchangeId) throw new QrPairingError("stale-exchange", "QR part belongs to a different pairing exchange.");
-  			if (envelope.replyTo !== session.outgoingMessageId) throw new QrPairingError("reply-mismatch", "QR part answers a different offer.");
-  			if (envelope.senderPeerId !== session.remotePeerId || envelope.targetPeerId !== session.localPeerId) throw new QrPairingError("peer-mismatch", "QR part names a different pair of peers.");
+  			if (header.sessionId !== session.exchangeId) throw new QrPairingError("stale-exchange", "Pairing message belongs to a different pairing exchange.");
+  			if (header.replyTo !== session.outgoingMessageId) throw new QrPairingError("reply-mismatch", "Pairing message answers a different offer.");
+  			if (header.senderPeerId !== session.remotePeerId || header.targetPeerId !== session.localPeerId) throw new QrPairingError("peer-mismatch", "Pairing message names a different pair of peers.");
   			return;
   		}
-  		if (session.exchangeId !== "" && envelope.sessionId !== session.exchangeId) throw new QrPairingError("stale-exchange", "QR part belongs to a different pairing exchange.");
-  		if (session.expectedLocalPeerId !== "" && envelope.targetPeerId !== session.expectedLocalPeerId) throw new QrPairingError("peer-mismatch", "QR part is addressed to a different device.");
-  		if (session.remotePeerId !== "" && envelope.senderPeerId !== session.remotePeerId) throw new QrPairingError("peer-mismatch", "QR part names a different sender.");
+  		if (session.exchangeId !== "" && header.sessionId !== session.exchangeId) throw new QrPairingError("stale-exchange", "Pairing message belongs to a different pairing exchange.");
+  		if (session.expectedLocalPeerId !== "" && header.targetPeerId !== session.expectedLocalPeerId) throw new QrPairingError("peer-mismatch", "Pairing message is addressed to a different device.");
+  		if (session.remotePeerId !== "" && header.senderPeerId !== session.remotePeerId) throw new QrPairingError("peer-mismatch", "Pairing message names a different sender.");
   	}
   	/**
   	* Adopts the peer naming the offer carries. The sender's name for itself
   	* becomes this device's WebRTC peer key, so the two ends never need to be
   	* configured with the same identifiers.
   	*/
-  	adoptOffer(session, envelope) {
-  		session.exchangeId = envelope.sessionId;
-  		session.localPeerId = envelope.targetPeerId;
-  		session.remotePeerId = envelope.senderPeerId;
+  	adoptOffer(session, header) {
+  		session.exchangeId = header.sessionId;
+  		session.localPeerId = header.targetPeerId;
+  		session.remotePeerId = header.senderPeerId;
   	}
   	createSession(input) {
   		return {
@@ -3816,7 +3858,7 @@
   			outgoing: void 0,
   			outgoingSvgs: [],
   			outgoingCurrentIndex: -1,
-  			assembler: new PartAssembler(),
+  			assembler: new PairingAssembler(),
   			delivered: false,
   			peerCreated: false,
   			timeoutMilliseconds: 6e5,
@@ -3842,7 +3884,7 @@
   		session.outgoing = void 0;
   		session.outgoingSvgs = [];
   		session.outgoingCurrentIndex = -1;
-  		session.assembler = new PartAssembler();
+  		session.assembler = new PairingAssembler();
   		session.delivered = false;
   		session.peerCreated = false;
   		session.startedAtMonotonic = this.clock.nowMilliseconds();
@@ -3981,6 +4023,9 @@
   /** The error code a failure carries, for reporting why a code was ignored. */
   function codeOf(error) {
   	return error instanceof QrPairingError ? error.code : "invalid-envelope";
+  }
+  function alreadyAccepted() {
+  	return new QrPairingError("already-accepted", "The pairing code for this exchange has already been accepted.");
   }
   //#endregion
   //#region src/extension.ts

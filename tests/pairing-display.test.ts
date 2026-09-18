@@ -85,7 +85,7 @@ describe('pairing QR display', () => {
 
   it('keeps the original skin across part changes and destroys each temporary skin', async () => {
     const renderer = createRenderer();
-    const rtc = new FakeWebRtc('hub', 6000);
+    const rtc = new FakeWebRtc('hub', 1100);
     const hub = createHub(renderer.runtime, rtc);
     await hub.startOfferPairing({sessionKey: 's', localPeerId: 'studio', remotePeerId: 'cam-A'});
 

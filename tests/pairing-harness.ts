@@ -1,6 +1,8 @@
 import {vi} from 'vitest';
 import type {MonotonicClock} from '../src/clock.js';
+import type {StructuredAppendSymbol} from '@kubohiroya/qrcode-structured-append';
 import type {PairingController} from '../src/pairing/controller.js';
+import type {QrRead} from '../src/ports/qr-scan.js';
 import type {WebRtcPairingPort} from '../src/ports/webrtc.js';
 
 /**
@@ -112,18 +114,37 @@ export function createClock(): ClockHarness {
   };
 }
 
-export function outgoingTexts(controller: PairingController, sessionKey: string): string[] {
-  const total = controller.progress(sessionKey).outgoingPartCount;
-  return Array.from({length: total}, (_unused, index) =>
-    controller.partText(sessionKey, index + 1)
-  );
+/** A decoded Structured Append code, as turbowarp-jsqr's `readFrame` reports it. */
+export function symbolRead(symbol: StructuredAppendSymbol): QrRead {
+  let text = '';
+  for (const byte of symbol.bytes) text += String.fromCharCode(byte);
+  return {
+    text,
+    bytes: symbol.bytes,
+    structuredAppend: {index: symbol.index, count: symbol.count, parity: symbol.parity}
+  };
 }
 
-/** Carries every part, in the given order, the way an operator would. */
+/** A decoded QR code that is not part of a Structured Append sequence. */
+export function loneRead(text: string): QrRead {
+  return {text, bytes: new TextEncoder().encode(text), structuredAppend: null};
+}
+
+export function outgoingReads(controller: PairingController, sessionKey: string): QrRead[] {
+  return controller.outgoingSymbols(sessionKey).map(symbolRead);
+}
+
+export function readAt(reads: readonly QrRead[], index: number): QrRead {
+  const read = reads[index];
+  if (!read) throw new Error(`No code at ${index}.`);
+  return read;
+}
+
+/** Carries every code, in the given order, the way a camera would read them. */
 export async function carry(
   controller: PairingController,
   sessionKey: string,
-  texts: readonly string[]
+  reads: readonly QrRead[]
 ): Promise<void> {
-  for (const text of texts) await controller.ingestQrText(sessionKey, text);
+  for (const read of reads) await controller.ingestQrRead(sessionKey, read);
 }
