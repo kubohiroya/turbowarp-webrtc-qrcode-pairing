@@ -21,6 +21,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
+      '@kubohiroya/turbowarp-extension-manifest':
+        specifier: 0.2.0
+        version: 0.2.0
       '@kubohiroya/turbowarp-jsqr':
         specifier: 0.4.0
         version: 0.4.0(@kubohiroya/turbowarp-camera-source@0.5.0)(@types/emscripten@1.41.6)
@@ -282,6 +285,10 @@ packages:
   '@kubohiroya/turbowarp-camera-source@0.5.0':
     resolution: {integrity: sha512-0Ji1iL/HSl2PijGjcuPMOTN3cnc73oxGdmiiT9UIHL3BIUUPjaLDf3HCyoHyFaawdSIXQ8sspQt8gezlkv57uw==}
     engines: {node: '>=22.18.0'}
+
+  '@kubohiroya/turbowarp-extension-manifest@0.2.0':
+    resolution: {integrity: sha512-FI2Ei2dSZjIGJWJTXZYnpIwzqVtlg8KRNcRZLdydDdV53I2Yri8Mz6susCuNjSm4awbRPBgNx4ALDawr8M90cw==}
+    engines: {node: '>=22'}
 
   '@kubohiroya/turbowarp-jsqr@0.4.0':
     resolution: {integrity: sha512-Hm2w1bZbIwQV1WkhpoZgVvgstW1tyWHIxAFJx//VM0Asdjdmu9YTx6FObJgyeqPER3NhvDHCWmHFdeJljbb+AQ==}
@@ -1243,6 +1250,8 @@ snapshots:
   '@kubohiroya/qrcode-structured-append@0.1.0': {}
 
   '@kubohiroya/turbowarp-camera-source@0.5.0': {}
+
+  '@kubohiroya/turbowarp-extension-manifest@0.2.0': {}
 
   '@kubohiroya/turbowarp-jsqr@0.4.0(@kubohiroya/turbowarp-camera-source@0.5.0)(@types/emscripten@1.41.6)':
     dependencies:
