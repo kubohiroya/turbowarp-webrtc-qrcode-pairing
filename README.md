@@ -116,7 +116,7 @@ pnpm run dev
 
 Build output: `dist/webrtc-qrcode-pairing.js` and `dist/extension-manifest.json`. Load the JavaScript file as a custom TurboWarp extension. The manifest always records every declared block, including blocks the feature flag hides at runtime: it is the build-time contract, not the runtime state.
 
-Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.3`.
+Package name and version: `@kubohiroya/turbowarp-webrtc-qrcode-pairing@0.2.4`.
 
 ## Block reference
 
