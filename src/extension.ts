@@ -1,3 +1,4 @@
+import {registerFixedInputEditors} from './fixed-input-editors.js';
 import definitions from './block-definitions.json';
 import {extensionConfig} from './config';
 import {featureFlags} from './config/feature-flags.js';
@@ -33,6 +34,8 @@ export interface WebRtcQrCodePairingExtensionOptions extends PairingControllerOp
  * a runtime.
  */
 export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
+  private fixedEditorsDispose: (() => void) | undefined;
+
   private readonly enabled: boolean;
   private readonly runtime: TurboWarpRuntime;
   private readonly pairing: PairingController;
@@ -68,13 +71,15 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
   }
 
   public getInfo(): Record<string, unknown> {
-    return {
+    const info = {
       id: extensionConfig.id,
       name: Scratch.translate(definitions.extensionName),
       docsURI: extensionConfig.docsURI,
       blockIconURI: extensionConfig.blockIconURI,
       blocks: this.enabled ? blockDefinitions.map((block) => this.toScratchBlock(block)) : []
     };
+    this.fixedEditorsDispose ??= registerFixedInputEditors(Scratch, this.runtime, info.blocks);
+    return info;
   }
 
   // --- Starting an exchange ------------------------------------------------
@@ -246,6 +251,7 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
   }
 
   public dispose(): void {
+    this.fixedEditorsDispose?.();
     this.pairing.dispose();
     this.runtime.off?.('PROJECT_RUN_STOP', this.stopListener);
     this.runtime.off?.('PROJECT_STOP_ALL', this.stopListener);

@@ -1,7 +1,10 @@
 allowBuilds:
   esbuild: false
 minimumReleaseAgeExclude:
-  - '@kubohiroya/vite-plugin-turbowarp-extension@0.3.0'
-  - '@kubohiroya/turbowarp-webrtc@0.4.0'
-  - '@kubohiroya/qrcode-structured-append@0.1.0'
-  - '@kubohiroya/turbowarp-jsqr@0.4.0'
+  - '@kubohiroya/qrcode-structured-append@0.1.1'
+  - '@kubohiroya/turbowarp-camera-source@0.17.1'
+  - '@kubohiroya/turbowarp-extension-data-editor@0.2.1'
+  - '@kubohiroya/turbowarp-extension-manifest@0.3.2'
+  - '@kubohiroya/turbowarp-jsqr@0.4.1'
+  - '@kubohiroya/turbowarp-webrtc@0.4.1'
+  - '@kubohiroya/vite-plugin-turbowarp-extension@0.6.1'
