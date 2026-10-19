@@ -1,0 +1,380 @@
+{
+  "id": "kubohiroyawebrtcqrcodepairing",
+  "name": "TurboWarp-WebRTC-QRCode-Pairing",
+  "docsURI": "https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/",
+  "blockIconURI": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3QgeD0iNCIgeT0iOCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzRDOTdGRiIvPjxyZWN0IHg9IjI2IiB5PSI4IiB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjNTlDMDU5Ii8+PHJlY3QgeD0iMTUiIHk9IjI2IiB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjRkZBQjE5Ii8+PC9zdmc+",
+  "blocks": [
+    {
+      "opcode": "startOfferPairing",
+      "blockType": "command",
+      "text": "start offer pairing [SESSION] as [LOCAL_PEER] to [REMOTE_PEER]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        },
+        "LOCAL_PEER": {
+          "type": "string",
+          "defaultValue": "hub"
+        },
+        "REMOTE_PEER": {
+          "type": "string",
+          "defaultValue": "camera-1"
+        }
+      }
+    },
+    {
+      "opcode": "startAnswerPairing",
+      "blockType": "command",
+      "text": "start answer pairing [SESSION] as [LOCAL_PEER]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        },
+        "LOCAL_PEER": {
+          "type": "string",
+          "defaultValue": ""
+        }
+      }
+    },
+    {
+      "opcode": "ingestPairingQrText",
+      "blockType": "command",
+      "text": "receive pairing message [TEXT] for [SESSION]",
+      "arguments": {
+        "TEXT": {
+          "type": "string",
+          "defaultValue": ""
+        },
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "scanPairingQrFromCamera",
+      "blockType": "command",
+      "text": "scan pairing QR for [SESSION] from camera [CAMERA_ID]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        },
+        "CAMERA_ID": {
+          "type": "string",
+          "defaultValue": "default"
+        }
+      }
+    },
+    {
+      "opcode": "pairingReceivedParts",
+      "blockType": "reporter",
+      "text": "received parts of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingRequiredParts",
+      "blockType": "reporter",
+      "text": "required parts of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingMissingParts",
+      "blockType": "reporter",
+      "text": "missing parts of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingReadCount",
+      "blockType": "reporter",
+      "text": "pairing QR reads of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingLastRead",
+      "blockType": "reporter",
+      "text": "last pairing QR read of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingLastReadDetail",
+      "blockType": "reporter",
+      "text": "last pairing QR read detail of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "showPairingQrPart",
+      "blockType": "command",
+      "text": "show pairing QR part [INDEX] of [SESSION] on this sprite",
+      "arguments": {
+        "INDEX": {
+          "type": "number",
+          "defaultValue": 1
+        },
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "showNextPairingQrPart",
+      "blockType": "command",
+      "text": "show next pairing QR part of [SESSION] on this sprite",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingQrPartCount",
+      "blockType": "reporter",
+      "text": "pairing QR part count of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingQrCurrentPart",
+      "blockType": "reporter",
+      "text": "current pairing QR part of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingQrPartSvg",
+      "blockType": "reporter",
+      "text": "pairing QR part [INDEX] of [SESSION] as SVG",
+      "arguments": {
+        "INDEX": {
+          "type": "number",
+          "defaultValue": 1
+        },
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingQrPartDataUri",
+      "blockType": "reporter",
+      "text": "pairing QR part [INDEX] of [SESSION] as data URI",
+      "arguments": {
+        "INDEX": {
+          "type": "number",
+          "defaultValue": 1
+        },
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "endPairingQrDisplay",
+      "blockType": "command",
+      "text": "end pairing QR display of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingPhase",
+      "blockType": "reporter",
+      "text": "pairing phase of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingConnectionState",
+      "blockType": "reporter",
+      "text": "pairing connection state of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "isPairingConnected",
+      "blockType": "Boolean",
+      "text": "pairing [SESSION] connected?",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "waitUntilPairingConnected",
+      "blockType": "command",
+      "text": "wait until pairing [SESSION] is connected",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingError",
+      "blockType": "reporter",
+      "text": "pairing error code of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingErrorMessage",
+      "blockType": "reporter",
+      "text": "pairing error message of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingLocalPeer",
+      "blockType": "reporter",
+      "text": "local peer of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingRemotePeer",
+      "blockType": "reporter",
+      "text": "remote peer of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingExchangeId",
+      "blockType": "reporter",
+      "text": "exchange id of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingRemainingSeconds",
+      "blockType": "reporter",
+      "text": "remaining seconds of [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "pairingSessions",
+      "blockType": "reporter",
+      "text": "pairing sessions",
+      "arguments": {}
+    },
+    {
+      "opcode": "cancelPairing",
+      "blockType": "command",
+      "text": "cancel pairing [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "retryPairing",
+      "blockType": "command",
+      "text": "retry pairing [SESSION]",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        }
+      }
+    },
+    {
+      "opcode": "setPairingTimeout",
+      "blockType": "command",
+      "text": "set pairing timeout of [SESSION] to [SECONDS] seconds",
+      "arguments": {
+        "SESSION": {
+          "type": "string",
+          "defaultValue": "pairing-1"
+        },
+        "SECONDS": {
+          "type": "number",
+          "defaultValue": 600
+        }
+      }
+    }
+  ]
+}

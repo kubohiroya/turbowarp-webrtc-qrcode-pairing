@@ -449,3 +449,14 @@ Track implementation in this repository's GitHub Issues. Design documents live i
 ## License
 
 SPDX-License-Identifier: MPL-2.0
+
+## Fixed input editing
+
+With a compatible TurboWarp GUI, enable fixed-input forms to edit only standard literal fields. Numbers use complete finite JSON number tokens; menu fields use existing choices. Connected reporters and unavailable fields stay read-only and are never evaluated. Saving an unchanged form preserves exact existing raw values, including legacy spellings and unknown choices. Invalid drafts stay in the same editing session; cancel, project/target replacement, or block removal discards them. Disabling the GUI feature flag restores native field editing. This form does not run blocks, open network/audio/key/QR sessions, resolve names, or edit Schema arguments. QR index is a positive integer without a session-derived candidate limit. Timeout remains 1–3600 seconds.
+
+Canonical contracts: `schemas/block-editor-fixed-inputs.schema.json`; codecs and optional registration: `src/fixed-input-editors.ts`. These contracts describe new fixed-field candidates; they do not redefine all runtime data. The GUI integration is optional and existing standalone/composition APIs stay available.
+
+- `showPairingQrPart`: INDEX — [block documentation](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/#block-showPairingQrPart).
+- `pairingQrPartSvg`: INDEX — [block documentation](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/#block-pairingQrPartSvg).
+- `pairingQrPartDataUri`: INDEX — [block documentation](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/#block-pairingQrPartDataUri).
+- `setPairingTimeout`: SECONDS — [block documentation](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/#block-setPairingTimeout).
