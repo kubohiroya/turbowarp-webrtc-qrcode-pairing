@@ -70,7 +70,7 @@
     "@kubohiroya/turbowarp-extension-data-editor": "0.2.1"
   },
   "peerDependencies": {
-    "@kubohiroya/turbowarp-camera-source": "0.19.1",
+    "@kubohiroya/turbowarp-camera-source": "0.19.2",
     "@kubohiroya/turbowarp-jsqr": "0.4.3",
     "@kubohiroya/turbowarp-webrtc": "0.4.1"
   },
