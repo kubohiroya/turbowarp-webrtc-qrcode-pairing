@@ -57,9 +57,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@kubohiroya/turbowarp-extension-manifest": "0.3.2",
-    "@kubohiroya/turbowarp-jsqr": "0.4.4",
-    "@kubohiroya/vite-plugin-turbowarp-extension": "0.6.1",
+    "@kubohiroya/turbowarp-extension-manifest": "^0.3.2",
+    "@kubohiroya/turbowarp-jsqr": "^0.4.4",
+    "@kubohiroya/vite-plugin-turbowarp-extension": "^0.6.1",
     "@types/node": "^24.13.3",
     "eslint": "^9.39.5",
     "typescript": "^5.9.3",
@@ -67,12 +67,12 @@
     "vite": "^8.2.2",
     "vitest": "^5.0.0",
     "zxing-wasm": "3.1.4",
-    "@kubohiroya/turbowarp-extension-data-editor": "0.2.1"
+    "@kubohiroya/turbowarp-extension-data-editor": "^0.2.1"
   },
   "peerDependencies": {
-    "@kubohiroya/turbowarp-camera-source": "0.19.3",
-    "@kubohiroya/turbowarp-jsqr": "0.4.4",
-    "@kubohiroya/turbowarp-webrtc": "0.4.1"
+    "@kubohiroya/turbowarp-camera-source": "^0.19.3",
+    "@kubohiroya/turbowarp-jsqr": "^0.4.4",
+    "@kubohiroya/turbowarp-webrtc": "^0.4.1"
   },
   "peerDependenciesMeta": {
     "@kubohiroya/turbowarp-webrtc": {
@@ -86,6 +86,6 @@
     }
   },
   "dependencies": {
-    "@kubohiroya/qrcode-structured-append": "0.1.1"
+    "@kubohiroya/qrcode-structured-append": "^0.1.1"
   }
 }
