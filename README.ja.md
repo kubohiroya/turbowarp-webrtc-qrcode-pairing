@@ -1,5 +1,7 @@
 # TurboWarp-WebRTC-QRCode-Pairing
 
+<img src="assets/block-icon.svg" alt="" width="48" height="48">
+
 [English](README.md)
 
 QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です。`turbowarp-extension-template` 0.4.0を雛形として初期化しています。
