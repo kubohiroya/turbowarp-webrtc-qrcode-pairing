@@ -23,6 +23,7 @@
   ],
   "type": "module",
   "files": [
+    "assets/",
     "dist/",
     "docs/",
     "src/",
