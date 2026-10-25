@@ -83,5 +83,9 @@
 <!-- END COMPLETE BLOCK REFERENCE -->
 
 <section id="fixed-input-editing"><h2>Fixed input editing</h2><p>With a compatible TurboWarp GUI, enable fixed-input forms to edit only standard literal fields. Numbers use complete finite JSON number tokens; menu fields use existing choices. Connected reporters and unavailable fields stay read-only and are never evaluated. Saving an unchanged form preserves exact existing raw values, including legacy spellings and unknown choices. Invalid drafts stay in the same editing session; cancel, project/target replacement, or block removal discards them. Disabling the GUI feature flag restores native field editing. This form does not run blocks, open network/audio/key/QR sessions, resolve names, or edit Schema arguments. QR index is a positive integer without a session-derived candidate limit. Timeout remains 1–3600 seconds.</p><ul><li><a href="#block-showPairingQrPart"><code>showPairingQrPart</code></a>: INDEX</li><li><a href="#block-pairingQrPartSvg"><code>pairingQrPartSvg</code></a>: INDEX</li><li><a href="#block-pairingQrPartDataUri"><code>pairingQrPartDataUri</code></a>: INDEX</li><li><a href="#block-setPairingTimeout"><code>setPairingTimeout</code></a>: SECONDS</li></ul></section>
+<!-- The shared TurboWarp Plus header. It inserts itself at the top of the
+     page in a shadow root, so it cannot disturb the styles below. -->
+<script type="module"
+        src="https://kubohiroya.github.io/turbowarp-plus-site-header/dist/auto.js"></script>
 </body>
 </html>
