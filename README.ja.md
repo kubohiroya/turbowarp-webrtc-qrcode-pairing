@@ -96,7 +96,7 @@ globalThis.__TWQP_QR_CONFIG__ = {errorCorrectionLevel: 'M', offerMaxVersion: 15,
 
 ## 開発と確認
 
-Node.js >=22.18.0、pnpm 11.11.0を利用します。
+Node.js >=24、pnpm 11.28.8を利用します。
 
 ```bash
 pnpm install --frozen-lockfile
@@ -112,7 +112,7 @@ pnpm run dev
 
 ## 必要な環境と注意
 
-- Node.js >=22.18.0、pnpm 11.11.0。
+- Node.js >=24、pnpm 11.28.8。
 - 併用する拡張: 接続は`turbowarp-webrtc`、QRのデコードは`turbowarp-jsqr` 0.4.0以降、カメラフレームは`turbowarp-camera-source`。本拡張より先に読み込んでください。それより前の`turbowarp-jsqr`はテキストしか返さないため、`qr-decoder-missing`として拒否します。
 - `turbowarp-webrtc`はruntime capability v3（`acceptOffer`、`getAnswer`、`acceptAnswer`、`connectionState`、`hasPeer`、`closePeer`）を公開している必要があります。0.4.0以降が該当します。0.3.0以前はv2までで、Offerは作れても受理できないため往復を完結できません。
 - QRで接続情報を運べたことは、接続が到達可能であることを意味しません。ネットワーク条件、ICE、STUN／TURNは`turbowarp-webrtc`の責務です。

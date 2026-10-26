@@ -96,7 +96,7 @@ The caps (1 to 40) decide how fine each code gets. A single version 29-32 code f
 
 ## Requirements and safety
 
-- Node.js >=22.18.0 and pnpm 11.11.0.
+- Node.js >=24 and pnpm 11.28.8.
 - Companion extensions: `turbowarp-webrtc` for the connection, `turbowarp-jsqr` 0.4.0 or later for decoding and `turbowarp-camera-source` for camera frames. Load them before this one. Earlier `turbowarp-jsqr` versions return text only and are refused with `qr-decoder-missing`.
 - `turbowarp-webrtc` must publish runtime capability v3, which adds `acceptOffer`, `getAnswer`, `acceptAnswer`, `connectionState`, `hasPeer` and `closePeer`. Version 0.4.0 publishes it; 0.3.0 and earlier publish v2, which can produce an offer but not accept one, so a round trip cannot complete.
 - Carrying a code by QR does not make a connection reachable. Network conditions, ICE and STUN/TURN belong to `turbowarp-webrtc`.
