@@ -8,6 +8,18 @@ QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です
 
 **利用ガイド:** [English](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/) / [日本語](docs/integration-guide.ja.md)
 
+## 最小デモ
+
+[TurboWarp Editorで開く](https://turbowarp.org/editor?project_url=https%3A%2F%2Fkubohiroya.github.io%2Fturbowarp-webrtc-qrcode-pairing%2Fsamples%2Fpair-two-devices.sb3) · [SB3をダウンロード](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/samples/pair-two-devices.sb3)
+
+両端末で緑旗。hostでO、guestでA。guestでC→画面のカメラ許可ボタンをクリックしてhostのQRを読む。hostでNを押して全パートを順次見せ、guestはCで続きのパートを読む。guestのanswer QRもNで表示、hostはCで全パートを読む。Sでconnectedを確認。Xでセッション・peer・カメラを停止。再実行は緑旗から。
+
+要件: 同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/jsQRの実distをID/SHA256/commit/license付きで同梱。jsQRデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。
+
+未検証: 実2端末の光学QR読取・カメラ許可・実WASMによるQR読取・接続完了・実ネットワークは未検証。自動検証は未接続初期状態とanswer待機/取消のみに限定。
+
+[編集・再生成手順](samples/README.md)
+
 ## できること
 
 - WebRTCのOfferとAnswerを連結QRコード（Structured Append、ISO/IEC 18004）として符号化します。QRの規格自身が定める、1つのメッセージを最大16枚に分ける方式です。
