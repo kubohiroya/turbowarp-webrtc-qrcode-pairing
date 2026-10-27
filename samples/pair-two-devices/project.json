@@ -1,0 +1,2116 @@
+{
+  "targets": [
+    {
+      "isStage": true,
+      "name": "Stage",
+      "variables": {
+        "sample-state": [
+          "status",
+          "Ready"
+        ],
+        "phase": [
+          "pairing phase",
+          "idle"
+        ],
+        "parts": [
+          "QR parts",
+          0
+        ],
+        "pair-error": [
+          "error",
+          ""
+        ],
+        "pair-state": [
+          "connection",
+          "closed"
+        ],
+        "current-session": [
+          "session",
+          "idle"
+        ],
+        "qr-last": [
+          "last QR text",
+          ""
+        ]
+      },
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {},
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "name": "instructions",
+          "assetId": "",
+          "dataFormat": "svg",
+          "md5ext": "backdrop.svg",
+          "rotationCenterX": 240,
+          "rotationCenterY": 180
+        }
+      ],
+      "sounds": [],
+      "volume": 0,
+      "layerOrder": 0,
+      "tempo": 60,
+      "videoTransparency": 50,
+      "videoState": "off",
+      "textToSpeechLanguage": null
+    },
+    {
+      "isStage": false,
+      "name": "Pairing QR",
+      "variables": {},
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "b1": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_cancelPairing",
+          "next": "cancel-guest",
+          "parent": "select-idle",
+          "inputs": {
+            "SESSION": [
+              1,
+              [
+                10,
+                "host-demo"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b2": {
+          "opcode": "kubohiroyawebrtc_closePeer",
+          "next": "b3",
+          "parent": "cancel-guest",
+          "inputs": {
+            "PEER": [
+              1,
+              [
+                10,
+                "guest"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b3": {
+          "opcode": "kubohiroyawebrtc_closePeer",
+          "next": "b4",
+          "parent": "b2",
+          "inputs": {
+            "PEER": [
+              1,
+              [
+                10,
+                "host"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b4": {
+          "opcode": "kubohiroyacamerasource_stopSharedCamera",
+          "next": "b6",
+          "parent": "b3",
+          "inputs": {
+            "CAMERA_ID": [
+              1,
+              [
+                10,
+                "default"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b5": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b6",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b6": {
+          "opcode": "data_setvariableto",
+          "next": "b8",
+          "parent": "b4",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b5"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b7": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b8",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b8": {
+          "opcode": "data_setvariableto",
+          "next": "b10",
+          "parent": "b6",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b7"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b9": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b10",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b10": {
+          "opcode": "data_setvariableto",
+          "next": "b12",
+          "parent": "b8",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b9"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b11": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b12",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b12": {
+          "opcode": "data_setvariableto",
+          "next": "b13",
+          "parent": "b10",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b11"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b13": {
+          "opcode": "data_setvariableto",
+          "next": "qr-last-set",
+          "parent": "b12",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "Ready"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "status",
+              "sample-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b14": {
+          "opcode": "event_whenflagclicked",
+          "next": "select-idle",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 580,
+          "y": 210
+        },
+        "b15": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_cancelPairing",
+          "next": "retry-if-o",
+          "parent": "select-o",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b16": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_startOfferPairing",
+          "next": null,
+          "parent": "retry-if-o",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ],
+            "LOCAL_PEER": [
+              1,
+              [
+                10,
+                "host"
+              ]
+            ],
+            "REMOTE_PEER": [
+              1,
+              [
+                10,
+                "guest"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b17": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_showNextPairingQrPart",
+          "next": "b19",
+          "parent": "retry-if-o",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b18": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b19",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b19": {
+          "opcode": "data_setvariableto",
+          "next": "b21",
+          "parent": "b17",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b18"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b20": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b21",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b21": {
+          "opcode": "data_setvariableto",
+          "next": "b23",
+          "parent": "b19",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b20"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b22": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b23",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b23": {
+          "opcode": "data_setvariableto",
+          "next": "b25",
+          "parent": "b21",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b22"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b24": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b25",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b25": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "b23",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b24"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b26": {
+          "opcode": "event_whenkeypressed",
+          "next": "select-o",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "o",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 580,
+          "y": 390
+        },
+        "b27": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_cancelPairing",
+          "next": "retry-if-a",
+          "parent": "select-a",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b28": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_startAnswerPairing",
+          "next": null,
+          "parent": "retry-if-a",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ],
+            "LOCAL_PEER": [
+              1,
+              [
+                10,
+                "guest"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b29": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b30",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b30": {
+          "opcode": "data_setvariableto",
+          "next": "b32",
+          "parent": "retry-if-a",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b29"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b31": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b32",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b32": {
+          "opcode": "data_setvariableto",
+          "next": "b34",
+          "parent": "b30",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b31"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b33": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b34",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b34": {
+          "opcode": "data_setvariableto",
+          "next": "b36",
+          "parent": "b32",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b33"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b35": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b36",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b36": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "b34",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b35"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b37": {
+          "opcode": "event_whenkeypressed",
+          "next": "select-a",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "a",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 300,
+          "y": 570
+        },
+        "b38": {
+          "opcode": "kubohiroyacamerasource_startSharedCameraFromCameraButton",
+          "next": "b39",
+          "parent": "b48",
+          "inputs": {
+            "CAMERA_ID": [
+              1,
+              [
+                10,
+                "default"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b39": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_scanPairingQrFromCamera",
+          "next": "b41",
+          "parent": "b38",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ],
+            "CAMERA_ID": [
+              1,
+              [
+                10,
+                "default"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b40": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b41",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b41": {
+          "opcode": "data_setvariableto",
+          "next": "b43",
+          "parent": "b39",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b40"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b42": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b43",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b43": {
+          "opcode": "data_setvariableto",
+          "next": "b45",
+          "parent": "b41",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b42"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b44": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b45",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b45": {
+          "opcode": "data_setvariableto",
+          "next": "b47",
+          "parent": "b43",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b44"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b46": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b47",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b47": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "b45",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b46"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b48": {
+          "opcode": "event_whenkeypressed",
+          "next": "b38",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "c",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 20,
+          "y": 750
+        },
+        "b49": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_showNextPairingQrPart",
+          "next": "b51",
+          "parent": "b58",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b50": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b51",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b51": {
+          "opcode": "data_setvariableto",
+          "next": "b53",
+          "parent": "b49",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b50"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b52": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b53",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b53": {
+          "opcode": "data_setvariableto",
+          "next": "b55",
+          "parent": "b51",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b52"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b54": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b55",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b55": {
+          "opcode": "data_setvariableto",
+          "next": "b57",
+          "parent": "b53",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b54"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b56": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b57",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b57": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "b55",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b56"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b58": {
+          "opcode": "event_whenkeypressed",
+          "next": "b49",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "n",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 580,
+          "y": 870
+        },
+        "b59": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b60",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b60": {
+          "opcode": "data_setvariableto",
+          "next": "b62",
+          "parent": "b67",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b59"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b61": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b62",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b62": {
+          "opcode": "data_setvariableto",
+          "next": "b64",
+          "parent": "b60",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b61"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b63": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b64",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b64": {
+          "opcode": "data_setvariableto",
+          "next": "b66",
+          "parent": "b62",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b63"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b65": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b66",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b66": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "b64",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b65"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b67": {
+          "opcode": "event_whenkeypressed",
+          "next": "b60",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "s",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 860,
+          "y": 990
+        },
+        "b68": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_cancelPairing",
+          "next": "b69",
+          "parent": "b81",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b69": {
+          "opcode": "kubohiroyawebrtc_closePeer",
+          "next": "b70",
+          "parent": "b68",
+          "inputs": {
+            "PEER": [
+              1,
+              [
+                10,
+                "guest"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b70": {
+          "opcode": "kubohiroyawebrtc_closePeer",
+          "next": "b71",
+          "parent": "b69",
+          "inputs": {
+            "PEER": [
+              1,
+              [
+                10,
+                "host"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b71": {
+          "opcode": "kubohiroyacamerasource_stopSharedCamera",
+          "next": "b73",
+          "parent": "b70",
+          "inputs": {
+            "CAMERA_ID": [
+              1,
+              [
+                10,
+                "default"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b72": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingPhase",
+          "next": null,
+          "parent": "b73",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b73": {
+          "opcode": "data_setvariableto",
+          "next": "b75",
+          "parent": "b71",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b72"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "pairing phase",
+              "phase"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b74": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingQrPartCount",
+          "next": null,
+          "parent": "b75",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b75": {
+          "opcode": "data_setvariableto",
+          "next": "b77",
+          "parent": "b73",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b74"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "QR parts",
+              "parts"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b76": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingError",
+          "next": null,
+          "parent": "b77",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b77": {
+          "opcode": "data_setvariableto",
+          "next": "b79",
+          "parent": "b75",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b76"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "error",
+              "pair-error"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b78": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingConnectionState",
+          "next": null,
+          "parent": "b79",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b79": {
+          "opcode": "data_setvariableto",
+          "next": "b80",
+          "parent": "b77",
+          "inputs": {
+            "VALUE": [
+              2,
+              "b78"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "connection",
+              "pair-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b80": {
+          "opcode": "data_setvariableto",
+          "next": "stop-all",
+          "parent": "b79",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "Closed"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "status",
+              "sample-state"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b81": {
+          "opcode": "event_whenkeypressed",
+          "next": "b68",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "x",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 300,
+          "y": 1230
+        },
+        "select-idle": {
+          "opcode": "data_setvariableto",
+          "next": "b1",
+          "parent": "b14",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "idle"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "session",
+              "current-session"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "qr-last-report": {
+          "opcode": "kubohiroyajsqr_lastQrTextReporter",
+          "next": null,
+          "parent": "qr-last-set",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "qr-last-set": {
+          "opcode": "data_setvariableto",
+          "next": "keep-running",
+          "parent": "b13",
+          "inputs": {
+            "VALUE": [
+              2,
+              "qr-last-report"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "last QR text",
+              "qr-last"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "select-o": {
+          "opcode": "data_setvariableto",
+          "next": "b15",
+          "parent": "b26",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "host-demo"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "session",
+              "current-session"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "sessions-o": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingSessions",
+          "next": null,
+          "parent": "contains-o",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "contains-o": {
+          "opcode": "operator_contains",
+          "next": null,
+          "parent": "retry-if-o",
+          "inputs": {
+            "STRING1": [
+              2,
+              "sessions-o"
+            ],
+            "STRING2": [
+              1,
+              [
+                10,
+                "host-demo"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "retry-o": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_retryPairing",
+          "next": null,
+          "parent": "retry-if-o",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "retry-if-o": {
+          "opcode": "control_if_else",
+          "next": "b17",
+          "parent": "b15",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "contains-o"
+            ],
+            "SUBSTACK": [
+              2,
+              "retry-o"
+            ],
+            "SUBSTACK2": [
+              2,
+              "b16"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "select-a": {
+          "opcode": "data_setvariableto",
+          "next": "b27",
+          "parent": "b37",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                10,
+                "guest-demo"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "session",
+              "current-session"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "sessions-a": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_pairingSessions",
+          "next": null,
+          "parent": "contains-a",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "contains-a": {
+          "opcode": "operator_contains",
+          "next": null,
+          "parent": "retry-if-a",
+          "inputs": {
+            "STRING1": [
+              2,
+              "sessions-a"
+            ],
+            "STRING2": [
+              1,
+              [
+                10,
+                "guest-demo"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "retry-a": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_retryPairing",
+          "next": null,
+          "parent": "retry-if-a",
+          "inputs": {
+            "SESSION": [
+              3,
+              [
+                12,
+                "session",
+                "current-session"
+              ],
+              [
+                10,
+                ""
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "retry-if-a": {
+          "opcode": "control_if_else",
+          "next": "b30",
+          "parent": "b27",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "contains-a"
+            ],
+            "SUBSTACK": [
+              2,
+              "retry-a"
+            ],
+            "SUBSTACK2": [
+              2,
+              "b28"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "cancel-guest": {
+          "opcode": "kubohiroyawebrtcqrcodepairing_cancelPairing",
+          "next": "b2",
+          "parent": "b1",
+          "inputs": {
+            "SESSION": [
+              1,
+              [
+                10,
+                "guest-demo"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "keep-running": {
+          "opcode": "control_forever",
+          "next": null,
+          "parent": "qr-last-set",
+          "inputs": {
+            "SUBSTACK": [
+              2,
+              "idle-wait"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "idle-wait": {
+          "opcode": "control_wait",
+          "next": null,
+          "parent": "keep-running",
+          "inputs": {
+            "DURATION": [
+              1,
+              [
+                5,
+                "0.2"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "stop-all": {
+          "opcode": "control_stop",
+          "next": null,
+          "parent": "b80",
+          "inputs": {},
+          "fields": {
+            "STOP_OPTION": [
+              "all",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        }
+      },
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "name": "QR placeholder",
+          "assetId": "",
+          "dataFormat": "svg",
+          "md5ext": "sprite.svg",
+          "rotationCenterX": 100,
+          "rotationCenterY": 100
+        }
+      ],
+      "sounds": [],
+      "volume": 0,
+      "layerOrder": 1,
+      "visible": true,
+      "x": 100,
+      "y": -50,
+      "size": 65,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    }
+  ],
+  "monitors": [
+    {
+      "id": "phase",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "pairing phase"
+      },
+      "spriteName": null,
+      "value": "idle",
+      "width": 0,
+      "height": 0,
+      "x": 12,
+      "y": 190,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "parts",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "QR parts"
+      },
+      "spriteName": null,
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 12,
+      "y": 218,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "pair-error",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "error"
+      },
+      "spriteName": null,
+      "value": "",
+      "width": 0,
+      "height": 0,
+      "x": 12,
+      "y": 246,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "pair-state",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "connection"
+      },
+      "spriteName": null,
+      "value": "closed",
+      "width": 0,
+      "height": 0,
+      "x": 12,
+      "y": 274,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    }
+  ],
+  "extensions": [
+    "kubohiroyawebrtcqrcodepairing"
+  ],
+  "meta": {
+    "semver": "3.0.0",
+    "vm": "0.2.0",
+    "agent": "P3 minimal sample"
+  }
+}

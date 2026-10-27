@@ -13,3 +13,5 @@ local/
 .claude/
 .playwright-mcp/
 .serena/
+
+_site/

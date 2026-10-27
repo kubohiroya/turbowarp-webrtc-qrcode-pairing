@@ -1,0 +1,54 @@
+{
+  "baseURL": "https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/",
+  "extension": {
+    "id": "kubohiroyawebrtcqrcodepairing",
+    "bundle": "dist/webrtc-qrcode-pairing.js",
+    "unsandboxed": true,
+    "dependencies": [
+      {
+        "id": "kubohiroyawebrtc",
+        "bundle": "samples/dependencies/turbowarp-webrtc.js",
+        "sha256": "520562dc05409c5290dcdad7cb4c3afcc61977170a42f6c634401a4d6464825c",
+        "repository": "https://github.com/kubohiroya/turbowarp-webrtc",
+        "revision": "3e585493c88ac8dd20f48063ba43d396684e8135",
+        "license": "MPL-2.0"
+      },
+      {
+        "id": "kubohiroyacamerasource",
+        "bundle": "samples/dependencies/camera-source.js",
+        "sha256": "a28ee94053abe0950afd7be49c2996b277c4a1b2ff86987257dde4210c6aa552",
+        "repository": "https://github.com/kubohiroya/turbowarp-camera-source",
+        "revision": "9d234c265985589d26c2e2584175eb4ada3e2407",
+        "license": "MPL-2.0"
+      },
+      {
+        "id": "kubohiroyajsqr",
+        "bundle": "samples/dependencies/jsqr.js",
+        "sha256": "eba292f5d0690aaecf7200f8c6918cc48eaf5d825c74ab4af0d8020bdc717871",
+        "repository": "https://github.com/kubohiroya/turbowarp-jsqr",
+        "revision": "c5cb1900885036416b0dcbb68f6427997ea116e4",
+        "license": "MPL-2.0"
+      }
+    ],
+    "startupFlags": {
+      "__TWQP_FEATURE_FLAGS__": {
+        "qrCodePairing": true
+      }
+    }
+  },
+  "samples": [
+    {
+      "name": "pair-two-devices",
+      "title": "Pair two devices",
+      "instructions": "両端末で緑旗。hostでO、guestでA。guestでC→画面のカメラ許可ボタンをクリックしてhostのQRを読む。hostでNを押して全パートを順次見せ、guestはCで続きのパートを読む。guestのanswer QRもNで表示、hostはCで全パートを読む。Sでconnectedを確認。Xでセッション・peer・カメラを停止。再実行は緑旗から。",
+      "checks": [
+        {
+          "variable": "sample-state",
+          "equals": "Ready"
+        }
+      ],
+      "requirements": "同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/jsQRの実distをID/SHA256/commit/license付きで同梱。jsQRデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。",
+      "unverified": "実2端末の光学QR読取・カメラ許可・実WASMによるQR読取・接続完了・実ネットワークは未検証。自動検証は未接続初期状態とanswer待機/取消のみに限定。"
+    }
+  ]
+}

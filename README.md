@@ -8,6 +8,14 @@ A TurboWarp extension for exchanging WebRTC connection information through QR co
 
 **User guide:** [English](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/)
 
+## Minimal demo
+
+[TurboWarp Editor — open demo](https://turbowarp.org/editor?project_url=https%3A%2F%2Fkubohiroya.github.io%2Fturbowarp-webrtc-qrcode-pairing%2Fsamples%2Fpair-two-devices.sb3) · [SB3 download](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/samples/pair-two-devices.sb3)
+
+Requires two LAN devices with cameras/screens, HTTPS and camera permission. Real WebRTC/Camera Source/jsQR companions are embedded with ID/checksum/revision/license; the real QR decoder WASM is embedded and needs no CDN download. Green flag only resets. Host: O; guest: A. C requests the camera via its permission button and scans a part; N cycles outgoing QR parts. Repeat on both devices for offer/answer; S reads state; X cancels and closes peers/camera. The sample enables the existing opt-in flag only during bundle initialization and restores the global property; package defaults remain off. Physical optical scanning, camera permission, WASM optical decoding, completed pairing and real networks remain unverified; automated checks cover idle and answer-wait/cancel only.
+
+[Editable sources and rebuild instructions](samples/README.md)
+
 ## What it does
 
 - Encodes a WebRTC Offer or Answer as a Structured Append sequence (ISO/IEC 18004), the QR standard's own way of splitting one message across up to 16 codes.
