@@ -1,8 +1,12 @@
 {
   "name": "@kubohiroya/turbowarp-webrtc-qrcode-pairing",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "TurboWarp extension that pairs WebRTC peers by carrying offers and answers as QR codes.",
-  "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
+  "author": {
+    "name": "Hiroya Kubo",
+    "email": "hiroya@cuc.ac.jp",
+    "url": "https://github.com/kubohiroya"
+  },
   "license": "MPL-2.0",
   "homepage": "https://github.com/kubohiroya/turbowarp-webrtc-qrcode-pairing#readme",
   "repository": {
@@ -61,9 +65,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@kubohiroya/turbowarp-extension-manifest": "^0.4.0",
-    "@kubohiroya/turbowarp-jsqr": "^0.6.0",
-    "@kubohiroya/vite-plugin-turbowarp-extension": "^0.9.0",
+    "@kubohiroya/turbowarp-extension-manifest": "^0.5.0",
+    "@kubohiroya/turbowarp-jsqr": "^0.7.0",
+    "@kubohiroya/vite-plugin-turbowarp-extension": "^0.10.0",
     "@types/node": "^24.13.3",
     "eslint": "^9.39.5",
     "typescript": "^5.9.3",
@@ -71,12 +75,12 @@
     "vite": "^8.2.2",
     "vitest": "^5.0.0",
     "zxing-wasm": "3.1.4",
-    "@kubohiroya/turbowarp-extension-data-editor": "^0.4.0"
+    "@kubohiroya/turbowarp-extension-data-editor": "^0.5.0"
   },
   "peerDependencies": {
-    "@kubohiroya/turbowarp-camera-source": "^0.21.0",
-    "@kubohiroya/turbowarp-jsqr": "^0.6.0",
-    "@kubohiroya/turbowarp-webrtc": "^0.6.0"
+    "@kubohiroya/turbowarp-camera-source": "^0.22.0",
+    "@kubohiroya/turbowarp-jsqr": "^0.7.0",
+    "@kubohiroya/turbowarp-webrtc": "^0.7.0"
   },
   "peerDependenciesMeta": {
     "@kubohiroya/turbowarp-webrtc": {
@@ -90,6 +94,6 @@
     }
   },
   "dependencies": {
-    "@kubohiroya/qrcode-structured-append": "^0.2.0"
+    "@kubohiroya/qrcode-structured-append": "^0.3.0"
   }
 }

@@ -695,7 +695,7 @@ function _classPrivateMethodInitSpec(e, a) {
 	_checkPrivateRedeclaration(e, a), a.add(e);
 }
 //#endregion
-//#region node_modules/.pnpm/@kubohiroya+qrcode-structured-append@0.2.0/node_modules/@kubohiroya/qrcode-structured-append/dist/index.js
+//#region node_modules/.pnpm/@kubohiroya+qrcode-structured-append@0.3.0/node_modules/@kubohiroya/qrcode-structured-append/dist/index.js
 var _Charset;
 var _label;
 var _values;
