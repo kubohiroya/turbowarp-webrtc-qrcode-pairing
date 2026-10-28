@@ -7,6 +7,7 @@
     "dependencies": [
       {
         "id": "kubohiroyawebrtc",
+        "unsandboxed": true,
         "bundle": "samples/dependencies/turbowarp-webrtc.js",
         "sha256": "520562dc05409c5290dcdad7cb4c3afcc61977170a42f6c634401a4d6464825c",
         "repository": "https://github.com/kubohiroya/turbowarp-webrtc",
@@ -15,6 +16,7 @@
       },
       {
         "id": "kubohiroyacamerasource",
+        "unsandboxed": true,
         "bundle": "samples/dependencies/camera-source.js",
         "sha256": "a28ee94053abe0950afd7be49c2996b277c4a1b2ff86987257dde4210c6aa552",
         "repository": "https://github.com/kubohiroya/turbowarp-camera-source",
@@ -23,6 +25,7 @@
       },
       {
         "id": "kubohiroyajsqr",
+        "unsandboxed": true,
         "bundle": "samples/dependencies/jsqr.js",
         "sha256": "eba292f5d0690aaecf7200f8c6918cc48eaf5d825c74ab4af0d8020bdc717871",
         "repository": "https://github.com/kubohiroya/turbowarp-jsqr",
