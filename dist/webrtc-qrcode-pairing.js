@@ -188,21 +188,40 @@ function registerFixedInputEditors(scratch, runtime, visibleBlocks) {
 		return typeof block.opcode === "string" ? [block.opcode] : [];
 	}));
 	const events = runtime;
+	const definitions = fixedInputEditorOptions().filter((options) => options.opcodes.some((opcode) => visibleOpcodes.has(opcode.slice(30))));
 	const removers = [];
-	let active = true;
-	const dispose = () => {
-		if (!active) return;
-		active = false;
-		events?.off?.("RUNTIME_DISPOSED", dispose);
+	let state = "registered";
+	const release = () => {
 		for (const remove of removers.splice(0).reverse()) remove();
 	};
-	try {
-		for (const options of fixedInputEditorOptions()) if (options.opcodes.some((opcode) => visibleOpcodes.has(opcode.slice(30)))) removers.push(api.registerFixedInputEditor.call(api, options));
-		events?.on?.("RUNTIME_DISPOSED", dispose);
-	} catch (error) {
-		dispose();
-		throw error;
-	}
+	const register = () => {
+		try {
+			for (const options of definitions) removers.push(api.registerFixedInputEditor.call(api, options));
+		} catch (error) {
+			release();
+			throw error;
+		}
+	};
+	const releaseForRuntimeDispose = () => {
+		if (state !== "registered") return;
+		state = "released";
+		release();
+	};
+	const restoreAfterProjectLoad = () => {
+		if (state !== "released") return;
+		register();
+		state = "registered";
+	};
+	const dispose = () => {
+		if (state === "disposed") return;
+		state = "disposed";
+		events?.off?.("RUNTIME_DISPOSED", releaseForRuntimeDispose);
+		events?.off?.("PROJECT_LOADED", restoreAfterProjectLoad);
+		release();
+	};
+	register();
+	events?.on?.("RUNTIME_DISPOSED", releaseForRuntimeDispose);
+	events?.on?.("PROJECT_LOADED", restoreAfterProjectLoad);
 	return dispose;
 }
 var block_definitions_default = {
@@ -4298,7 +4317,7 @@ var WebRtcQrCodePairingExtension = class {
 	constructor(options = {}) {
 		this.stopListener = () => this.pairing.stopTransient();
 		this.resetListener = () => this.pairing.dispose();
-		this.disposeListener = () => this.dispose();
+		this.disposeListener = () => this.disposeRuntimeBindings();
 		this.targetRemovedListener = (target) => {
 			if (isTarget(target)) this.pairing.handleTargetRemoved(target);
 		};
@@ -4428,6 +4447,9 @@ var WebRtcQrCodePairingExtension = class {
 	}
 	dispose() {
 		this.fixedEditorsDispose?.();
+		this.disposeRuntimeBindings();
+	}
+	disposeRuntimeBindings() {
 		this.pairing.dispose();
 		this.runtime.off?.("PROJECT_RUN_STOP", this.stopListener);
 		this.runtime.off?.("PROJECT_STOP_ALL", this.stopListener);

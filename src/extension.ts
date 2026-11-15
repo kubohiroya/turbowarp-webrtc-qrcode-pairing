@@ -53,8 +53,12 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
    * to later stops and sprite removals.
    */
   private readonly resetListener = (): void => this.pairing.dispose();
-  /** The runtime itself is going away, so the listeners go with it. */
-  private readonly disposeListener = (): void => this.dispose();
+  /**
+   * The runtime itself is going away, so the listeners go with it. The fixed
+   * input editors are left to their helper, which registers them again for
+   * the next project.
+   */
+  private readonly disposeListener = (): void => this.disposeRuntimeBindings();
   private readonly targetRemovedListener = (target: unknown): void => {
     if (isTarget(target)) this.pairing.handleTargetRemoved(target);
   };
@@ -252,6 +256,10 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
 
   public dispose(): void {
     this.fixedEditorsDispose?.();
+    this.disposeRuntimeBindings();
+  }
+
+  private disposeRuntimeBindings(): void {
     this.pairing.dispose();
     this.runtime.off?.('PROJECT_RUN_STOP', this.stopListener);
     this.runtime.off?.('PROJECT_STOP_ALL', this.stopListener);
