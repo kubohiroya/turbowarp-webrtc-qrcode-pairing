@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import definitions from '../src/block-definitions.json';
 import {WebRtcQrCodePairingExtension} from '../src/extension.js';
+import {PairingController} from '../src/pairing/controller.js';
 import {createClock, FakeWebRtc, type ClockHarness} from './pairing-harness.js';
 
 let harness: ClockHarness;
@@ -161,6 +162,9 @@ describe('WebRtcQrCodePairingExtension', () => {
       REMOTE_PEER: 'camera-1'
     });
 
+    // vm.loadProject disposes the runtime before loading the next project,
+    // so RUNTIME_DISPOSED comes before every PROJECT_LOADED.
+    listeners.get('RUNTIME_DISPOSED')?.();
     listeners.get('PROJECT_LOADED')?.();
 
     // The sessions belong to the project that just went away.
@@ -174,6 +178,20 @@ describe('WebRtcQrCodePairingExtension', () => {
       'RUNTIME_DISPOSED',
       'targetWasRemoved'
     ]);
+
+    await extension.startOfferPairing({
+      SESSION: 'pairing-2',
+      LOCAL_PEER: 'hub',
+      REMOTE_PEER: 'camera-1'
+    });
+    listeners.get('PROJECT_STOP_ALL')?.();
+    expect(extension.pairingPhase({SESSION: 'pairing-2'})).toBe('cancelled');
+
+    const handleTargetRemoved = vi.spyOn(PairingController.prototype, 'handleTargetRemoved');
+    const target = {} as TurboWarpTarget;
+    listeners.get('targetWasRemoved')?.(target);
+    expect(handleTargetRemoved).toHaveBeenCalledWith(target);
+    handleTargetRemoved.mockRestore();
 
     extension.dispose();
     expect([...listeners.keys()]).toEqual([]);
