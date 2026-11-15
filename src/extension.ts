@@ -54,11 +54,13 @@ export class WebRtcQrCodePairingExtension implements TurboWarpExtension {
    */
   private readonly resetListener = (): void => this.pairing.dispose();
   /**
-   * The runtime itself is going away, so the listeners go with it. The fixed
-   * input editors are left to their helper, which registers them again for
-   * the next project.
+   * vm.loadProject disposes the runtime on every project load, while the
+   * extension instance stays loaded. So this only drops the old project's
+   * sessions and keeps the runtime listeners; they are removed by dispose()
+   * alone. The fixed input editors are left to their helper, which registers
+   * them again for the next project.
    */
-  private readonly disposeListener = (): void => this.disposeRuntimeBindings();
+  private readonly disposeListener = (): void => this.pairing.dispose();
   private readonly targetRemovedListener = (target: unknown): void => {
     if (isTarget(target)) this.pairing.handleTargetRemoved(target);
   };
