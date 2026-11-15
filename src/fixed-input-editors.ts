@@ -188,27 +188,46 @@ export function registerFixedInputEditors(
     }),
   );
   const events = runtime as RegistrationRuntime | undefined;
+  const definitions = fixedInputEditorOptions().filter((options) =>
+    options.opcodes.some((opcode) =>
+      visibleOpcodes.has(opcode.slice(extensionId.length + 1)),
+    ),
+  );
   const removers: (() => void)[] = [];
-  let active = true;
-  const dispose = () => {
-    if (!active) return;
-    active = false;
-    events?.off?.("RUNTIME_DISPOSED", dispose);
+  // Loading a project disposes the runtime but keeps this extension loaded, so
+  // RUNTIME_DISPOSED only releases the editors until the next PROJECT_LOADED.
+  let state: "registered" | "released" | "disposed" = "registered";
+  const release = () => {
     for (const remove of removers.splice(0).reverse()) remove();
   };
-  try {
-    for (const options of fixedInputEditorOptions()) {
-      if (
-        options.opcodes.some((opcode) =>
-          visibleOpcodes.has(opcode.slice(extensionId.length + 1)),
-        )
-      )
-        removers.push(api.registerFixedInputEditor.call(api, options));
+  const register = () => {
+    try {
+      for (const options of definitions)
+        removers.push(api.registerFixedInputEditor!.call(api, options));
+    } catch (error) {
+      release();
+      throw error;
     }
-    events?.on?.("RUNTIME_DISPOSED", dispose);
-  } catch (error) {
-    dispose();
-    throw error;
-  }
+  };
+  const releaseForRuntimeDispose = () => {
+    if (state !== "registered") return;
+    state = "released";
+    release();
+  };
+  const restoreAfterProjectLoad = () => {
+    if (state !== "released") return;
+    register();
+    state = "registered";
+  };
+  const dispose = () => {
+    if (state === "disposed") return;
+    state = "disposed";
+    events?.off?.("RUNTIME_DISPOSED", releaseForRuntimeDispose);
+    events?.off?.("PROJECT_LOADED", restoreAfterProjectLoad);
+    release();
+  };
+  register();
+  events?.on?.("RUNTIME_DISPOSED", releaseForRuntimeDispose);
+  events?.on?.("PROJECT_LOADED", restoreAfterProjectLoad);
   return dispose;
 }
