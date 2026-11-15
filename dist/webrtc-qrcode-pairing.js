@@ -4317,7 +4317,7 @@ var WebRtcQrCodePairingExtension = class {
 	constructor(options = {}) {
 		this.stopListener = () => this.pairing.stopTransient();
 		this.resetListener = () => this.pairing.dispose();
-		this.disposeListener = () => this.disposeRuntimeBindings();
+		this.disposeListener = () => this.pairing.dispose();
 		this.targetRemovedListener = (target) => {
 			if (isTarget(target)) this.pairing.handleTargetRemoved(target);
 		};
