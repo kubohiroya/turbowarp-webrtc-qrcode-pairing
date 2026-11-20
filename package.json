@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-webrtc-qrcode-pairing",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "TurboWarp extension that pairs WebRTC peers by carrying offers and answers as QR codes.",
   "author": {
     "name": "Hiroya Kubo",
@@ -95,5 +95,46 @@
   },
   "dependencies": {
     "@kubohiroya/qrcode-structured-append": "^0.3.0"
+  },
+  "turbowarpExtension": {
+    "resourceDeclaration": {
+      "schemaVersion": 1,
+      "resources": [
+        {
+          "type": "network",
+          "usage": "required",
+          "purpose": {
+            "en": "Connect devices using WebRTC pairing information",
+            "ja": "ペアリング情報を使ってWebRTCで端末を接続する"
+          },
+          "via": [
+            "@kubohiroya/turbowarp-webrtc"
+          ],
+          "data": {
+            "direction": "bidirectional",
+            "content": {
+              "en": "WebRTC connection negotiation and project-defined peer data",
+              "ja": "WebRTCの接続確立と作品が指定する端末間データ"
+            }
+          }
+        },
+        {
+          "type": "camera",
+          "usage": "conditional",
+          "purpose": {
+            "en": "Scan pairing QR codes from shared camera frames",
+            "ja": "共有カメラの映像からペアリング用QRコードを読み取る"
+          },
+          "condition": {
+            "en": "When scanning a pairing QR code",
+            "ja": "ペアリング用QRコードを撮影して読み取る場合"
+          },
+          "via": [
+            "@kubohiroya/turbowarp-camera-source",
+            "@kubohiroya/turbowarp-jsqr"
+          ]
+        }
+      ]
+    }
   }
 }
