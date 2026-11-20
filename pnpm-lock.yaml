@@ -12,24 +12,24 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0
       '@kubohiroya/turbowarp-camera-source':
-        specifier: ^0.23.2
-        version: 0.23.2
+        specifier: ^0.24.0
+        version: 0.24.0
       '@kubohiroya/turbowarp-webrtc':
-        specifier: ^0.7.2
-        version: 0.7.2
+        specifier: ^0.8.0
+        version: 0.8.0
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
       '@kubohiroya/turbowarp-extension-data-editor':
-        specifier: ^0.10.0
-        version: 0.10.0(react@18.3.1)
+        specifier: ^0.11.0
+        version: 0.11.0(react@18.3.1)
       '@kubohiroya/turbowarp-extension-manifest':
         specifier: ^0.5.0
         version: 0.5.0
       '@kubohiroya/turbowarp-jsqr':
-        specifier: ^0.8.0
-        version: 0.8.0(@kubohiroya/turbowarp-camera-source@0.23.2)(@types/emscripten@1.41.6)
+        specifier: ^0.9.0
+        version: 0.9.0(@kubohiroya/turbowarp-camera-source@0.24.0)(@types/emscripten@1.41.6)
       '@kubohiroya/vite-plugin-turbowarp-extension':
         specifier: ^0.11.0
         version: 0.11.0(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.1)(yaml@2.9.1))
@@ -285,12 +285,12 @@ packages:
     resolution: {integrity: sha512-6F8XFMjNqU6BCaajTMbg76JIaY7+IujGcp85h1uMdoCZx3zsbG5JCTdjcgtYYKYnF2GeGeWCQqu8CwriBbVOMg==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/turbowarp-camera-source@0.23.2':
-    resolution: {integrity: sha512-/Q+BEtRNtp+nwVdjKAfTouRPcLuM3MwymgRgFG4iafqFfvcQuzC8kVYEqs/4MrqkTzt3vUrUI+haMrSiyK/dqQ==}
+  '@kubohiroya/turbowarp-camera-source@0.24.0':
+    resolution: {integrity: sha512-vzZ5pdQedCGXxMoK3rKbgjdZkTZmFem/GBdztS2C2D22uge7F/YUKa5ojpV6AGN2gX/XS4w9fpmCfxeszduDJA==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/turbowarp-extension-data-editor@0.10.0':
-    resolution: {integrity: sha512-21IQC6PbnIBExYykbzQ9UF709Cl9kgLL6foKcktpeKFGoKs/pVauWUQErvjYc9bxCVcJTEFV2DKgZ4uqExvBng==}
+  '@kubohiroya/turbowarp-extension-data-editor@0.11.0':
+    resolution: {integrity: sha512-x1ttE4cvsKfKJz7RNDt4/hK/9pk+GEHDm4oR9Y6t0qY6nRDXatAl3ybPJhU7Y702tCYhmtn9Fo46hjYM6OS9dA==}
     engines: {node: '>=24'}
     peerDependencies:
       react: ^16.14.0 || ^17 || ^18
@@ -305,17 +305,17 @@ packages:
     resolution: {integrity: sha512-YD8fwGTwTC6oMinmVLRp5+x/6piKLTYNraKnsc+oEi/w6NFdePm1ocV8eHnBBMcqEO2usr2mI/0qnV66Ex35YA==}
     engines: {node: '>=24'}
 
-  '@kubohiroya/turbowarp-jsqr@0.8.0':
-    resolution: {integrity: sha512-cGQi0wc1Hm4xbr39xbU8aXdVDD6Ka9guZLXRUtw7mCDNy/fAzt8bzRjqf8IbsYyV3ynEzkjiKoxRP26AT7lHuA==}
+  '@kubohiroya/turbowarp-jsqr@0.9.0':
+    resolution: {integrity: sha512-z27J7odUPscP7qPFM1YW/ucvsFby7woQq6RFbVlBRzgC7dlYOTmPJrOg8sHGpf5Rz0xsEG6tITj5G2k50aqA8Q==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@kubohiroya/turbowarp-camera-source': ^0.23.0
+      '@kubohiroya/turbowarp-camera-source': ^0.24.0
     peerDependenciesMeta:
       '@kubohiroya/turbowarp-camera-source':
         optional: true
 
-  '@kubohiroya/turbowarp-webrtc@0.7.2':
-    resolution: {integrity: sha512-Un3njw+7oH2nOYFG4QeTFMkF3HjDPnNzmXnv/GwHR/TPRdQ4C8brWJfFez9dIgaMz0nhtKKBsGz1i2eIg0l5AA==}
+  '@kubohiroya/turbowarp-webrtc@0.8.0':
+    resolution: {integrity: sha512-e/7yk0/UC5xBN8hq6HO1KMYfqH2AkUR3jc9osjJ0bXyb6xb2btjNI3mg4gl4inBRmB/llE4e8Kt894nzy6nE6A==}
     engines: {node: '>=24'}
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.11.0':
@@ -1081,6 +1081,10 @@ packages:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
 
+  type-fest@5.10.0:
+    resolution: {integrity: sha512-NoSdpq/WEiAg5sjmBkmV/hfxv6HJH4NqPNrqjtSO5CwRmpsDfaf4begxW34KdJykH/l1yHtwBWQkCRdoXO8mPA==}
+    engines: {node: '>=20'}
+
   type-fest@5.9.0:
     resolution: {integrity: sha512-yANm3Jr3GiJ1qgJlxGAVxTOIcEOk1rhQHamlXtnrCK7EHP4HeM9OGxtMg/W7HFdrVzw/ZWJKGVIJusVH85sLtw==}
     engines: {node: '>=20'}
@@ -1227,6 +1231,11 @@ packages:
 
   zxing-wasm@3.1.4:
     resolution: {integrity: sha512-1+v8p7sauddySVNG+ye7GD/0TS95BG2ycdkrC+EnBrFBFkHeIghzUt2yVjtx3NucJeNrQnhT8yGAIz60Vx9o0w==}
+    peerDependencies:
+      '@types/emscripten': '>=1.39.6'
+
+  zxing-wasm@3.1.7:
+    resolution: {integrity: sha512-LI94ndlOY+xoqlkNcc0EwByrMpUXKrCX171EQ38kGWqpiRq/gcnC+ZrbRipvxI3uV4LaDtNlKo1p9Uayg1sesQ==}
     peerDependencies:
       '@types/emscripten': '>=1.39.6'
 
@@ -1383,9 +1392,9 @@ snapshots:
 
   '@kubohiroya/qrcode-structured-append@0.3.0': {}
 
-  '@kubohiroya/turbowarp-camera-source@0.23.2': {}
+  '@kubohiroya/turbowarp-camera-source@0.24.0': {}
 
-  '@kubohiroya/turbowarp-extension-data-editor@0.10.0(react@18.3.1)':
+  '@kubohiroya/turbowarp-extension-data-editor@0.11.0(react@18.3.1)':
     dependencies:
       '@rjsf/core': 5.24.13(@rjsf/utils@5.24.13(react@18.3.1))(react@18.3.1)
       '@rjsf/utils': 5.24.13(react@18.3.1)
@@ -1399,15 +1408,15 @@ snapshots:
 
   '@kubohiroya/turbowarp-extension-manifest@0.5.0': {}
 
-  '@kubohiroya/turbowarp-jsqr@0.8.0(@kubohiroya/turbowarp-camera-source@0.23.2)(@types/emscripten@1.41.6)':
+  '@kubohiroya/turbowarp-jsqr@0.9.0(@kubohiroya/turbowarp-camera-source@0.24.0)(@types/emscripten@1.41.6)':
     dependencies:
-      zxing-wasm: 3.1.4(@types/emscripten@1.41.6)
+      zxing-wasm: 3.1.7(@types/emscripten@1.41.6)
     optionalDependencies:
-      '@kubohiroya/turbowarp-camera-source': 0.23.2
+      '@kubohiroya/turbowarp-camera-source': 0.24.0
     transitivePeerDependencies:
       - '@types/emscripten'
 
-  '@kubohiroya/turbowarp-webrtc@0.7.2': {}
+  '@kubohiroya/turbowarp-webrtc@0.8.0': {}
 
   '@kubohiroya/vite-plugin-turbowarp-extension@0.11.0(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.1)(yaml@2.9.1))':
     dependencies:
@@ -2112,6 +2121,10 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
 
+  type-fest@5.10.0:
+    dependencies:
+      tagged-tag: 1.0.0
+
   type-fest@5.9.0:
     dependencies:
       tagged-tag: 1.0.0
@@ -2203,3 +2216,8 @@ snapshots:
     dependencies:
       '@types/emscripten': 1.41.6
       type-fest: 5.9.0
+
+  zxing-wasm@3.1.7(@types/emscripten@1.41.6):
+    dependencies:
+      '@types/emscripten': 1.41.6
+      type-fest: 5.10.0
