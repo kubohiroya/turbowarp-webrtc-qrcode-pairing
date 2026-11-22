@@ -3410,14 +3410,14 @@ function currentSkinId(renderer, drawableId) {
 }
 //#endregion
 //#region src/ports/qr-scan.ts
-var QR_DECODER_KEY = "ext_kubohiroyajsqr";
+var QR_DECODER_KEY = "ext_kubohiroyazxing";
 var CAMERA_SOURCE_KEY = "ext_kubohiroyacamerasource";
 /**
 * Reads QR codes from a camera for the length of a pairing session.
 *
-* The jsQR extension's own `waitForQrText` acquires and releases a camera lease
+* The ZXing extension's own `waitForQrText` acquires and releases a camera lease
 * per call, which would restart the camera between every part. This holds one
-* lease for the whole session instead and reuses jsQR only for decoding, so the
+* lease for the whole session instead and reuses ZXing only for decoding, so the
 * camera-source lease rules are respected and other holders keep the camera
 * alive after the session ends.
 */
@@ -3494,9 +3494,9 @@ var CameraQrScanner = class {
 	}
 	decoder() {
 		const candidate = this.runtime[QR_DECODER_KEY];
-		if (!isRecord(candidate) || typeof candidate.readFrame !== "function") throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later.");
+		if (!isRecord(candidate) || typeof candidate.readFrame !== "function") throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-zxing 0.11.0 or later.");
 		const version = candidate.capabilityVersion;
-		if (typeof version !== "number" || version < 2) throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later, which reads Structured Append codes.");
+		if (typeof version !== "number" || version < 2) throw new QrPairingError("qr-decoder-missing", "Scanning pairing QR codes requires @kubohiroya/turbowarp-zxing 0.11.0 or later, which reads Structured Append codes.");
 		return candidate;
 	}
 	cameraSource() {

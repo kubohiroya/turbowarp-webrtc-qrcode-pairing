@@ -7,17 +7,17 @@ afterEach(() => vi.unstubAllGlobals());
 
 /**
  * Checks the decoding path this extension actually relies on: the published
- * turbowarp-jsqr extension's `readFrame`, which is what `CameraQrScanner` calls,
+ * turbowarp-zxing extension's `readFrame`, which is what `CameraQrScanner` calls,
  * reading rendered codes. A change in that extension's published API, or in
  * how it reports Structured Append positions, shows up here.
  */
-describe('turbowarp-jsqr integration', () => {
+describe('turbowarp-zxing integration', () => {
   it('reads every code of an offer through the published readFrame API and joins them', async () => {
     const codes = await createPairingCodes('C'.repeat(1250), {
       senderPeerId: 'studio',
       targetPeerId: 'cam-A',
       kind: 'offer',
-      sessionId: 'jsqr-integration',
+      sessionId: 'zxing-integration',
       createdAt: 1000,
       maxVersion: 15
     });
@@ -51,7 +51,7 @@ describe('turbowarp-jsqr integration', () => {
       })
     });
 
-    await import('@kubohiroya/turbowarp-jsqr/jsqr.js');
+    await import('@kubohiroya/turbowarp-zxing/zxing.js');
     expect(decoder?.capabilityVersion).toBeGreaterThanOrEqual(2);
 
     const assembler = new PairingAssembler();

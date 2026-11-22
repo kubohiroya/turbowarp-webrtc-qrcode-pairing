@@ -1,9 +1,9 @@
 import {QrPairingError} from '../errors.js';
 
-export const QR_DECODER_KEY = 'ext_kubohiroyajsqr';
+export const QR_DECODER_KEY = 'ext_kubohiroyazxing';
 export const CAMERA_SOURCE_KEY = 'ext_kubohiroyacamerasource';
 
-/** Poll interval matching the jsQR extension's own default. */
+/** Poll interval matching the ZXing extension's own default. */
 export const SCAN_POLL_INTERVAL_MS = 150;
 
 export interface CameraFrameSource {
@@ -22,12 +22,12 @@ export interface CameraSourcePort {
 }
 
 /**
- * The turbowarp-jsqr capability version that reads Structured Append headers.
+ * The turbowarp-zxing capability version that reads Structured Append headers.
  * Version 1 returned text only, which cannot tell the codes of a sequence apart.
  */
 export const REQUIRED_DECODER_CAPABILITY = 2;
 
-/** One decoded QR code, as turbowarp-jsqr's `readFrame` returns it. */
+/** One decoded QR code, as turbowarp-zxing's `readFrame` returns it. */
 export interface QrRead {
   readonly text: string;
   readonly bytes: Uint8Array;
@@ -39,7 +39,7 @@ export interface QrRead {
   } | null;
 }
 
-/** Decoding stays in turbowarp-jsqr; this extension never touches pixels. */
+/** Decoding stays in turbowarp-zxing; this extension never touches pixels. */
 export interface QrDecodePort {
   readonly capabilityVersion: number;
   readFrame(frame: CameraFrameSource): Promise<QrRead | null>;
@@ -57,9 +57,9 @@ export interface QrScanPort {
 /**
  * Reads QR codes from a camera for the length of a pairing session.
  *
- * The jsQR extension's own `waitForQrText` acquires and releases a camera lease
+ * The ZXing extension's own `waitForQrText` acquires and releases a camera lease
  * per call, which would restart the camera between every part. This holds one
- * lease for the whole session instead and reuses jsQR only for decoding, so the
+ * lease for the whole session instead and reuses ZXing only for decoding, so the
  * camera-source lease rules are respected and other holders keep the camera
  * alive after the session ends.
  */
@@ -163,14 +163,14 @@ export class CameraQrScanner implements QrScanPort {
     if (!isRecord(candidate) || typeof candidate.readFrame !== 'function') {
       throw new QrPairingError(
         'qr-decoder-missing',
-        'Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later.'
+        'Scanning pairing QR codes requires @kubohiroya/turbowarp-zxing 0.11.0 or later.'
       );
     }
     const version = candidate.capabilityVersion;
     if (typeof version !== 'number' || version < REQUIRED_DECODER_CAPABILITY) {
       throw new QrPairingError(
         'qr-decoder-missing',
-        'Scanning pairing QR codes requires @kubohiroya/turbowarp-jsqr 0.4.0 or later, which reads Structured Append codes.'
+        'Scanning pairing QR codes requires @kubohiroya/turbowarp-zxing 0.11.0 or later, which reads Structured Append codes.'
       );
     }
     return candidate as unknown as QrDecodePort;
