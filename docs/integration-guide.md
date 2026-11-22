@@ -12,7 +12,7 @@ Load these extensions **before** this one, and run all of them unsandboxed:
 | Extension | Why |
 |---|---|
 | `turbowarp-webrtc` | Creates and accepts the offer and the answer, and owns the connection |
-| `turbowarp-jsqr` 0.4.0 or later | Decodes QR codes from camera frames, including their Structured Append positions |
+| `turbowarp-zxing` 0.11.0 or later | Decodes QR codes from camera frames, including their Structured Append positions |
 | `turbowarp-camera-source` | Acquires the camera and exposes frames |
 
 `turbowarp-webrtc` must publish runtime capability **v3**, which version 0.4.0 and later do. Version
@@ -259,7 +259,7 @@ sentence for the operator. Neither ever contains the connection code itself.
 |---|---|---|
 | `feature-disabled` | The startup flag is off | Set `__TWQP_FEATURE_FLAGS__` before loading |
 | `webrtc-capability-missing` | `turbowarp-webrtc` is absent or older than v3 | Load it first; it must publish capability v3 |
-| `qr-decoder-missing` / `camera-unavailable` | `turbowarp-jsqr` 0.4.0 or later or `turbowarp-camera-source` is absent, or the camera failed | Load them first; check camera permission |
+| `qr-decoder-missing` / `camera-unavailable` | `turbowarp-zxing` 0.11.0 or later or `turbowarp-camera-source` is absent, or the camera failed | Load them first; check camera permission |
 | `renderer-unavailable` | The sprite cannot take a temporary skin | Use a normal sprite, not the stage or a clone; or display the SVG yourself |
 | `unsupported-protocol` | The message is not `twqr/2` | A `twqr/1` or `twmp-qr/1` code from an older version, or another product's QR |
 | `hash-mismatch` / `length-mismatch` | The codes joined, but the message is damaged | Scanning drops the sequence and reads it again; raise error correction if it keeps happening |

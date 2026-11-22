@@ -24,12 +24,12 @@
         "license": "MPL-2.0"
       },
       {
-        "id": "kubohiroyajsqr",
+        "id": "kubohiroyazxing",
         "unsandboxed": true,
-        "bundle": "samples/dependencies/jsqr.js",
-        "sha256": "eba292f5d0690aaecf7200f8c6918cc48eaf5d825c74ab4af0d8020bdc717871",
-        "repository": "https://github.com/kubohiroya/turbowarp-jsqr",
-        "revision": "c5cb1900885036416b0dcbb68f6427997ea116e4",
+        "bundle": "samples/dependencies/zxing.js",
+        "sha256": "cfaeb20f8e037a2993588e9393c55908e2702a521e6d5efe555f4150932fde44",
+        "repository": "https://github.com/kubohiroya/turbowarp-zxing",
+        "revision": "30a84b37efc2a1fc6c5e063ed9b6f76b95d385b1",
         "license": "MPL-2.0"
       }
     ],
@@ -50,7 +50,7 @@
           "equals": "Ready"
         }
       ],
-      "requirements": "同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/jsQRの実distをID/SHA256/commit/license付きで同梱。jsQRデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。",
+      "requirements": "同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/ZXingの実distをID/SHA256/commit/license付きで同梱。ZXingデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。",
       "unverified": "実2端末の光学QR読取・カメラ許可・実WASMによるQR読取・接続完了・実ネットワークは未検証。自動検証は未接続初期状態とanswer待機/取消のみに限定。"
     }
   ]

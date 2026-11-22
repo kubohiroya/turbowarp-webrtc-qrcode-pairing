@@ -12,7 +12,7 @@ A TurboWarp extension for exchanging WebRTC connection information through QR co
 
 [TurboWarp Editor — open demo](https://turbowarp.org/editor?project_url=https%3A%2F%2Fkubohiroya.github.io%2Fturbowarp-webrtc-qrcode-pairing%2Fsamples%2Fpair-two-devices.sb3) · [SB3 download](https://kubohiroya.github.io/turbowarp-webrtc-qrcode-pairing/samples/pair-two-devices.sb3)
 
-Requires two LAN devices with cameras/screens, HTTPS and camera permission. Real WebRTC/Camera Source/jsQR companions are embedded with ID/checksum/revision/license; the real QR decoder WASM is embedded and needs no CDN download. Green flag only resets. Host: O; guest: A. C requests the camera via its permission button and scans a part; N cycles outgoing QR parts. Repeat on both devices for offer/answer; S reads state; X cancels and closes peers/camera. The sample enables the existing opt-in flag only during bundle initialization and restores the global property; package defaults remain off. Physical optical scanning, camera permission, WASM optical decoding, completed pairing and real networks remain unverified; automated checks cover idle and answer-wait/cancel only.
+Requires two LAN devices with cameras/screens, HTTPS and camera permission. Real WebRTC/Camera Source/ZXing companions are embedded with ID/checksum/revision/license; the real QR decoder WASM is embedded and needs no CDN download. Green flag only resets. Host: O; guest: A. C requests the camera via its permission button and scans a part; N cycles outgoing QR parts. Repeat on both devices for offer/answer; S reads state; X cancels and closes peers/camera. The sample enables the existing opt-in flag only during bundle initialization and restores the global property; package defaults remain off. Physical optical scanning, camera permission, WASM optical decoding, completed pairing and real networks remain unverified; automated checks cover idle and answer-wait/cancel only.
 
 [Editable sources and rebuild instructions](samples/README.md)
 
@@ -25,7 +25,7 @@ Requires two LAN devices with cameras/screens, HTTPS and camera permission. Real
 - Tracks which offer an answer replies to, so two camera machines never receive each other's connection.
 - Reports transport progress and connection state as separate states, plus errors, cancellation, retry and deadlines.
 
-Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-jsqr` 0.4.0 or later. 0.2.1 fixes a camera scan that starved the page while a code stayed in view. 0.2.2 reads a header that runs past the first code, takes reads one at a time so a code is handed over once, and keeps a sequence when a malformed code is read. 0.2.3 forgets the QR codes, which carry the pairing codes, as soon as an exchange connects, fails or is cancelled.
+Version 0.2.0 carries messages as Structured Append sequences, caps Offer codes at QR version 15 and Answer codes at 20, and reports every pairing code read. It needs `turbowarp-zxing` 0.11.0 or later. 0.2.1 fixes a camera scan that starved the page while a code stayed in view. 0.2.2 reads a header that runs past the first code, takes reads one at a time so a code is handed over once, and keeps a sequence when a malformed code is read. 0.2.3 forgets the QR codes, which carry the pairing codes, as soon as an exchange connects, fails or is cancelled.
 
 > [!NOTE]
 > The pairing blocks are behind a startup feature flag that is off by default. See
@@ -56,7 +56,7 @@ The smartphone carries signaling information optically. Camera data is sent over
 | `turbowarp-webrtc` | Offer/Answer creation and acceptance, ICE and WebRTC connections |
 | `turbowarp-webrtc-qrcode-pairing` | Pairing message format, display and collection of its codes, and pairing orchestration |
 | `qrcode-structured-append` | Creating and joining Structured Append sequences; a library, not an extension |
-| `turbowarp-jsqr` | Decode QR codes from camera frames, including Structured Append positions |
+| `turbowarp-zxing` | Decode QR codes from camera frames, including Structured Append positions |
 | `turbowarp-camera-source` | Camera acquisition and frame access |
 | `turbowarp-time-space-sync` | Optical time correspondence and camera placement calibration |
 | `turbowarp-time-space-sync-app` | Verification app for the time-space-sync extension |
@@ -64,7 +64,7 @@ The smartphone carries signaling information optically. Camera data is sent over
 | `turbowarp-webrtc-qrcode-pairing-app` | Standalone pairing example and connection verification |
 | `turbowarp-realtime-motion-capture-app`, `turbowarp-photogrammetry-app` | Production venue workflow; embed this extension directly |
 
-Pairing is usable independently of time/space calibration and motion capture. `turbowarp-webrtc`, `turbowarp-jsqr` and `turbowarp-camera-source` are companion extensions this one checks for at runtime.
+Pairing is usable independently of time/space calibration and motion capture. `turbowarp-webrtc`, `turbowarp-zxing` and `turbowarp-camera-source` are companion extensions this one checks for at runtime.
 
 A pairing session cannot be handed from one app to another. Opening a different SB3 re-evaluates its bundle, so the WebRTC extension instance is rebuilt and the existing `RTCPeerConnection` becomes unreachable from blocks; a saved SDP cannot restore it either. Consumer apps therefore embed this extension and pair inside their own flow, and `turbowarp-webrtc-qrcode-pairing-app` exists for verification rather than as a stage of the production workflow.
 
@@ -105,7 +105,7 @@ The caps (1 to 40) decide how fine each code gets. A single version 29-32 code f
 ## Requirements and safety
 
 - Node.js >=24 and pnpm 11.28.8.
-- Companion extensions: `turbowarp-webrtc` for the connection, `turbowarp-jsqr` 0.4.0 or later for decoding and `turbowarp-camera-source` for camera frames. Load them before this one. Earlier `turbowarp-jsqr` versions return text only and are refused with `qr-decoder-missing`.
+- Companion extensions: `turbowarp-webrtc` for the connection, `turbowarp-zxing` 0.11.0 or later for decoding and `turbowarp-camera-source` for camera frames. Load them before this one. Earlier `turbowarp-zxing` versions return text only and are refused with `qr-decoder-missing`.
 - `turbowarp-webrtc` must publish runtime capability v3, which adds `acceptOffer`, `getAnswer`, `acceptAnswer`, `connectionState`, `hasPeer` and `closePeer`. Version 0.4.0 publishes it; 0.3.0 and earlier publish v2, which can produce an offer but not accept one, so a round trip cannot complete.
 - Carrying a code by QR does not make a connection reachable. Network conditions, ICE and STUN/TURN belong to `turbowarp-webrtc`.
 

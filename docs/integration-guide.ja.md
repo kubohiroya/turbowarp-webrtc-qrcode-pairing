@@ -12,7 +12,7 @@ TurboWarpのプロジェクトから本拡張で2台の端末をペアリング�
 | 拡張 | 役割 |
 |---|---|
 | `turbowarp-webrtc` | Offer／Answerの生成と受理、接続の保持 |
-| `turbowarp-jsqr` 0.4.0以降 | カメラフレームからのQRデコード。連結QRコードの位置も読む |
+| `turbowarp-zxing` 0.11.0以降 | カメラフレームからのQRデコード。連結QRコードの位置も読む |
 | `turbowarp-camera-source` | カメラの取得とフレームの提供 |
 
 `turbowarp-webrtc`はruntime capability **v3**を公開している必要があります。0.4.0以降が該当します。
@@ -248,7 +248,7 @@ QRのSVGとdata URIを返すブロックは空の文字列を返します。
 |---|---|---|
 | `feature-disabled` | 起動時フラグが無効 | 読込み前に`__TWQP_FEATURE_FLAGS__`を設定する |
 | `webrtc-capability-missing` | `turbowarp-webrtc`が無いかv3未満 | 先に読み込む。capability v3が必要 |
-| `qr-decoder-missing` / `camera-unavailable` | `turbowarp-jsqr` 0.4.0以降か`turbowarp-camera-source`が無い、またはカメラ取得に失敗 | 先に読み込む。カメラの許可を確認する |
+| `qr-decoder-missing` / `camera-unavailable` | `turbowarp-zxing` 0.11.0以降か`turbowarp-camera-source`が無い、またはカメラ取得に失敗 | 先に読み込む。カメラの許可を確認する |
 | `renderer-unavailable` | スプライトに一時skinを設定できない | ステージやクローンではなく通常のスプライトを使う。またはSVGを自分で表示する |
 | `unsupported-protocol` | `twqr/2`ではないメッセージ | 旧版の`twqr/1`か`twmp-qr/1`、または別製品のQR |
 | `hash-mismatch` / `length-mismatch` | QRは揃ったが内容が壊れている | 走査中は連結QRを破棄して読み直す。続くなら誤り訂正レベルを上げる |

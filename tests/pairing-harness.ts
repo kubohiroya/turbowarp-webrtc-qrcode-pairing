@@ -114,7 +114,7 @@ export function createClock(): ClockHarness {
   };
 }
 
-/** A decoded Structured Append code, as turbowarp-jsqr's `readFrame` reports it. */
+/** A decoded Structured Append code, as turbowarp-zxing's `readFrame` reports it. */
 export function symbolRead(symbol: StructuredAppendSymbol): QrRead {
   let text = '';
   for (const byte of symbol.bytes) text += String.fromCharCode(byte);

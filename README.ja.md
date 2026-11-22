@@ -14,7 +14,7 @@ QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です
 
 両端末で緑旗。hostでO、guestでA。guestでC→画面のカメラ許可ボタンをクリックしてhostのQRを読む。hostでNを押して全パートを順次見せ、guestはCで続きのパートを読む。guestのanswer QRもNで表示、hostはCで全パートを読む。Sでconnectedを確認。Xでセッション・peer・カメラを停止。再実行は緑旗から。
 
-要件: 同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/jsQRの実distをID/SHA256/commit/license付きで同梱。jsQRデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。
+要件: 同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/ZXingの実distをID/SHA256/commit/license付きで同梱。ZXingデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。
 
 未検証: 実2端末の光学QR読取・カメラ許可・実WASMによるQR読取・接続完了・実ネットワークは未検証。自動検証は未接続初期状態とanswer待機/取消のみに限定。
 
@@ -29,7 +29,7 @@ QRコードを使ってWebRTCの接続情報を交換するTurboWarp拡張です
 - Answerがどの Offer への応答かを追跡し、2台のカメラ側端末の接続情報が入れ替わらないようにします。
 - 搬送の進捗と接続状態を別々の状態として報告します。エラー、取消、再試行、期限にも対応します。
 
-`0.2.0`では、メッセージを連結QRコードで運び、1枚のQRを既定でOfferはversion 15、Answerはversion 20までに抑え、読んだペアリング用のQRをすべて報告します。`turbowarp-jsqr` 0.4.0以降が必要です。`0.2.1`では、QRがカメラに写り続けている間の読取りがページの処理を止めてしまう不具合を直しました。`0.2.2`では、1枚目に収まらないheaderを先頭から続くQRで読み、読取りを1つずつ処理して接続情報を一度だけ渡し、規格に合わないQRを読んでも集めていたものを消さないようにしました。`0.2.3`では、交換が接続・失敗・取消のどれかで終わった時点で、接続情報を含むQRのデータを捨てます。
+`0.2.0`では、メッセージを連結QRコードで運び、1枚のQRを既定でOfferはversion 15、Answerはversion 20までに抑え、読んだペアリング用のQRをすべて報告します。`turbowarp-zxing` 0.11.0以降が必要です。`0.2.1`では、QRがカメラに写り続けている間の読取りがページの処理を止めてしまう不具合を直しました。`0.2.2`では、1枚目に収まらないheaderを先頭から続くQRで読み、読取りを1つずつ処理して接続情報を一度だけ渡し、規格に合わないQRを読んでも集めていたものを消さないようにしました。`0.2.3`では、交換が接続・失敗・取消のどれかで終わった時点で、接続情報を含むQRのデータを捨てます。
 
 > [!NOTE]
 > ペアリング用ブロックは起動時固定のフィーチャーフラグの内側にあり、既定は無効です。
@@ -60,7 +60,7 @@ Offerは統合側端末がループ表示し、カメラ側端末は順不同で
 | `turbowarp-webrtc` | Offer／Answerの生成・受理、ICE、WebRTC接続 |
 | 本パッケージ | ペアリング用メッセージの形式、そのQRの表示と収集、ペアリングの進行 |
 | `qrcode-structured-append` | 連結QRコードの作成と結合。拡張ではなくライブラリ |
-| `turbowarp-jsqr` | カメラ画像からのQR読取り。連結QRコードの位置も読む |
+| `turbowarp-zxing` | カメラ画像からのQR読取り。連結QRコードの位置も読む |
 | `turbowarp-camera-source` | カメラ取得とフレームへのアクセス |
 | `turbowarp-time-space-sync` | 光学的な時刻対応の推定、カメラ配置の校正 |
 | `turbowarp-time-space-sync-app` | time-space-sync拡張の検証用アプリ |
@@ -68,7 +68,7 @@ Offerは統合側端末がループ表示し、カメラ側端末は順不同で
 | `turbowarp-webrtc-qrcode-pairing-app` | ペアリング単独の操作例と接続確認 |
 | `turbowarp-realtime-motion-capture-app`、`turbowarp-photogrammetry-app` | 本番の会場運用。本拡張を直接埋め込む |
 
-接続用QRの搬送は、時刻・空間校正やモーションキャプチャから独立して利用できます。`turbowarp-webrtc`、`turbowarp-jsqr`、`turbowarp-camera-source`は実行時に併用する拡張で、いずれも本拡張が起動時に存在を確認します。
+接続用QRの搬送は、時刻・空間校正やモーションキャプチャから独立して利用できます。`turbowarp-webrtc`、`turbowarp-zxing`、`turbowarp-camera-source`は実行時に併用する拡張で、いずれも本拡張が起動時に存在を確認します。
 
 ペアリング済みの接続をアプリ間で引き継ぐことはできません。別のSB3を開くとそのbundleが評価されてWebRTC拡張のインスタンスが作り直され、既存の`RTCPeerConnection`はblockから到達できなくなります。保存したSDPからの復元もできません。したがって本番では消費側アプリが本拡張を埋め込んで自分のフローの中でペアリングし、`turbowarp-webrtc-qrcode-pairing-app`は本番フローの一段階ではなく検証用として位置づけます。
 
@@ -125,7 +125,7 @@ pnpm run dev
 ## 必要な環境と注意
 
 - Node.js >=24、pnpm 11.28.8。
-- 併用する拡張: 接続は`turbowarp-webrtc`、QRのデコードは`turbowarp-jsqr` 0.4.0以降、カメラフレームは`turbowarp-camera-source`。本拡張より先に読み込んでください。それより前の`turbowarp-jsqr`はテキストしか返さないため、`qr-decoder-missing`として拒否します。
+- 併用する拡張: 接続は`turbowarp-webrtc`、QRのデコードは`turbowarp-zxing` 0.11.0以降、カメラフレームは`turbowarp-camera-source`。本拡張より先に読み込んでください。それより前の`turbowarp-zxing`はテキストしか返さないため、`qr-decoder-missing`として拒否します。
 - `turbowarp-webrtc`はruntime capability v3（`acceptOffer`、`getAnswer`、`acceptAnswer`、`connectionState`、`hasPeer`、`closePeer`）を公開している必要があります。0.4.0以降が該当します。0.3.0以前はv2までで、Offerは作れても受理できないため往復を完結できません。
 - QRで接続情報を運べたことは、接続が到達可能であることを意味しません。ネットワーク条件、ICE、STUN／TURNは`turbowarp-webrtc`の責務です。
 

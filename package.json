@@ -66,7 +66,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@kubohiroya/turbowarp-extension-manifest": "^0.5.0",
-    "@kubohiroya/turbowarp-jsqr": "^0.9.0",
+    "@kubohiroya/turbowarp-zxing": "^0.11.0",
     "@kubohiroya/vite-plugin-turbowarp-extension": "^0.11.0",
     "@types/node": "^24.13.3",
     "eslint": "^9.39.5",
@@ -79,14 +79,14 @@
   },
   "peerDependencies": {
     "@kubohiroya/turbowarp-camera-source": "^0.24.0",
-    "@kubohiroya/turbowarp-jsqr": "^0.9.0",
+    "@kubohiroya/turbowarp-zxing": "^0.11.0",
     "@kubohiroya/turbowarp-webrtc": "^0.8.0"
   },
   "peerDependenciesMeta": {
     "@kubohiroya/turbowarp-webrtc": {
       "optional": true
     },
-    "@kubohiroya/turbowarp-jsqr": {
+    "@kubohiroya/turbowarp-zxing": {
       "optional": true
     },
     "@kubohiroya/turbowarp-camera-source": {
@@ -131,7 +131,7 @@
           },
           "via": [
             "@kubohiroya/turbowarp-camera-source",
-            "@kubohiroya/turbowarp-jsqr"
+            "@kubohiroya/turbowarp-zxing"
           ]
         }
       ]

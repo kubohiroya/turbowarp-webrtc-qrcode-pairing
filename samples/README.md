@@ -8,7 +8,7 @@
 
 ## 要件
 
-同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/jsQRの実distをID/SHA256/commit/license付きで同梱。jsQRデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。
+同一LANのカメラ・画面付き実2端末、HTTPS対応ブラウザ、カメラ許可。WebRTC/Camera Source/ZXingの実distをID/SHA256/commit/license付きで同梱。ZXingデコーダのWASMも実distに同梱され、スキャン時のCDN取得は不要。sampleだけQR pairing起動フラグを初期化中にONにし、元のglobal descriptorを復元。本体既定OFFは維持。
 
 ## 未検証範囲
 

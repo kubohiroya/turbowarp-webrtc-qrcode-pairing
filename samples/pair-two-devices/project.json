@@ -1725,7 +1725,7 @@
           "topLevel": false
         },
         "qr-last-report": {
-          "opcode": "kubohiroyajsqr_lastQrTextReporter",
+          "opcode": "kubohiroyazxing_lastQrTextReporter",
           "next": null,
           "parent": "qr-last-set",
           "inputs": {},
